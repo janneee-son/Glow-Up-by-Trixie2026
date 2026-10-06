@@ -16,10 +16,10 @@ type Props = {
 };
 
 const inputClass =
-    'pl-9 bg-[#FFFAFB] border-[#F3A6C0] rounded-xl text-[#4A2C33] placeholder:text-[#7A5560]/60 focus-visible:border-[#E75480] focus-visible:ring-[#E75480]/40';
+    'pl-9 bg-[#FAFCFE] border-[#95B1DB] rounded-xl text-[#1F2D40] placeholder:text-[#5B6B82]/60 focus-visible:border-[#769AD0] focus-visible:ring-[#769AD0]/40';
 
 const plainInputClass =
-    'bg-[#FFFAFB] border-[#F3A6C0] rounded-xl text-[#4A2C33] placeholder:text-[#7A5560]/60 focus-visible:border-[#E75480] focus-visible:ring-[#E75480]/40';
+    'bg-[#FAFCFE] border-[#95B1DB] rounded-xl text-[#1F2D40] placeholder:text-[#5B6B82]/60 focus-visible:border-[#769AD0] focus-visible:ring-[#769AD0]/40';
 
 // Allow letters (incl. accented), spaces, hyphens, apostrophes only.
 const NAME_PATTERN = "^[A-Za-zÀ-ÖØ-öø-ÿ' \\-]+$";
@@ -58,11 +58,11 @@ export default function Register({ passwordRules }: Props) {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="name" className="text-[#4A2C33]">
+                                <Label htmlFor="name" className="text-[#1F2D40]">
                                     Name
                                 </Label>
                                 <div className="relative">
-                                    <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#E75480]/60" />
+                                    <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5F83AB]/60" />
                                     <Input
                                         id="name"
                                         type="text"
@@ -82,11 +82,11 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email" className="text-[#4A2C33]">
+                                <Label htmlFor="email" className="text-[#1F2D40]">
                                     Email address
                                 </Label>
                                 <div className="relative">
-                                    <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#E75480]/60" />
+                                    <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5F83AB]/60" />
                                     <Input
                                         id="email"
                                         type="email"
@@ -103,11 +103,11 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="phone" className="text-[#4A2C33]">
+                                <Label htmlFor="phone" className="text-[#1F2D40]">
                                     Phone number
                                 </Label>
                                 <div className="relative">
-                                    <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#E75480]/60" />
+                                    <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5F83AB]/60" />
                                     <Input
                                         id="phone"
                                         type="tel"
@@ -128,13 +128,13 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             {/* address */}
-                            <div className="grid gap-4 rounded-xl border border-[#F3A6C0]/60 bg-[#FFEAF2] p-4">
-                                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#E75480]">
+                            <div className="grid gap-4 rounded-xl border border-[#95B1DB]/60 bg-[#EDF3FA] p-4">
+                                <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#5F83AB]">
                                     <MapPin className="h-3.5 w-3.5" /> Address
                                 </p>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="street_address" className="text-[#4A2C33]">
+                                    <Label htmlFor="street_address" className="text-[#1F2D40]">
                                         House no. / Street
                                     </Label>
                                     <Input
@@ -153,7 +153,7 @@ export default function Register({ passwordRules }: Props) {
 
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="barangay" className="text-[#4A2C33]">
+                                        <Label htmlFor="barangay" className="text-[#1F2D40]">
                                             Barangay
                                         </Label>
                                         <Input
@@ -170,7 +170,7 @@ export default function Register({ passwordRules }: Props) {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="city" className="text-[#4A2C33]">
+                                        <Label htmlFor="city" className="text-[#1F2D40]">
                                             City / Municipality
                                         </Label>
                                         <Input
@@ -189,7 +189,7 @@ export default function Register({ passwordRules }: Props) {
 
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="province" className="text-[#4A2C33]">
+                                        <Label htmlFor="province" className="text-[#1F2D40]">
                                             Province
                                         </Label>
                                         <Input
@@ -206,7 +206,7 @@ export default function Register({ passwordRules }: Props) {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="postal_code" className="text-[#4A2C33]">
+                                        <Label htmlFor="postal_code" className="text-[#1F2D40]">
                                             Postal code
                                         </Label>
                                         <Input
@@ -230,11 +230,11 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password" className="text-[#4A2C33]">
+                                <Label htmlFor="password" className="text-[#1F2D40]">
                                     Password
                                 </Label>
                                 <div className="relative">
-                                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#E75480]/60 z-10" />
+                                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5F83AB]/60 z-10" />
                                     <PasswordInput
                                         id="password"
                                         required
@@ -250,11 +250,11 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation" className="text-[#4A2C33]">
+                                <Label htmlFor="password_confirmation" className="text-[#1F2D40]">
                                     Confirm password
                                 </Label>
                                 <div className="relative">
-                                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#E75480]/60 z-10" />
+                                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5F83AB]/60 z-10" />
                                     <PasswordInput
                                         id="password_confirmation"
                                         required
@@ -271,7 +271,7 @@ export default function Register({ passwordRules }: Props) {
 
                             <Button
                                 type="submit"
-                                className="mt-2 w-full rounded-full bg-[#E75480] text-white shadow-md shadow-[#F3A6C0]/50 transition duration-200 hover:bg-[#D63F6E] hover:shadow-lg"
+                                className="mt-2 w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#95B1DB]/50 transition duration-200 hover:bg-[#4E7099] hover:shadow-lg"
                                 tabIndex={11}
                                 data-test="register-user-button"
                             >
@@ -280,9 +280,9 @@ export default function Register({ passwordRules }: Props) {
                             </Button>
                         </div>
 
-                        <div className="text-center text-sm text-[#7A5560]">
+                        <div className="text-center text-sm text-[#5B6B82]">
                             Already booked with us before?{' '}
-                            <TextLink href={login()} tabIndex={12} className="text-[#E75480] hover:text-[#D63F6E] font-medium">
+                            <TextLink href={login()} tabIndex={12} className="text-[#5F83AB] hover:text-[#4E7099] font-medium">
                                 Log in
                             </TextLink>
                         </div>

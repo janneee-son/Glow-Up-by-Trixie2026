@@ -32,7 +32,7 @@ type Props = {
 };
 
 const fieldClass =
-    'w-full rounded-xl border border-[#F3A6C0] bg-[#FFFAFB] px-3 py-2 text-sm text-[#4A2C33] focus-visible:border-[#E75480] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E75480]/40';
+    'w-full rounded-xl border border-[#95B1DB] bg-[#FAFCFE] px-3 py-2 text-sm text-[#1F2D40] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/40';
 
 export default function EditProfile({ user }: Props) {
     const { auth } = usePage<{
@@ -63,7 +63,7 @@ export default function EditProfile({ user }: Props) {
         <>
             <Head title="Profile" />
 
-            <div className="min-h-screen bg-[#FFF5F7]">
+            <div className="min-h-screen bg-[#F2F5F8]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
@@ -72,13 +72,13 @@ export default function EditProfile({ user }: Props) {
 
                 <div className="mx-auto max-w-2xl px-6 py-10 md:px-12">
                     <div className="mb-6">
-                        <p className="mb-1 text-xs tracking-widest text-[#E75480] uppercase">
+                        <p className="mb-1 text-xs tracking-widest text-[#5F83AB] uppercase">
                             Profile
                         </p>
-                        <h1 className="font-serif text-3xl font-bold text-[#4A2C33]">
+                        <h1 className="font-serif text-3xl font-bold text-[#1F2D40]">
                             Your details
                         </h1>
-                        <p className="mt-1 text-sm text-[#7A5560]">
+                        <p className="mt-1 text-sm text-[#5B6B82]">
                             {isArtist
                                 ? 'These details are shown to clients on the booking page.'
                                 : 'Your artist uses these to reach you about your bookings.'}
@@ -87,14 +87,14 @@ export default function EditProfile({ user }: Props) {
 
                     <form
                         onSubmit={handleSubmit}
-                        className="grid gap-6 rounded-2xl border border-[#F7C6D9] bg-white p-6"
+                        className="grid gap-6 rounded-2xl border border-[#D3DFEF] bg-white p-6"
                     >
                         <div className="grid gap-2">
                             <Label
                                 htmlFor="name"
-                                className="flex items-center gap-1.5 text-[#4A2C33]"
+                                className="flex items-center gap-1.5 text-[#1F2D40]"
                             >
-                                <UserIcon className="h-4 w-4 text-[#E75480]" />{' '}
+                                <UserIcon className="h-4 w-4 text-[#5F83AB]" />{' '}
                                 Full name
                             </Label>
                             <input
@@ -115,9 +115,9 @@ export default function EditProfile({ user }: Props) {
                         <div className="grid gap-2">
                             <Label
                                 htmlFor="email"
-                                className="flex items-center gap-1.5 text-[#4A2C33]"
+                                className="flex items-center gap-1.5 text-[#1F2D40]"
                             >
-                                <Mail className="h-4 w-4 text-[#E75480]" />{' '}
+                                <Mail className="h-4 w-4 text-[#5F83AB]" />{' '}
                                 Email
                             </Label>
                             <input
@@ -128,7 +128,7 @@ export default function EditProfile({ user }: Props) {
                                 disabled
                                 className={`${fieldClass} cursor-not-allowed opacity-70`}
                             />
-                            <p className="text-xs text-[#7A5560]">
+                            <p className="text-xs text-[#5B6B82]">
                                 Your email is your login, so it can't be changed
                                 here.
                             </p>
@@ -137,9 +137,9 @@ export default function EditProfile({ user }: Props) {
                         <div className="grid gap-2">
                             <Label
                                 htmlFor="phone"
-                                className="flex items-center gap-1.5 text-[#4A2C33]"
+                                className="flex items-center gap-1.5 text-[#1F2D40]"
                             >
-                                <Phone className="h-4 w-4 text-[#E75480]" />{' '}
+                                <Phone className="h-4 w-4 text-[#5F83AB]" />{' '}
                                 Mobile number
                             </Label>
                             <input
@@ -160,11 +160,11 @@ export default function EditProfile({ user }: Props) {
 
                         {isArtist ? (
                             /* artist details */
-                            <div className="grid gap-4 rounded-xl border border-[#F3A6C0]/60 bg-[#FFEAF2] p-4">
-                                <p className="flex items-center gap-1.5 text-sm font-semibold text-[#4A2C33]">
-                                    <Briefcase className="h-4 w-4 text-[#E75480]" />{' '}
+                            <div className="grid gap-4 rounded-xl border border-[#95B1DB]/60 bg-[#EDF3FA] p-4">
+                                <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
+                                    <Briefcase className="h-4 w-4 text-[#5F83AB]" />{' '}
                                     Artist details{' '}
-                                    <span className="font-normal text-[#7A5560]">
+                                    <span className="font-normal text-[#5B6B82]">
                                         (optional)
                                     </span>
                                 </p>
@@ -172,7 +172,7 @@ export default function EditProfile({ user }: Props) {
                                 <div className="grid gap-2">
                                     <Label
                                         htmlFor="specialty"
-                                        className="text-[#4A2C33]"
+                                        className="text-[#1F2D40]"
                                     >
                                         Specialty
                                     </Label>
@@ -193,7 +193,7 @@ export default function EditProfile({ user }: Props) {
                                 <div className="grid gap-2">
                                     <Label
                                         htmlFor="years_experience"
-                                        className="text-[#4A2C33]"
+                                        className="text-[#1F2D40]"
                                     >
                                         Years of experience
                                     </Label>
@@ -222,7 +222,7 @@ export default function EditProfile({ user }: Props) {
                                 <div className="grid gap-2">
                                     <Label
                                         htmlFor="bio"
-                                        className="text-[#4A2C33]"
+                                        className="text-[#1F2D40]"
                                     >
                                         Short bio
                                     </Label>
@@ -242,16 +242,16 @@ export default function EditProfile({ user }: Props) {
                             </div>
                         ) : (
                             /* client address */
-                            <div className="grid gap-4 rounded-xl border border-[#F3A6C0]/60 bg-[#FFEAF2] p-4">
-                                <p className="flex items-center gap-1.5 text-sm font-semibold text-[#4A2C33]">
-                                    <MapPin className="h-4 w-4 text-[#E75480]" />{' '}
+                            <div className="grid gap-4 rounded-xl border border-[#95B1DB]/60 bg-[#EDF3FA] p-4">
+                                <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
+                                    <MapPin className="h-4 w-4 text-[#5F83AB]" />{' '}
                                     Address
                                 </p>
 
                                 <div className="grid gap-2">
                                     <Label
                                         htmlFor="street_address"
-                                        className="text-[#4A2C33]"
+                                        className="text-[#1F2D40]"
                                     >
                                         House no. / Street
                                     </Label>
@@ -280,7 +280,7 @@ export default function EditProfile({ user }: Props) {
                                     <div className="grid gap-2">
                                         <Label
                                             htmlFor="barangay"
-                                            className="text-[#4A2C33]"
+                                            className="text-[#1F2D40]"
                                         >
                                             Barangay
                                         </Label>
@@ -305,7 +305,7 @@ export default function EditProfile({ user }: Props) {
                                     <div className="grid gap-2">
                                         <Label
                                             htmlFor="city"
-                                            className="text-[#4A2C33]"
+                                            className="text-[#1F2D40]"
                                         >
                                             City / Municipality
                                         </Label>
@@ -329,7 +329,7 @@ export default function EditProfile({ user }: Props) {
                                     <div className="grid gap-2">
                                         <Label
                                             htmlFor="province"
-                                            className="text-[#4A2C33]"
+                                            className="text-[#1F2D40]"
                                         >
                                             Province
                                         </Label>
@@ -354,7 +354,7 @@ export default function EditProfile({ user }: Props) {
                                     <div className="grid gap-2">
                                         <Label
                                             htmlFor="postal_code"
-                                            className="text-[#4A2C33]"
+                                            className="text-[#1F2D40]"
                                         >
                                             Postal code
                                         </Label>
@@ -389,7 +389,7 @@ export default function EditProfile({ user }: Props) {
                         <Button
                             type="submit"
                             disabled={processing || !isDirty}
-                            className="w-full rounded-full bg-[#E75480] text-white shadow-md shadow-[#F3A6C0]/50 transition duration-200 hover:bg-[#D63F6E] hover:shadow-lg disabled:opacity-50"
+                            className="w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#95B1DB]/50 transition duration-200 hover:bg-[#4E7099] hover:shadow-lg disabled:opacity-50"
                         >
                             {processing ? (
                                 <Spinner />
@@ -400,20 +400,20 @@ export default function EditProfile({ user }: Props) {
                         </Button>
                     </form>
 
-                    <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-[#F7C6D9] bg-white p-5">
+                    <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-[#D3DFEF] bg-white p-5">
                         <div>
-                            <p className="flex items-center gap-1.5 text-sm font-semibold text-[#4A2C33]">
-                                <ShieldCheck className="h-4 w-4 text-[#E75480]" />{' '}
+                            <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
+                                <ShieldCheck className="h-4 w-4 text-[#5F83AB]" />{' '}
                                 Password &amp; security
                             </p>
-                            <p className="text-xs text-[#7A5560]">
+                            <p className="text-xs text-[#5B6B82]">
                                 Change your password or manage two-factor
                                 sign-in.
                             </p>
                         </div>
                         <Link
                             href="/settings/security"
-                            className="shrink-0 rounded-full border border-[#F3A6C0] px-4 py-1.5 text-sm font-semibold text-[#E75480] transition-colors duration-200 hover:bg-[#FCE4EC]"
+                            className="shrink-0 rounded-full border border-[#95B1DB] px-4 py-1.5 text-sm font-semibold text-[#5F83AB] transition-colors duration-200 hover:bg-[#E6EEF8]"
                         >
                             Manage
                         </Link>

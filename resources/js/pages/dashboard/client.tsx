@@ -37,7 +37,7 @@ type Props = {
 };
 
 const STATUS_STYLES: Record<Booking['status'], string> = {
-    pending: 'bg-[#FCE4EC] text-[#B9426A]',
+    pending: 'bg-[#E6EEF8] text-[#4A6A93]',
     confirmed: 'bg-[#DFF5E1] text-[#2E7D46]',
     completed: 'bg-[#E6E6FA] text-[#5B4B9C]',
     cancelled: 'bg-[#F5E0E0] text-[#A13F3F]',
@@ -215,7 +215,7 @@ export default function ClientDashboard({ bookings }: Props) {
         <>
             <Head title="My Bookings" />
 
-            <div className="min-h-screen bg-[#FFF5F7]">
+            <div className="min-h-screen bg-[#F2F5F8]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
@@ -239,7 +239,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                             {formatDate(booking.booking_date)}
                                         </p>
                                         {booking.artist_message && (
-                                            <p className="mt-1 text-sm text-[#7A5560]">"{booking.artist_message}"</p>
+                                            <p className="mt-1 text-sm text-[#5B6B82]">"{booking.artist_message}"</p>
                                         )}
                                     </div>
                                     <button
@@ -257,24 +257,24 @@ export default function ClientDashboard({ bookings }: Props) {
 
                     <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                         <div>
-                            <p className="mb-1 text-xs uppercase tracking-widest text-[#E75480]">My Bookings</p>
-                            <h1 className="font-serif text-3xl font-bold text-[#4A2C33]">Welcome back!</h1>
+                            <p className="mb-1 text-xs uppercase tracking-widest text-[#5F83AB]">My Bookings</p>
+                            <h1 className="font-serif text-3xl font-bold text-[#1F2D40]">Welcome back!</h1>
                         </div>
                         <Link
                             href="/book"
-                            className="inline-flex items-center gap-2 rounded-full bg-[#E75480] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#F3A6C0]/50 transition duration-200 hover:bg-[#D63F6E]"
+                            className="inline-flex items-center gap-2 rounded-full bg-[#5F83AB] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#95B1DB]/50 transition duration-200 hover:bg-[#4E7099]"
                         >
                             <CalendarPlus className="h-4 w-4" /> Book a New Session
                         </Link>
                     </div>
 
                     {/* upcoming / past toggle */}
-                    <div className="mb-6 inline-flex rounded-full border border-[#F3A6C0] bg-white p-1">
+                    <div className="mb-6 inline-flex rounded-full border border-[#95B1DB] bg-white p-1">
                         <button
                             type="button"
                             onClick={() => setTab('upcoming')}
                             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors duration-200 ${
-                                tab === 'upcoming' ? 'bg-[#E75480] text-white' : 'text-[#7A5560] hover:text-[#E75480]'
+                                tab === 'upcoming' ? 'bg-[#5F83AB] text-white' : 'text-[#5B6B82] hover:text-[#5F83AB]'
                             }`}
                         >
                             Upcoming ({upcoming.length})
@@ -283,7 +283,7 @@ export default function ClientDashboard({ bookings }: Props) {
                             type="button"
                             onClick={() => setTab('past')}
                             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors duration-200 ${
-                                tab === 'past' ? 'bg-[#E75480] text-white' : 'text-[#7A5560] hover:text-[#E75480]'
+                                tab === 'past' ? 'bg-[#5F83AB] text-white' : 'text-[#5B6B82] hover:text-[#5F83AB]'
                             }`}
                         >
                             Past ({past.length})
@@ -291,12 +291,12 @@ export default function ClientDashboard({ bookings }: Props) {
                     </div>
 
                     {visible.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#F7C6D9] bg-white px-6 py-16 text-center">
-                            <Sparkles className="h-8 w-8 text-[#F3A6C0]" />
-                            <p className="font-semibold text-[#4A2C33]">
+                        <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#D3DFEF] bg-white px-6 py-16 text-center">
+                            <Sparkles className="h-8 w-8 text-[#95B1DB]" />
+                            <p className="font-semibold text-[#1F2D40]">
                                 {tab === 'upcoming' ? 'No upcoming bookings' : 'No past bookings'}
                             </p>
-                            <p className="max-w-xs text-sm text-[#7A5560]">
+                            <p className="max-w-xs text-sm text-[#5B6B82]">
                                 {tab === 'upcoming'
                                     ? 'When you book a session with one of our artists, it will show up here.'
                                     : 'Completed or cancelled sessions will appear here.'}
@@ -309,14 +309,14 @@ export default function ClientDashboard({ bookings }: Props) {
                                     key={booking.id}
                                     type="button"
                                     onClick={() => openDetails(booking)}
-                                    className={`rounded-2xl border bg-white p-5 text-left transition duration-200 hover:shadow-md hover:shadow-[#F3A6C0]/30 ${
-                                        isArtistDeclined(booking) ? 'border-[#A13F3F]/40' : 'border-[#F7C6D9]'
+                                    className={`rounded-2xl border bg-white p-5 text-left transition duration-200 hover:shadow-md hover:shadow-[#95B1DB]/30 ${
+                                        isArtistDeclined(booking) ? 'border-[#A13F3F]/40' : 'border-[#D3DFEF]'
                                     }`}
                                 >
                                     <div className="mb-3 flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="font-serif text-lg font-bold text-[#4A2C33]">{booking.service}</p>
-                                            <p className="text-sm text-[#7A5560]">
+                                            <p className="font-serif text-lg font-bold text-[#1F2D40]">{booking.service}</p>
+                                            <p className="text-sm text-[#5B6B82]">
                                                 with {booking.artist.name}
                                                 {booking.artist.specialty ? ` · ${booking.artist.specialty}` : ''}
                                             </p>
@@ -328,12 +328,12 @@ export default function ClientDashboard({ bookings }: Props) {
                                         </span>
                                     </div>
 
-                                    <div className="flex flex-wrap gap-4 text-sm text-[#7A5560]">
+                                    <div className="flex flex-wrap gap-4 text-sm text-[#5B6B82]">
                                         <span className="flex items-center gap-1.5">
-                                            <MapPin className="h-4 w-4 text-[#E75480]" /> {formatDate(booking.booking_date)}
+                                            <MapPin className="h-4 w-4 text-[#5F83AB]" /> {formatDate(booking.booking_date)}
                                         </span>
                                         <span className="flex items-center gap-1.5">
-                                            <Clock className="h-4 w-4 text-[#E75480]" /> {formatTime(booking.booking_time)}
+                                            <Clock className="h-4 w-4 text-[#5F83AB]" /> {formatTime(booking.booking_time)}
                                         </span>
                                     </div>
 
@@ -356,7 +356,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                         </p>
                                     )}
 
-                                    <p className="mt-3 text-xs font-semibold text-[#E75480]">Tap for details →</p>
+                                    <p className="mt-3 text-xs font-semibold text-[#5F83AB]">Tap for details →</p>
                                 </button>
                             ))}
                         </div>
@@ -376,22 +376,22 @@ export default function ClientDashboard({ bookings }: Props) {
                     >
                         <div className="mb-4 flex items-start justify-between gap-3">
                             <div>
-                                <p className="mb-0.5 text-xs uppercase tracking-widest text-[#E75480]">Booking Details</p>
-                                <h2 className="font-serif text-xl font-bold text-[#4A2C33]">{selectedBooking.service}</h2>
+                                <p className="mb-0.5 text-xs uppercase tracking-widest text-[#5F83AB]">Booking Details</p>
+                                <h2 className="font-serif text-xl font-bold text-[#1F2D40]">{selectedBooking.service}</h2>
                             </div>
                             <button
                                 type="button"
                                 onClick={closeDetails}
                                 aria-label="Close"
-                                className="rounded-full p-1.5 text-[#7A5560] transition hover:bg-[#FCE4EC] hover:text-[#E75480]"
+                                className="rounded-full p-1.5 text-[#5B6B82] transition hover:bg-[#E6EEF8] hover:text-[#5F83AB]"
                             >
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
 
                         <div className="mb-4 flex items-center justify-between">
-                            <p className="text-sm text-[#7A5560]">
-                                with <span className="font-semibold text-[#4A2C33]">{selectedBooking.artist.name}</span>
+                            <p className="text-sm text-[#5B6B82]">
+                                with <span className="font-semibold text-[#1F2D40]">{selectedBooking.artist.name}</span>
                                 {selectedBooking.artist.specialty ? ` · ${selectedBooking.artist.specialty}` : ''}
                             </p>
                             <span
@@ -403,24 +403,24 @@ export default function ClientDashboard({ bookings }: Props) {
 
                         {!rescheduling ? (
                             <>
-                                <div className="mb-4 grid gap-2 rounded-xl bg-[#FFF5F7] p-4 text-sm text-[#4A2C33]">
+                                <div className="mb-4 grid gap-2 rounded-xl bg-[#F2F5F8] p-4 text-sm text-[#1F2D40]">
                                     <span className="flex items-center gap-2">
-                                        <MapPin className="h-4 w-4 text-[#E75480]" /> {formatDate(selectedBooking.booking_date)}
+                                        <MapPin className="h-4 w-4 text-[#5F83AB]" /> {formatDate(selectedBooking.booking_date)}
                                     </span>
                                     <span className="flex items-center gap-2">
-                                        <Clock className="h-4 w-4 text-[#E75480]" /> {formatTime(selectedBooking.booking_time)}
+                                        <Clock className="h-4 w-4 text-[#5F83AB]" /> {formatTime(selectedBooking.booking_time)}
                                     </span>
                                     {selectedBooking.artist.phone && (
                                         <span className="flex items-center gap-2">
-                                            <Phone className="h-4 w-4 text-[#E75480]" /> {selectedBooking.artist.phone}
+                                            <Phone className="h-4 w-4 text-[#5F83AB]" /> {selectedBooking.artist.phone}
                                         </span>
                                     )}
                                 </div>
 
                                 {selectedNotes.occasion && (
                                     <div className="mb-4">
-                                        <p className="mb-1 text-xs font-semibold text-[#7A5560]">Occasion</p>
-                                        <span className="inline-block rounded-full bg-[#FCE4EC] px-3 py-1 text-xs font-semibold text-[#E75480]">
+                                        <p className="mb-1 text-xs font-semibold text-[#5B6B82]">Occasion</p>
+                                        <span className="inline-block rounded-full bg-[#E6EEF8] px-3 py-1 text-xs font-semibold text-[#5F83AB]">
                                             {selectedNotes.occasion}
                                         </span>
                                     </div>
@@ -428,8 +428,8 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                 {selectedNotes.text && (
                                     <div className="mb-4">
-                                        <p className="mb-1 text-xs font-semibold text-[#7A5560]">Your notes</p>
-                                        <p className="whitespace-pre-line rounded-lg bg-[#FFF5F7] px-3 py-2 text-sm text-[#4A2C33]">
+                                        <p className="mb-1 text-xs font-semibold text-[#5B6B82]">Your notes</p>
+                                        <p className="whitespace-pre-line rounded-lg bg-[#F2F5F8] px-3 py-2 text-sm text-[#1F2D40]">
                                             {selectedNotes.text}
                                         </p>
                                     </div>
@@ -437,7 +437,7 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                 {selectedBooking.artist_message && (
                                     <div className="mb-4">
-                                        <p className="mb-1 text-xs font-semibold text-[#7A5560]">
+                                        <p className="mb-1 text-xs font-semibold text-[#5B6B82]">
                                             Message from {selectedBooking.artist.name}
                                         </p>
                                         <p
@@ -459,18 +459,18 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                 {selectedBooking.inspo_url && (
                                     <div className="mb-4">
-                                        <p className="mb-1 text-xs font-semibold text-[#7A5560]">Makeup inspo</p>
+                                        <p className="mb-1 text-xs font-semibold text-[#5B6B82]">Makeup inspo</p>
                                         <button
                                             type="button"
                                             onClick={() => setViewingInspoUrl(selectedBooking.inspo_url)}
-                                            className="flex items-center gap-2 rounded-lg border border-[#F3A6C0] bg-[#FFFAFB] p-2 transition hover:bg-[#FCE4EC]"
+                                            className="flex items-center gap-2 rounded-lg border border-[#95B1DB] bg-[#FAFCFE] p-2 transition hover:bg-[#E6EEF8]"
                                         >
                                             <img
                                                 src={selectedBooking.inspo_url}
                                                 alt="Inspo"
                                                 className="h-12 w-12 rounded-md object-cover"
                                             />
-                                            <span className="flex items-center gap-1 text-xs font-semibold text-[#E75480]">
+                                            <span className="flex items-center gap-1 text-xs font-semibold text-[#5F83AB]">
                                                 <ImageIcon className="h-3.5 w-3.5" /> View full image
                                             </span>
                                         </button>
@@ -478,11 +478,11 @@ export default function ClientDashboard({ bookings }: Props) {
                                 )}
 
                                 {canModify(selectedBooking) && (
-                                    <div className="flex flex-wrap gap-2 border-t border-[#F7C6D9] pt-4">
+                                    <div className="flex flex-wrap gap-2 border-t border-[#D3DFEF] pt-4">
                                         <button
                                             type="button"
                                             onClick={() => setRescheduling(true)}
-                                            className="flex items-center gap-1.5 rounded-full border border-[#E75480] px-4 py-1.5 text-xs font-semibold text-[#E75480] transition hover:bg-[#FCE4EC]"
+                                            className="flex items-center gap-1.5 rounded-full border border-[#5F83AB] px-4 py-1.5 text-xs font-semibold text-[#5F83AB] transition hover:bg-[#E6EEF8]"
                                         >
                                             <CalendarDays className="h-3.5 w-3.5" /> Reschedule
                                         </button>
@@ -501,7 +501,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 <button
                                                     type="button"
                                                     onClick={() => setConfirmingId(null)}
-                                                    className="rounded-full border border-[#F3A6C0] px-4 py-1.5 text-xs font-semibold text-[#7A5560] transition hover:bg-[#FCE4EC]"
+                                                    className="rounded-full border border-[#95B1DB] px-4 py-1.5 text-xs font-semibold text-[#5B6B82] transition hover:bg-[#E6EEF8]"
                                                 >
                                                     Never mind
                                                 </button>
@@ -519,8 +519,8 @@ export default function ClientDashboard({ bookings }: Props) {
                                 )}
 
                                 {needsContactToCancel(selectedBooking) && (
-                                    <div className="border-t border-[#F7C6D9] pt-4">
-                                        <p className="text-xs text-[#7A5560]">
+                                    <div className="border-t border-[#D3DFEF] pt-4">
+                                        <p className="text-xs text-[#5B6B82]">
                                             This session is less than {CANCEL_CUTOFF_HOURS}h away and can no longer be changed here.
                                             {selectedBooking.artist.phone
                                                 ? ` Please contact ${selectedBooking.artist.name} directly at ${selectedBooking.artist.phone}.`
@@ -531,28 +531,28 @@ export default function ClientDashboard({ bookings }: Props) {
                             </>
                         ) : (
                             <div className="grid gap-4">
-                                <p className="text-sm text-[#7A5560]">
+                                <p className="text-sm text-[#5B6B82]">
                                     Pick a new date and time. Your artist will need to approve the new slot.
                                 </p>
 
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <div className="grid gap-1.5">
-                                        <label className="text-xs font-semibold text-[#4A2C33]">New date</label>
+                                        <label className="text-xs font-semibold text-[#1F2D40]">New date</label>
                                         <input
                                             type="date"
                                             value={newDate}
                                             min={todayISO()}
                                             onChange={(e) => setNewDate(e.target.value)}
-                                            className="rounded-xl border border-[#F3A6C0] bg-[#FFFAFB] px-3 py-2 text-sm text-[#4A2C33] focus-visible:border-[#E75480] focus-visible:outline-none"
+                                            className="rounded-xl border border-[#95B1DB] bg-[#FAFCFE] px-3 py-2 text-sm text-[#1F2D40] focus-visible:border-[#769AD0] focus-visible:outline-none"
                                         />
                                     </div>
                                     <div className="grid gap-1.5">
-                                        <label className="text-xs font-semibold text-[#4A2C33]">New time</label>
+                                        <label className="text-xs font-semibold text-[#1F2D40]">New time</label>
                                         <input
                                             type="time"
                                             value={newTime}
                                             onChange={(e) => setNewTime(e.target.value)}
-                                            className="rounded-xl border border-[#F3A6C0] bg-[#FFFAFB] px-3 py-2 text-sm text-[#4A2C33] focus-visible:border-[#E75480] focus-visible:outline-none"
+                                            className="rounded-xl border border-[#95B1DB] bg-[#FAFCFE] px-3 py-2 text-sm text-[#1F2D40] focus-visible:border-[#769AD0] focus-visible:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -563,21 +563,21 @@ export default function ClientDashboard({ bookings }: Props) {
                                             type="button"
                                             disabled={!rescheduleChanged}
                                             onClick={handleProceed}
-                                            className="rounded-full bg-[#E75480] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#D63F6E] disabled:opacity-40"
+                                            className="rounded-full bg-[#5F83AB] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#4E7099] disabled:opacity-40"
                                         >
                                             Proceed
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setRescheduling(false)}
-                                            className="rounded-full border border-[#F3A6C0] px-5 py-2 text-sm font-semibold text-[#7A5560] transition hover:bg-[#FCE4EC]"
+                                            className="rounded-full border border-[#95B1DB] px-5 py-2 text-sm font-semibold text-[#5B6B82] transition hover:bg-[#E6EEF8]"
                                         >
                                             Back
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="rounded-xl border border-[#F3A6C0] bg-[#FFF5F7] p-4">
-                                        <p className="mb-3 text-sm text-[#4A2C33]">
+                                    <div className="rounded-xl border border-[#95B1DB] bg-[#F2F5F8] p-4">
+                                        <p className="mb-3 text-sm text-[#1F2D40]">
                                             Reschedule to <span className="font-semibold">{formatDate(newDate)}</span> at{' '}
                                             <span className="font-semibold">{formatTime(newTime)}</span>? This will need your
                                             artist's approval again.
@@ -587,14 +587,14 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 type="button"
                                                 disabled={rescheduleBusy}
                                                 onClick={handleConfirmReschedule}
-                                                className="rounded-full bg-[#E75480] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#D63F6E] disabled:opacity-50"
+                                                className="rounded-full bg-[#5F83AB] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#4E7099] disabled:opacity-50"
                                             >
                                                 {rescheduleBusy ? 'Submitting...' : 'Confirm'}
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setConfirmingReschedule(false)}
-                                                className="rounded-full border border-[#F3A6C0] px-5 py-2 text-sm font-semibold text-[#7A5560] transition hover:bg-[#FCE4EC]"
+                                                className="rounded-full border border-[#95B1DB] px-5 py-2 text-sm font-semibold text-[#5B6B82] transition hover:bg-[#E6EEF8]"
                                             >
                                                 Cancel
                                             </button>

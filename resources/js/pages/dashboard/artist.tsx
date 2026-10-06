@@ -24,7 +24,7 @@ type Props = {
 };
 
 const STATUS_STYLES: Record<Booking['status'], string> = {
-    pending: 'bg-[#FCE4EC] text-[#B9426A]',
+    pending: 'bg-[#E6EEF8] text-[#4A6A93]',
     confirmed: 'bg-[#DFF5E1] text-[#2E7D46]',
     completed: 'bg-[#E6E6FA] text-[#5B4B9C]',
     cancelled: 'bg-[#F5E0E0] text-[#A13F3F]',
@@ -111,7 +111,7 @@ export default function ArtistDashboard({ bookings }: Props) {
         <>
             <Head title="Artist Dashboard" />
 
-            <div className="min-h-screen bg-[#FFF5F7]">
+            <div className="min-h-screen bg-[#F2F5F8]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
@@ -120,8 +120,8 @@ export default function ArtistDashboard({ bookings }: Props) {
 
                 <div className="mx-auto max-w-3xl px-6 py-10 md:px-12">
                     <div className="mb-8">
-                        <p className="mb-1 text-xs uppercase tracking-widest text-[#E75480]">Artist Dashboard</p>
-                        <h1 className="font-serif text-3xl font-bold text-[#4A2C33]">
+                        <p className="mb-1 text-xs uppercase tracking-widest text-[#5F83AB]">Artist Dashboard</p>
+                        <h1 className="font-serif text-3xl font-bold text-[#1F2D40]">
                             Welcome back, {auth?.user?.name?.split(' ')[0] ?? 'there'}!
                         </h1>
                     </div>
@@ -129,20 +129,20 @@ export default function ArtistDashboard({ bookings }: Props) {
                     {/* pending requests */}
                     {pending.length > 0 && (
                         <div className="mb-10">
-                            <h2 className="mb-3 flex items-center gap-2 font-serif text-xl font-bold text-[#B9426A]">
+                            <h2 className="mb-3 flex items-center gap-2 font-serif text-xl font-bold text-[#4A6A93]">
                                 Pending Requests
-                                <span className="rounded-full bg-[#FCE4EC] px-2.5 py-0.5 text-sm text-[#E75480]">{pending.length}</span>
+                                <span className="rounded-full bg-[#E6EEF8] px-2.5 py-0.5 text-sm text-[#5F83AB]">{pending.length}</span>
                             </h2>
                             <div className="grid gap-4">
                                 {pending.map((booking) => (
-                                    <div key={booking.id} className="rounded-2xl border-2 border-[#F3A6C0] bg-white p-5">
+                                    <div key={booking.id} className="rounded-2xl border-2 border-[#95B1DB] bg-white p-5">
                                         <BookingHeader booking={booking} onViewInspo={setViewingUrl} />
 
                                         {/* optional message to client */}
                                         <div className="mt-4 grid gap-1.5">
                                             <label
                                                 htmlFor={`msg-${booking.id}`}
-                                                className="flex items-center gap-1.5 text-xs font-medium text-[#7A5560]"
+                                                className="flex items-center gap-1.5 text-xs font-medium text-[#5B6B82]"
                                             >
                                                 <MessageSquare className="h-3.5 w-3.5" /> Message to client{' '}
                                                 <span className="font-normal">(optional)</span>
@@ -156,7 +156,7 @@ export default function ArtistDashboard({ bookings }: Props) {
                                                     setMessages((prev) => ({ ...prev, [booking.id]: e.target.value }))
                                                 }
                                                 placeholder="e.g. Looking forward to it! Please arrive 10 mins early."
-                                                className="w-full resize-none rounded-lg border border-[#F3A6C0] bg-[#FFFAFB] px-3 py-2 text-sm text-[#4A2C33] placeholder:text-[#7A5560]/60 focus-visible:border-[#E75480] focus-visible:outline-none"
+                                                className="w-full resize-none rounded-lg border border-[#95B1DB] bg-[#FAFCFE] px-3 py-2 text-sm text-[#1F2D40] placeholder:text-[#5B6B82]/60 focus-visible:border-[#769AD0] focus-visible:outline-none"
                                             />
                                         </div>
 
@@ -185,12 +185,12 @@ export default function ArtistDashboard({ bookings }: Props) {
                     )}
 
                     {/* schedule */}
-                    <div className="mb-6 inline-flex rounded-full border border-[#F3A6C0] bg-white p-1">
+                    <div className="mb-6 inline-flex rounded-full border border-[#95B1DB] bg-white p-1">
                         <button
                             type="button"
                             onClick={() => setTab('upcoming')}
                             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-                                tab === 'upcoming' ? 'bg-[#E75480] text-white' : 'text-[#7A5560] hover:text-[#E75480]'
+                                tab === 'upcoming' ? 'bg-[#5F83AB] text-white' : 'text-[#5B6B82] hover:text-[#5F83AB]'
                             }`}
                         >
                             Upcoming ({upcoming.length})
@@ -199,7 +199,7 @@ export default function ArtistDashboard({ bookings }: Props) {
                             type="button"
                             onClick={() => setTab('past')}
                             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-                                tab === 'past' ? 'bg-[#E75480] text-white' : 'text-[#7A5560] hover:text-[#E75480]'
+                                tab === 'past' ? 'bg-[#5F83AB] text-white' : 'text-[#5B6B82] hover:text-[#5F83AB]'
                             }`}
                         >
                             Past ({past.length})
@@ -207,16 +207,16 @@ export default function ArtistDashboard({ bookings }: Props) {
                     </div>
 
                     {visible.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#F7C6D9] bg-white px-6 py-16 text-center">
-                            <Sparkles className="h-8 w-8 text-[#F3A6C0]" />
-                            <p className="font-semibold text-[#4A2C33]">
+                        <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#D3DFEF] bg-white px-6 py-16 text-center">
+                            <Sparkles className="h-8 w-8 text-[#95B1DB]" />
+                            <p className="font-semibold text-[#1F2D40]">
                                 {tab === 'upcoming' ? 'No upcoming sessions' : 'No past sessions'}
                             </p>
                         </div>
                     ) : (
                         <div className="grid gap-4">
                             {visible.map((booking) => (
-                                <div key={booking.id} className="rounded-2xl border border-[#F7C6D9] bg-white p-5">
+                                <div key={booking.id} className="rounded-2xl border border-[#D3DFEF] bg-white p-5">
                                     <BookingHeader booking={booking} onViewInspo={setViewingUrl} />
                                     {booking.status === 'confirmed' && (
                                         <button
@@ -267,32 +267,32 @@ function BookingHeader({ booking, onViewInspo }: { booking: Booking; onViewInspo
         <>
             <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
-                    <p className="font-serif text-lg font-bold text-[#4A2C33]">{booking.service}</p>
-                    <p className="text-sm text-[#7A5560]">with {booking.client.name}</p>
+                    <p className="font-serif text-lg font-bold text-[#1F2D40]">{booking.service}</p>
+                    <p className="text-sm text-[#5B6B82]">with {booking.client.name}</p>
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[booking.status]}`}>
                     {booking.status}
                 </span>
             </div>
 
-            <div className="flex flex-wrap gap-4 text-sm text-[#7A5560]">
+            <div className="flex flex-wrap gap-4 text-sm text-[#5B6B82]">
                 <span className="flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 text-[#E75480]" /> {formatDate(booking.booking_date)}
+                    <MapPin className="h-4 w-4 text-[#5F83AB]" /> {formatDate(booking.booking_date)}
                 </span>
                 <span className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4 text-[#E75480]" /> {formatTime(booking.booking_time)}
+                    <Clock className="h-4 w-4 text-[#5F83AB]" /> {formatTime(booking.booking_time)}
                 </span>
                 {booking.client.phone && (
                     <span className="flex items-center gap-1.5">
-                        <Phone className="h-4 w-4 text-[#E75480]" /> {booking.client.phone}
+                        <Phone className="h-4 w-4 text-[#5F83AB]" /> {booking.client.phone}
                     </span>
                 )}
             </div>
 
             {occasion && (
                 <div className="mt-3">
-                    <p className="mb-1 text-xs font-semibold text-[#7A5560]">Occasion</p>
-                    <span className="inline-block rounded-full bg-[#FCE4EC] px-3 py-1 text-xs font-semibold text-[#E75480]">
+                    <p className="mb-1 text-xs font-semibold text-[#5B6B82]">Occasion</p>
+                    <span className="inline-block rounded-full bg-[#E6EEF8] px-3 py-1 text-xs font-semibold text-[#5F83AB]">
                         {occasion}
                     </span>
                 </div>
@@ -300,8 +300,8 @@ function BookingHeader({ booking, onViewInspo }: { booking: Booking; onViewInspo
 
             {text && (
                 <div className="mt-3">
-                    <p className="mb-1 text-xs font-semibold text-[#7A5560]">Client's notes</p>
-                    <p className="whitespace-pre-line rounded-lg bg-[#FFF5F7] px-3 py-2 text-sm text-[#4A2C33]">{text}</p>
+                    <p className="mb-1 text-xs font-semibold text-[#5B6B82]">Client's notes</p>
+                    <p className="whitespace-pre-line rounded-lg bg-[#F2F5F8] px-3 py-2 text-sm text-[#1F2D40]">{text}</p>
                 </div>
             )}
 
@@ -315,10 +315,10 @@ function BookingHeader({ booking, onViewInspo }: { booking: Booking; onViewInspo
                 <button
                     type="button"
                     onClick={() => onViewInspo(booking.inspo_url!)}
-                    className="mt-3 flex items-center gap-2 rounded-lg border border-[#F3A6C0] bg-[#FFFAFB] p-2 transition hover:bg-[#FCE4EC]"
+                    className="mt-3 flex items-center gap-2 rounded-lg border border-[#95B1DB] bg-[#FAFCFE] p-2 transition hover:bg-[#E6EEF8]"
                 >
                     <img src={booking.inspo_url} alt="Inspo" className="h-10 w-10 rounded-md object-cover" />
-                    <span className="flex items-center gap-1 text-xs font-semibold text-[#E75480]">
+                    <span className="flex items-center gap-1 text-xs font-semibold text-[#5F83AB]">
                         <ImageIcon className="h-3.5 w-3.5" /> View makeup inspo
                     </span>
                 </button>
