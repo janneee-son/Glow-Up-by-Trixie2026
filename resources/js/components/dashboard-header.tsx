@@ -33,20 +33,20 @@ export default function DashboardHeader({ userName, userRole = 'client', active 
 
     const linkClass = (key: Props['active']) =>
         `flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200 ${
-            active === key ? 'bg-[#FCE4EC] text-[#E75480]' : 'text-[#7A5560] hover:bg-[#FCE4EC]/60 hover:text-[#E75480]'
+            active === key ? 'bg-[#E6EEF8] text-[#5F83AB]' : 'text-[#5B6B82] hover:bg-[#E6EEF8]/60 hover:text-[#5F83AB]'
         }`;
 
     const mobileLinkClass = (key: Props['active']) =>
         `flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors duration-200 ${
-            active === key ? 'bg-[#FCE4EC] text-[#E75480]' : 'text-[#7A5560] hover:bg-[#FCE4EC]/60 hover:text-[#E75480]'
+            active === key ? 'bg-[#E6EEF8] text-[#5F83AB]' : 'text-[#5B6B82] hover:bg-[#E6EEF8]/60 hover:text-[#5F83AB]'
         }`;
 
     return (
-        <header className="sticky top-0 z-20 border-b border-[#F7C6D9] bg-[#FFF5F7]/90 backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-[#D3DFEF] bg-[#F2F5F8]/90 backdrop-blur">
             <div className="flex items-center justify-between px-6 py-4 md:px-12">
                 <Link href="/dashboard" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
-                    <Sparkles className="h-5 w-5 text-[#E75480]" />
-                    <span className="font-bold text-[#E75480]">Prishana Aesthetics</span>
+                    <Sparkles className="h-5 w-5 text-[#5F83AB]" />
+                    <span className="font-bold text-[#5F83AB]">JM Makeup Studio</span>
                 </Link>
 
                 {/* desktop nav */}
@@ -59,12 +59,12 @@ export default function DashboardHeader({ userName, userRole = 'client', active 
                 </nav>
 
                 <div className="flex items-center gap-3">
-                    <span className="hidden text-sm text-[#7A5560] md:inline">Hi, {userName.split(' ')[0]}</span>
+                    <span className="hidden text-sm text-[#5B6B82] md:inline">Hi, {userName.split(' ')[0]}</span>
                     <Link
                         href="/logout"
                         method="post"
                         as="button"
-                        className="hidden items-center gap-1.5 rounded-full border border-[#F3A6C0] px-4 py-1.5 text-sm font-semibold text-[#E75480] transition-colors duration-200 hover:bg-[#FCE4EC] sm:flex"
+                        className="hidden items-center gap-1.5 rounded-full border border-[#95B1DB] px-4 py-1.5 text-sm font-semibold text-[#5F83AB] transition-colors duration-200 hover:bg-[#E6EEF8] sm:flex"
                     >
                         <LogOut className="h-3.5 w-3.5" /> Log out
                     </Link>
@@ -75,7 +75,7 @@ export default function DashboardHeader({ userName, userRole = 'client', active 
                         onClick={() => setMenuOpen((open) => !open)}
                         aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                         aria-expanded={menuOpen}
-                        className="flex h-9 w-9 items-center justify-center rounded-full border border-[#F3A6C0] text-[#E75480] sm:hidden"
+                        className="flex h-9 w-9 items-center justify-center rounded-full border border-[#95B1DB] text-[#5F83AB] sm:hidden"
                     >
                         {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
                     </button>
@@ -84,7 +84,7 @@ export default function DashboardHeader({ userName, userRole = 'client', active 
 
             {/* mobile menu panel */}
             {menuOpen && (
-                <nav className="flex flex-col gap-1 border-t border-[#F7C6D9] bg-[#FFF5F7] px-4 py-3 sm:hidden">
+                <nav className="flex flex-col gap-1 border-t border-[#D3DFEF] bg-[#F2F5F8] px-4 py-3 sm:hidden">
                     {navItems.map(({ key, label, href, icon: Icon }) => (
                         <Link key={key} href={href} className={mobileLinkClass(key)} onClick={() => setMenuOpen(false)}>
                             <Icon className="h-4 w-4" /> {label}
@@ -94,7 +94,7 @@ export default function DashboardHeader({ userName, userRole = 'client', active 
                         href="/logout"
                         method="post"
                         as="button"
-                        className="flex items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-medium text-[#E75480] hover:bg-[#FCE4EC]/60"
+                        className="flex items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-medium text-[#5F83AB] hover:bg-[#E6EEF8]/60"
                     >
                         <LogOut className="h-4 w-4" /> Log out
                     </Link>

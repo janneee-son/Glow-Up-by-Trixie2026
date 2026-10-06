@@ -30,7 +30,7 @@ const SERVICES = ['Everyday Glam', 'Bridal Makeup', 'Photoshoot Glam', 'Special 
 const OCCASIONS = ['Wedding', 'Prom / Formal', 'Graduation', 'Job Interview', 'Birthday', 'Date Night', 'Photoshoot'];
 
 const fieldClass =
-    'w-full rounded-xl border border-[#F3A6C0] bg-[#FFFAFB] px-3 py-2 text-sm text-[#4A2C33] focus-visible:border-[#E75480] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E75480]/40';
+    'w-full rounded-xl border border-[#95B1DB] bg-[#FAFCFE] px-3 py-2 text-sm text-[#1F2D40] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/40';
 
 // Uses local time (not UTC) so the minimum date is correct in the Philippines.
 function todayISO() {
@@ -121,39 +121,39 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
         <>
             <Head title="Book a Session" />
 
-            <div className="min-h-screen bg-[#FFF5F7]">
+            <div className="min-h-screen bg-[#F2F5F8]">
                 <DashboardHeader userName={auth?.user?.name ?? 'there'} userRole={auth?.user?.role} active="book" />
 
                 <div className="mx-auto max-w-2xl px-6 py-10 md:px-12">
                     <div className="mb-6">
-                        <p className="mb-1 text-xs uppercase tracking-widest text-[#E75480]">Book a Session</p>
-                        <h1 className="font-serif text-3xl font-bold text-[#4A2C33]">Let's get you glammed</h1>
+                        <p className="mb-1 text-xs uppercase tracking-widest text-[#5F83AB]">Book a Session</p>
+                        <h1 className="font-serif text-3xl font-bold text-[#1F2D40]">Let's get you glammed</h1>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="grid gap-6 rounded-2xl border border-[#F7C6D9] bg-white p-6">
+                    <form onSubmit={handleSubmit} className="grid gap-6 rounded-2xl border border-[#D3DFEF] bg-white p-6">
                         {/* your artist */}
                         <div className="grid gap-2">
-                            <Label className="flex items-center gap-1.5 text-[#4A2C33]">
-                                <UserIcon className="h-4 w-4 text-[#E75480]" /> Your artist
+                            <Label className="flex items-center gap-1.5 text-[#1F2D40]">
+                                <UserIcon className="h-4 w-4 text-[#5F83AB]" /> Your artist
                             </Label>
                             {artist ? (
-                                <div className="rounded-xl border border-[#E75480] bg-[#FCE4EC] p-3">
-                                    <p className="text-sm font-semibold text-[#4A2C33]">{artist.name}</p>
-                                    <p className="text-xs text-[#7A5560]">
+                                <div className="rounded-xl border border-[#5F83AB] bg-[#E6EEF8] p-3">
+                                    <p className="text-sm font-semibold text-[#1F2D40]">{artist.name}</p>
+                                    <p className="text-xs text-[#5B6B82]">
                                         {artist.specialty ?? 'Makeup Artist'}
                                         {artist.years_experience != null && ` · ${artist.years_experience} yrs exp.`}
                                     </p>
-                                    {artist.bio && <p className="mt-1.5 text-xs text-[#7A5560]">{artist.bio}</p>}
+                                    {artist.bio && <p className="mt-1.5 text-xs text-[#5B6B82]">{artist.bio}</p>}
                                 </div>
                             ) : (
-                                <p className="text-sm text-[#7A5560]">Bookings aren't open yet. Check back soon!</p>
+                                <p className="text-sm text-[#5B6B82]">Bookings aren't open yet. Check back soon!</p>
                             )}
                         </div>
 
                         {/* service picker */}
                         <div className="grid gap-2">
-                            <Label htmlFor="service" className="flex items-center gap-1.5 text-[#4A2C33]">
-                                <Brush className="h-4 w-4 text-[#E75480]" /> Service
+                            <Label htmlFor="service" className="flex items-center gap-1.5 text-[#1F2D40]">
+                                <Brush className="h-4 w-4 text-[#5F83AB]" /> Service
                             </Label>
                             <select
                                 id="service"
@@ -177,8 +177,8 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                         {/* date + time */}
                         <div className="grid items-start gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
-                                <Label htmlFor="booking_date" className="flex items-center gap-1.5 text-[#4A2C33]">
-                                    <CalendarDays className="h-4 w-4 text-[#E75480]" /> Date
+                                <Label htmlFor="booking_date" className="flex items-center gap-1.5 text-[#1F2D40]">
+                                    <CalendarDays className="h-4 w-4 text-[#5F83AB]" /> Date
                                 </Label>
                                 <input
                                     id="booking_date"
@@ -193,8 +193,8 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="booking_time" className="flex items-center gap-1.5 text-[#4A2C33]">
-                                    <Clock className="h-4 w-4 text-[#E75480]" /> Time
+                                <Label htmlFor="booking_time" className="flex items-center gap-1.5 text-[#1F2D40]">
+                                    <Clock className="h-4 w-4 text-[#5F83AB]" /> Time
                                 </Label>
                                 <input
                                     id="booking_time"
@@ -209,18 +209,18 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                         </div>
 
                         {/* Makeup Inspiration section */}
-                        <div className="grid gap-2 rounded-xl border border-[#F3A6C0]/60 bg-[#FFEAF2] p-4">
-                            <Label className="flex items-center gap-1.5 text-[#4A2C33]">
-                                <ImagePlus className="h-4 w-4 text-[#E75480]" /> Makeup Inspiration{' '}
-                                <span className="font-normal text-[#7A5560]">(optional)</span>
+                        <div className="grid gap-2 rounded-xl border border-[#95B1DB]/60 bg-[#EDF3FA] p-4">
+                            <Label className="flex items-center gap-1.5 text-[#1F2D40]">
+                                <ImagePlus className="h-4 w-4 text-[#5F83AB]" /> Makeup Inspiration{' '}
+                                <span className="font-normal text-[#5B6B82]">(optional)</span>
                             </Label>
-                            <p className="text-xs text-[#7A5560]">
+                            <p className="text-xs text-[#5B6B82]">
                                 Pick from your Inspiration History or upload a new photo — it's saved to your profile and your artist will see it.
                             </p>
 
                             {inspoImages.length > 0 && (
                                 <>
-                                    <p className="mt-1 text-xs font-semibold text-[#4A2C33]">Your Inspiration History</p>
+                                    <p className="mt-1 text-xs font-semibold text-[#1F2D40]">Your Inspiration History</p>
                                     <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                                         {inspoImages.map((img) => (
                                             <div key={img.id} className="group relative">
@@ -229,8 +229,8 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                                                     onClick={() => selectExisting(img.id)}
                                                     className={`block aspect-square w-full overflow-hidden rounded-lg border-2 transition ${
                                                         data.inspo_image_id === img.id
-                                                            ? 'border-[#E75480] ring-2 ring-[#E75480]/40'
-                                                            : 'border-transparent hover:border-[#F3A6C0]'
+                                                            ? 'border-[#5F83AB] ring-2 ring-[#769AD0]/40'
+                                                            : 'border-transparent hover:border-[#95B1DB]'
                                                     }`}
                                                 >
                                                     <img
@@ -266,18 +266,18 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                                     <button
                                         type="button"
                                         onClick={() => setViewingUrl(newPreview)}
-                                        className="h-16 w-16 overflow-hidden rounded-lg border-2 border-[#E75480]"
+                                        className="h-16 w-16 overflow-hidden rounded-lg border-2 border-[#5F83AB]"
                                     >
                                         <img src={newPreview} alt="New upload preview" className="h-full w-full object-cover" />
                                     </button>
                                 ) : null}
                                 <label
                                     htmlFor="new-inspo-upload"
-                                    className="cursor-pointer rounded-full border border-[#F3A6C0] bg-white px-4 py-1.5 text-xs font-semibold text-[#E75480] transition hover:bg-[#FCE4EC]"
+                                    className="cursor-pointer rounded-full border border-[#95B1DB] bg-white px-4 py-1.5 text-xs font-semibold text-[#5F83AB] transition hover:bg-[#E6EEF8]"
                                 >
                                     {data.new_inspo_image ? 'Change new photo' : '+ Upload Inspiration'}
                                 </label>
-                                <Link href="/inspo" className="text-xs font-semibold text-[#7A5560] underline-offset-2 hover:underline">
+                                <Link href="/inspo" className="text-xs font-semibold text-[#5B6B82] underline-offset-2 hover:underline">
                                     View full history
                                 </Link>
                             </div>
@@ -287,11 +287,11 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
 
                         {/* occasion (chips) */}
                         <div className="grid gap-2">
-                            <Label className="flex items-center gap-1.5 text-[#4A2C33]">
-                                <PartyPopper className="h-4 w-4 text-[#E75480]" /> What's the occasion?{' '}
-                                <span className="font-normal text-[#7A5560]">(optional)</span>
+                            <Label className="flex items-center gap-1.5 text-[#1F2D40]">
+                                <PartyPopper className="h-4 w-4 text-[#5F83AB]" /> What's the occasion?{' '}
+                                <span className="font-normal text-[#5B6B82]">(optional)</span>
                             </Label>
-                            <p className="text-xs text-[#7A5560]">
+                            <p className="text-xs text-[#5B6B82]">
                                 Not sure what to ask for? Tell us the event and your artist will know what look fits.
                             </p>
 
@@ -304,8 +304,8 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                                         aria-pressed={occasion === label && !otherMode}
                                         className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                                             occasion === label && !otherMode
-                                                ? 'border-[#E75480] bg-[#FCE4EC] text-[#E75480]'
-                                                : 'border-[#F3A6C0]/60 bg-[#FFFAFB] text-[#7A5560] hover:bg-[#FCE4EC]/50'
+                                                ? 'border-[#5F83AB] bg-[#E6EEF8] text-[#5F83AB]'
+                                                : 'border-[#95B1DB]/60 bg-[#FAFCFE] text-[#5B6B82] hover:bg-[#E6EEF8]/50'
                                         }`}
                                     >
                                         {label}
@@ -317,8 +317,8 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                                     aria-pressed={otherMode}
                                     className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                                         otherMode
-                                            ? 'border-[#E75480] bg-[#FCE4EC] text-[#E75480]'
-                                            : 'border-[#F3A6C0]/60 bg-[#FFFAFB] text-[#7A5560] hover:bg-[#FCE4EC]/50'
+                                            ? 'border-[#5F83AB] bg-[#E6EEF8] text-[#5F83AB]'
+                                            : 'border-[#95B1DB]/60 bg-[#FAFCFE] text-[#5B6B82] hover:bg-[#E6EEF8]/50'
                                     }`}
                                 >
                                     Other
@@ -339,8 +339,8 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
 
                         {/* notes (free text only — the occasion is not written into this box) */}
                         <div className="grid gap-2">
-                            <Label htmlFor="notes" className="text-[#4A2C33]">
-                                Notes <span className="font-normal text-[#7A5560]">(optional)</span>
+                            <Label htmlFor="notes" className="text-[#1F2D40]">
+                                Notes <span className="font-normal text-[#5B6B82]">(optional)</span>
                             </Label>
                             <textarea
                                 id="notes"
@@ -357,7 +357,7 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                         <Button
                             type="submit"
                             disabled={!artist || processing}
-                            className="w-full rounded-full bg-[#E75480] text-white shadow-md shadow-[#F3A6C0]/50 transition duration-200 hover:bg-[#D63F6E] hover:shadow-lg disabled:opacity-50"
+                            className="w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#95B1DB]/50 transition duration-200 hover:bg-[#4E7099] hover:shadow-lg disabled:opacity-50"
                         >
                             {processing && <Spinner />}
                             <Sparkles className="h-4 w-4" /> Confirm Booking

@@ -18,7 +18,7 @@ type Props = {
 };
 
 const inputClass =
-    'pl-9 bg-[#FFFAFB] border-[#F3A6C0] rounded-xl text-[#4A2C33] placeholder:text-[#7A5560]/60 focus-visible:border-[#E75480] focus-visible:ring-[#E75480]/40';
+    'pl-9 bg-[#FAFCFE] border-[#95B1DB] rounded-xl text-[#1F2D40] placeholder:text-[#5B6B82]/60 focus-visible:border-[#769AD0] focus-visible:ring-[#769AD0]/40';
 
 export default function Login({ status, canResetPassword }: Props) {
     return (
@@ -34,11 +34,11 @@ export default function Login({ status, canResetPassword }: Props) {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="email" className="text-[#4A2C33]">
+                                <Label htmlFor="email" className="text-[#1F2D40]">
                                     Email address
                                 </Label>
                                 <div className="relative">
-                                    <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#E75480]/60" />
+                                    <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5F83AB]/60" />
                                     <Input
                                         id="email"
                                         type="email"
@@ -56,13 +56,13 @@ export default function Login({ status, canResetPassword }: Props) {
 
                             <div className="grid gap-2">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password" className="text-[#4A2C33]">
+                                    <Label htmlFor="password" className="text-[#1F2D40]">
                                         Password
                                     </Label>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
-                                            className="ml-auto text-sm text-[#E75480] hover:text-[#D63F6E]"
+                                            className="ml-auto text-sm text-[#5F83AB] hover:text-[#4E7099]"
                                             tabIndex={5}
                                         >
                                             Forgot your password?
@@ -70,7 +70,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     )}
                                 </div>
                                 <div className="relative">
-                                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#E75480]/60 z-10" />
+                                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5F83AB]/60 z-10" />
                                     <PasswordInput
                                         id="password"
                                         name="password"
@@ -89,16 +89,16 @@ export default function Login({ status, canResetPassword }: Props) {
                                     id="remember"
                                     name="remember"
                                     tabIndex={3}
-                                    className="border-[#F3A6C0] data-[state=checked]:bg-[#E75480] data-[state=checked]:border-[#E75480]"
+                                    className="border-[#95B1DB] data-[state=checked]:bg-[#5F83AB] data-[state=checked]:border-[#5F83AB]"
                                 />
-                                <Label htmlFor="remember" className="text-[#4A2C33]">
+                                <Label htmlFor="remember" className="text-[#1F2D40]">
                                     Remember me
                                 </Label>
                             </div>
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full rounded-full bg-[#E75480] text-white shadow-md shadow-[#F3A6C0]/50 transition duration-200 hover:bg-[#D63F6E] hover:shadow-lg"
+                                className="mt-4 w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#95B1DB]/50 transition duration-200 hover:bg-[#4E7099] hover:shadow-lg"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
@@ -108,9 +108,9 @@ export default function Login({ status, canResetPassword }: Props) {
                             </Button>
                         </div>
 
-                        <div className="text-center text-sm text-[#7A5560]">
-                            New to Prishana Aesthetics?{' '}
-                            <TextLink href={register()} tabIndex={5} className="text-[#E75480] hover:text-[#D63F6E] font-medium">
+                        <div className="text-center text-sm text-[#5B6B82]">
+                            New to JM Makeup Studio?{' '}
+                            <TextLink href={register()} tabIndex={5} className="text-[#5F83AB] hover:text-[#4E7099] font-medium">
                                 Create an account
                             </TextLink>
                         </div>
