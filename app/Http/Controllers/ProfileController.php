@@ -40,21 +40,24 @@ class ProfileController extends Controller
             'phone' => ['required', 'string', 'max:20', 'regex:/^\+?[0-9\s]+$/'],
         ];
 
+        // The artist's address is the studio address: optional for him, required for clients.
+        $presence = $user->role === 'artist' ? 'nullable' : 'required';
+
+        $rules += [
+            'street_address' => [$presence, 'string', 'max:255'],
+            'barangay' => [$presence, 'string', 'max:100'],
+            'city' => [$presence, 'string', 'max:100'],
+            'province' => [$presence, 'string', 'max:100'],
+            // Philippine postal codes are 4 digits
+            'postal_code' => [$presence, 'string', 'regex:/^[0-9]{4}$/'],
+        ];
+
         if ($user->role === 'artist') {
             // The artist's public details, shown on the booking page. All optional.
             $rules += [
                 'specialty' => ['nullable', 'string', 'max:100'],
                 'years_experience' => ['nullable', 'integer', 'min:0', 'max:60'],
                 'bio' => ['nullable', 'string', 'max:300'],
-            ];
-        } else {
-            $rules += [
-                'street_address' => ['required', 'string', 'max:255'],
-                'barangay' => ['required', 'string', 'max:100'],
-                'city' => ['required', 'string', 'max:100'],
-                'province' => ['required', 'string', 'max:100'],
-                // Philippine postal codes are 4 digits
-                'postal_code' => ['required', 'string', 'regex:/^[0-9]{4}$/'],
             ];
         }
 

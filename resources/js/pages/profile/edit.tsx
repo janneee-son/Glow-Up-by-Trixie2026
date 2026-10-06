@@ -158,7 +158,7 @@ export default function EditProfile({ user }: Props) {
                             <InputError message={errors.phone} />
                         </div>
 
-                        {isArtist ? (
+                        {isArtist && (
                             /* artist details */
                             <div className="grid gap-4 rounded-xl border border-[#95B1DB]/60 bg-[#EDF3FA] p-4">
                                 <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
@@ -240,12 +240,14 @@ export default function EditProfile({ user }: Props) {
                                     <InputError message={errors.bio} />
                                 </div>
                             </div>
-                        ) : (
-                            /* client address */
+                        )}
+
+                        {(
+                            /* address: required for clients, optional for the artist */
                             <div className="grid gap-4 rounded-xl border border-[#95B1DB]/60 bg-[#EDF3FA] p-4">
                                 <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
                                     <MapPin className="h-4 w-4 text-[#5F83AB]" />{' '}
-                                    Address
+                                    {isArtist ? 'Studio address (optional)' : 'Address'}
                                 </p>
 
                                 <div className="grid gap-2">
@@ -268,7 +270,7 @@ export default function EditProfile({ user }: Props) {
                                         autoComplete="address-line1"
                                         maxLength={255}
                                         placeholder="e.g. 123 Rizal St."
-                                        required
+                                        required={!isArtist}
                                         className={fieldClass}
                                     />
                                     <InputError
@@ -296,7 +298,7 @@ export default function EditProfile({ user }: Props) {
                                             }
                                             autoComplete="address-level3"
                                             maxLength={100}
-                                            required
+                                            required={!isArtist}
                                             className={fieldClass}
                                         />
                                         <InputError message={errors.barangay} />
@@ -318,7 +320,7 @@ export default function EditProfile({ user }: Props) {
                                             }
                                             autoComplete="address-level2"
                                             maxLength={100}
-                                            required
+                                            required={!isArtist}
                                             className={fieldClass}
                                         />
                                         <InputError message={errors.city} />
@@ -345,7 +347,7 @@ export default function EditProfile({ user }: Props) {
                                             }
                                             autoComplete="address-level1"
                                             maxLength={100}
-                                            required
+                                            required={!isArtist}
                                             className={fieldClass}
                                         />
                                         <InputError message={errors.province} />
@@ -375,7 +377,7 @@ export default function EditProfile({ user }: Props) {
                                             autoComplete="postal-code"
                                             maxLength={4}
                                             placeholder="e.g. 8000"
-                                            required
+                                            required={!isArtist}
                                             className={fieldClass}
                                         />
                                         <InputError
@@ -423,4 +425,3 @@ export default function EditProfile({ user }: Props) {
         </>
     );
 }
-    
