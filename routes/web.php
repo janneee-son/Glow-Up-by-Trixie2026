@@ -15,7 +15,7 @@ Route::get('/', function () {
 
     return Inertia::render('welcome', [
         'artist' => $artist
-            ? $artist->only('name', 'specialty', 'years_experience', 'bio')
+            ? $artist->only('name', 'specialty', 'years_experience', 'bio', 'street_address', 'barangay', 'city', 'province', 'postal_code')
             : null,
     ]);
 })->name('home');

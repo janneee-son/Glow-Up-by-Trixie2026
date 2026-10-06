@@ -7,6 +7,7 @@ import {
     Clock,
     Gem,
     ImagePlus,
+    MapPin,
     Palette,
     ShieldCheck,
     Sparkles,
@@ -20,6 +21,11 @@ type Artist = {
     specialty: string | null;
     years_experience: number | null;
     bio: string | null;
+    street_address: string | null;
+    barangay: string | null;
+    city: string | null;
+    province: string | null;
+    postal_code: string | null;
 };
 
 type Props = {
@@ -119,6 +125,13 @@ export default function Welcome({ artist }: Props) {
               .join('')
               .toUpperCase()
         : '';
+
+           const studioAddress = artist
+       ? [artist.street_address, artist.barangay, artist.city, artist.province, artist.postal_code]
+             .filter(Boolean)
+             .join(', ')
+       : '';
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(studioAddress)}`;
 
     return (
         <>
@@ -358,6 +371,24 @@ export default function Welcome({ artist }: Props) {
         </div>
     </div>
 </section>  
+
+   {/* studio address (only shown once the artist has entered one) */}
+   {studioAddress && (
+       <section id="visit" className="px-8 pb-16">
+           <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-4 rounded-2xl border border-[#D3DFEF] bg-white p-6 md:flex-row md:items-center">
+               <div className="flex items-start gap-3">
+                   <MapPin className="mt-1 h-5 w-5 shrink-0 text-[#5F83AB]" />
+                   <div>
+                       <p className="font-semibold">Visit the studio</p>
+                       <p className="text-[#5B6B82]">{studioAddress}</p>
+                   </div>
+               </div>
+               <a href={mapsUrl} target="_blank" rel="noreferrer" className={secondaryBtn}>
+                   Get directions
+               </a>
+           </div>
+       </section>
+   )}
                     {/* closing call to action */}
                     <section className="bg-[#5F83AB] px-8 py-14 text-white">
                         <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
