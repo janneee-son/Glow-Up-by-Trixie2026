@@ -1,13 +1,17 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
     Briefcase,
+    Camera,
     Mail,
     MapPin,
     Phone,
     Save,
     ShieldCheck,
+    Trash2,
     User as UserIcon,
+    X,
 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import DashboardHeader from '@/components/dashboard-header';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -20,6 +24,7 @@ type Props = {
         email: string;
         phone: string | null;
         role: 'client' | 'artist' | 'admin';
+        avatar_url: string | null;
         street_address: string | null;
         barangay: string | null;
         city: string | null;
@@ -34,16 +39,30 @@ type Props = {
 const fieldClass =
     'w-full rounded-xl border border-[#95B1DB] bg-[#FAFCFE] px-3 py-2 text-sm text-[#1F2D40] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/40';
 
+function initials(name: string) {
+    return name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('');
+}
+
 export default function EditProfile({ user }: Props) {
     const { auth } = usePage<{
         auth?: { user?: { name?: string; role?: 'client' | 'artist' | 'admin' } };
     }>().props;
 
     const isArtist = user.role === 'artist';
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [viewingAvatar, setViewingAvatar] = useState(false);
 
     const { data, setData, patch, processing, errors, isDirty } = useForm({
         name: user.name,
         phone: user.phone ?? '',
+        avatar: null as File | null,
+        remove_avatar: false,
         street_address: user.street_address ?? '',
         barangay: user.barangay ?? '',
         city: user.city ?? '',
@@ -54,10 +73,42 @@ export default function EditProfile({ user }: Props) {
         bio: user.bio ?? '',
     });
 
+    function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0] ?? null;
+        setData('avatar', file);
+        setData('remove_avatar', false);
+        setAvatarPreview(file ? URL.createObjectURL(file) : null);
+    }
+
+    function handleRemoveAvatar() {
+        setData('avatar', null);
+        setData('remove_avatar', true);
+        setAvatarPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        patch('/profile', { preserveScroll: true });
+        patch('/profile', {
+            preserveScroll: true,
+            forceFormData: true,
+            onSuccess: () => {
+                setData('remove_avatar', false);
+                setAvatarPreview(null);
+            },
+        });
     }
+
+    const displayedAvatar = avatarPreview ?? (!data.remove_avatar ? user.avatar_url : null);
+
+    useEffect(() => {
+        if (!viewingAvatar) return;
+        function onKeyDown(e: KeyboardEvent) {
+            if (e.key === 'Escape') setViewingAvatar(false);
+        }
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [viewingAvatar]);
 
     return (
         <>
@@ -89,6 +140,60 @@ export default function EditProfile({ user }: Props) {
                         onSubmit={handleSubmit}
                         className="grid gap-6 rounded-2xl border border-[#D3DFEF] bg-white p-6"
                     >
+                        {/* avatar */}
+                        <div className="flex items-center gap-4">
+                            <div className="relative">
+                                {displayedAvatar ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewingAvatar(true)}
+                                        aria-label="View full-size profile picture"
+                                        className="block h-20 w-20 cursor-zoom-in rounded-full"
+                                    >
+                                        <img
+                                            src={displayedAvatar}
+                                            alt={user.name}
+                                            className="h-20 w-20 rounded-full object-cover ring-2 ring-[#D3DFEF]"
+                                        />
+                                    </button>
+                                ) : (
+                                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#EDF3FA] text-xl font-semibold text-[#5F83AB] ring-2 ring-[#D3DFEF]">
+                                        {initials(user.name)}
+                                    </div>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    aria-label="Change profile picture"
+                                    className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#5F83AB] text-white shadow-md transition hover:bg-[#4E7099]"
+                                >
+                                    <Camera className="h-3.5 w-3.5" />
+                                </button>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    onChange={handleAvatarChange}
+                                    className="hidden"
+                                />
+                            </div>
+
+                            <div>
+                                <p className="text-sm font-medium text-[#1F2D40]">Profile picture</p>
+                                <p className="mb-1.5 text-xs text-[#5B6B82]">JPG, PNG or WEBP. Max 2MB.</p>
+                                {displayedAvatar && (
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveAvatar}
+                                        className="flex items-center gap-1 text-xs font-semibold text-[#A13F3F] transition hover:text-[#8A3434]"
+                                    >
+                                        <Trash2 className="h-3 w-3" /> Remove photo
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <InputError message={errors.avatar} />
+
                         <div className="grid gap-2">
                             <Label
                                 htmlFor="name"
@@ -422,6 +527,28 @@ export default function EditProfile({ user }: Props) {
                     </div>
                 </div>
             </div>
+
+            {viewingAvatar && displayedAvatar && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+                    onClick={() => setViewingAvatar(false)}
+                >
+                    <button
+                        type="button"
+                        onClick={() => setViewingAvatar(false)}
+                        aria-label="Close"
+                        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                    <img
+                        src={displayedAvatar}
+                        alt={user.name}
+                        className="max-h-[85vh] max-w-full rounded-lg object-contain"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </>
     );
 }

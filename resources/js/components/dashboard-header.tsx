@@ -1,11 +1,21 @@
-import { Link } from '@inertiajs/react';
-import { CalendarPlus, ImagePlus, LayoutDashboard, LogOut, Menu, Sparkles, User as UserIcon, X } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import {
+    BriefcaseBusiness,
+    CalendarPlus,
+    ImagePlus,
+    LayoutDashboard,
+    LogOut,
+    Menu,
+    Sparkles,
+    User as UserIcon,
+    X,
+} from 'lucide-react';
 import { useState } from 'react';
 
 type Props = {
     userName: string;
     userRole?: 'client' | 'artist' | 'admin';
-    active?: 'dashboard' | 'book' | 'inspo' | 'profile';
+    active?: 'dashboard' | 'book' | 'inspo' | 'profile' | 'services';
 };
 
 function buildNavItems(userRole: Props['userRole']) {
@@ -21,55 +31,79 @@ function buildNavItems(userRole: Props['userRole']) {
         { key: 'profile' as const, label: 'Profile', href: '/profile', icon: UserIcon },
     ];
 
-    // The artist only manages bookings and their own profile.
-    return userRole === 'artist'
-        ? items.filter((item) => item.key === 'dashboard' || item.key === 'profile')
-        : items;
+    if (userRole === 'artist') {
+        return [
+            ...items.filter((item) => item.key === 'dashboard' || item.key === 'profile'),
+            {
+                key: 'services' as const,
+                label: 'Services',
+                href: '/artist/services',
+                icon: BriefcaseBusiness,
+            },
+        ];
+    }
+
+    return items;
 }
 
-export default function DashboardHeader({ userName, userRole = 'client', active = 'dashboard' }: Props) {
+export default function DashboardHeader({
+    userName,
+    userRole = 'client',
+    active = 'dashboard',
+}: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     const navItems = buildNavItems(userRole);
 
     const linkClass = (key: Props['active']) =>
         `flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200 ${
-            active === key ? 'bg-[#E6EEF8] text-[#5F83AB]' : 'text-[#5B6B82] hover:bg-[#E6EEF8]/60 hover:text-[#5F83AB]'
+            active === key
+                ? 'bg-[#E6EEF8] text-[#5F83AB]'
+                : 'text-[#5B6B82] hover:bg-[#E6EEF8]/60 hover:text-[#5F83AB]'
         }`;
 
     const mobileLinkClass = (key: Props['active']) =>
         `flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors duration-200 ${
-            active === key ? 'bg-[#E6EEF8] text-[#5F83AB]' : 'text-[#5B6B82] hover:bg-[#E6EEF8]/60 hover:text-[#5F83AB]'
+            active === key
+                ? 'bg-[#E6EEF8] text-[#5F83AB]'
+                : 'text-[#5B6B82] hover:bg-[#E6EEF8]/60 hover:text-[#5F83AB]'
         }`;
 
     return (
         <header className="sticky top-0 z-20 border-b border-[#D3DFEF] bg-[#F2F5F8]/90 backdrop-blur">
             <div className="flex items-center justify-between px-6 py-4 md:px-12">
-                <Link href="/dashboard" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
+                <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2"
+                    onClick={() => setMenuOpen(false)}
+                >
                     <Sparkles className="h-5 w-5 text-[#5F83AB]" />
                     <span className="font-bold text-[#5F83AB]">JM Makeup Studio</span>
                 </Link>
 
-                {/* desktop nav */}
                 <nav className="hidden items-center gap-2 sm:flex">
                     {navItems.map(({ key, label, href, icon: Icon }) => (
                         <Link key={key} href={href} className={linkClass(key)}>
-                            <Icon className="h-4 w-4" /> {label}
+                            <Icon className="h-4 w-4" />
+                            {label}
                         </Link>
                     ))}
                 </nav>
 
                 <div className="flex items-center gap-3">
-                    <span className="hidden text-sm text-[#5B6B82] md:inline">Hi, {userName.split(' ')[0]}</span>
+                    <span className="hidden text-sm text-[#5B6B82] md:inline">
+                        Hi, {userName.split(' ')[0]}
+                    </span>
+
                     <Link
                         href="/logout"
                         method="post"
                         as="button"
                         className="hidden items-center gap-1.5 rounded-full border border-[#95B1DB] px-4 py-1.5 text-sm font-semibold text-[#5F83AB] transition-colors duration-200 hover:bg-[#E6EEF8] sm:flex"
                     >
-                        <LogOut className="h-3.5 w-3.5" /> Log out
+                        <LogOut className="h-3.5 w-3.5" />
+                        Log out
                     </Link>
 
-                    {/* mobile menu toggle */}
                     <button
                         type="button"
                         onClick={() => setMenuOpen((open) => !open)}
@@ -82,25 +116,31 @@ export default function DashboardHeader({ userName, userRole = 'client', active 
                 </div>
             </div>
 
-            {/* mobile menu panel */}
             {menuOpen && (
                 <nav className="flex flex-col gap-1 border-t border-[#D3DFEF] bg-[#F2F5F8] px-4 py-3 sm:hidden">
                     {navItems.map(({ key, label, href, icon: Icon }) => (
-                        <Link key={key} href={href} className={mobileLinkClass(key)} onClick={() => setMenuOpen(false)}>
-                            <Icon className="h-4 w-4" /> {label}
+                        <Link
+                            key={key}
+                            href={href}
+                            className={mobileLinkClass(key)}
+                            onClick={() => setMenuOpen(false)}
+                        >
+                            <Icon className="h-4 w-4" />
+                            {label}
                         </Link>
                     ))}
+
                     <Link
                         href="/logout"
                         method="post"
                         as="button"
                         className="flex items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-medium text-[#5F83AB] hover:bg-[#E6EEF8]/60"
                     >
-                        <LogOut className="h-4 w-4" /> Log out
+                        <LogOut className="h-4 w-4" />
+                        Log out
                     </Link>
                 </nav>
             )}
         </header>
     );
 }
-        

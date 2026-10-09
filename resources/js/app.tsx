@@ -29,6 +29,8 @@ createInertiaApp({
                 return [AppLayout, SettingsLayout];
             default:
                 return AppLayout;
+            case name.startsWith('services/'):
+                return null;
         }
     },
     strictMode: true,

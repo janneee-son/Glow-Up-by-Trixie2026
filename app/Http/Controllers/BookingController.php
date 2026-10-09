@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use App\Models\ArtistService;   
 
 class BookingController extends Controller
 {
@@ -61,6 +62,13 @@ class BookingController extends Controller
                 'url' => asset('storage/' . $img->path),
                 'caption' => $img->caption,
             ]);
+
+            $services = $artist
+    ? ArtistService::where('user_id', $artist->id)
+        ->where('is_active', true)
+        ->orderBy('name')
+        ->get(['id', 'name', 'price'])
+    : collect();
 
         return Inertia::render('bookings/create', [
             'artist' => $artist
