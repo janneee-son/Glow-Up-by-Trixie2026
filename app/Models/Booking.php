@@ -17,7 +17,25 @@ class Booking extends Model
         'inspo_image_id',
         'artist_message',
         'cancelled_by',
+        'location_type',
+        'venue_address',
+        'package_id',
+        'base_price',
+        'base_price_type',
+        'estimated_total',
+        'selected_add_ons',
+        'requires_quote',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'base_price' => 'decimal:2',
+            'estimated_total' => 'decimal:2',
+            'selected_add_ons' => 'array',
+            'requires_quote' => 'boolean',
+        ];
+    }
 
     public function client()
     {
@@ -32,5 +50,10 @@ class Booking extends Model
     public function inspoImage()
     {
         return $this->belongsTo(InspoImage::class);
+    }
+
+    public function package()
+    {
+        return $this->belongsTo(ArtistOffering::class, 'package_id');
     }
 }

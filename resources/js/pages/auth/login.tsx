@@ -109,7 +109,7 @@ export default function Login({ status, canResetPassword }: Props) {
                         </div>
 
                         <div className="text-center text-sm text-[#5B6B82]">
-                            New to JM Makeup Studio?{' '}
+                            New to Glow Up by Trixie?{' '}
                             <TextLink href={register()} tabIndex={5} className="text-[#5F83AB] hover:text-[#4E7099] font-medium">
                                 Create an account
                             </TextLink>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ArtistService;
+use App\Models\ArtistOffering;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -28,7 +29,27 @@ class ServiceController extends Controller
                 'image_url' => $s->image ? Storage::url($s->image) : null,
             ]);
 
-        return Inertia::render('services/index', ['services' => $services]);
+        $offerings = ArtistOffering::where('user_id', $request->user()->id)
+            ->latest()
+            ->get()
+            ->map(fn (ArtistOffering $offering) => [
+                'id' => $offering->id,
+                'kind' => $offering->kind,
+                'name' => $offering->name,
+                'price' => $offering->price === null ? null : (float) $offering->price,
+                'pricing_type' => $offering->pricing_type,
+                'description' => $offering->description,
+                'inclusions' => $offering->inclusions ?? [],
+                'add_on_min_quantity' => $offering->add_on_min_quantity,
+                'add_on_max_quantity' => $offering->add_on_max_quantity,
+                'is_active' => $offering->is_active,
+            ]);
+
+        return Inertia::render('services/index', [
+            'services' => $services,
+            'packages' => $offerings->where('kind', 'package')->values(),
+            'addOns' => $offerings->where('kind', 'add_on')->values(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
