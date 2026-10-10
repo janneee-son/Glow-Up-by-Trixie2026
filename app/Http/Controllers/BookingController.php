@@ -3,14 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\ArtistOffering;
+use App\Models\ArtistService;
 use App\Models\InspoImage;
 use App\Models\User;
+use App\Notifications\NewBookingRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use App\Models\ArtistService;   
 
 class BookingController extends Controller
 {
@@ -63,18 +65,46 @@ class BookingController extends Controller
                 'caption' => $img->caption,
             ]);
 
-            $services = $artist
-    ? ArtistService::where('user_id', $artist->id)
-        ->where('is_active', true)
-        ->orderBy('name')
-        ->get(['id', 'name', 'price'])
-    : collect();
+        $services = $artist
+            ? ArtistService::where('user_id', $artist->id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'price', 'description'])
+                ->map(fn (ArtistService $service) => [
+                    'id' => $service->id,
+                    'name' => $service->name,
+                    'price' => (float) $service->price,
+                    'description' => $service->description,
+                ])
+            : collect();
+
+        $offerings = $artist
+            ? ArtistOffering::where('user_id', $artist->id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get()
+                ->map(fn (ArtistOffering $offering) => [
+                    'id' => $offering->id,
+                    'kind' => $offering->kind,
+                    'name' => $offering->name,
+                    'price' => $offering->price === null ? null : (float) $offering->price,
+                    'pricing_type' => $offering->pricing_type,
+                    'description' => $offering->description,
+                    'inclusions' => $offering->inclusions ?? [],
+                    'add_on_min_quantity' => $offering->add_on_min_quantity,
+                    'add_on_max_quantity' => $offering->add_on_max_quantity,
+                ])
+            : collect();
 
         return Inertia::render('bookings/create', [
             'artist' => $artist
                 ? $artist->only('id', 'name', 'specialty', 'years_experience', 'bio')
                 : null,
             'inspoImages' => $inspoImages,
+            'services' => $services,
+            'packages' => $offerings->where('kind', 'package')->values(),
+            'addOns' => $offerings->where('kind', 'add_on')->values(),
+            'minimumBookingDate' => now()->addDays(7)->toDateString(),
         ]);
     }
 
@@ -85,9 +115,30 @@ class BookingController extends Controller
         abort_unless($artist, 422, 'Bookings are not open yet.');
 
         $validated = $request->validate([
-            'service' => ['required', 'string', 'max:100'],
-            'booking_date' => ['required', 'date', 'after_or_equal:today'],
+            'service' => [
+                'nullable',
+                'string',
+                Rule::exists('artist_services', 'name')
+                    ->where('user_id', $artist->id)
+                    ->where('is_active', true),
+            ],
+            'package_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('artist_offerings', 'id')
+                    ->where('user_id', $artist->id)
+                    ->where('kind', 'package')
+                    ->where('is_active', true),
+            ],
+            'add_on_quantities' => ['nullable', 'array', 'max:10'],
+            'add_on_quantities.*' => ['required', 'integer', 'min:1', 'max:50'],
+            'booking_date' => [
+                'required',
+                'date',
+                'after_or_equal:' . now()->addDays(7)->toDateString(),
+            ],
             'booking_time' => ['required', 'date_format:H:i,H:i:s'],
+            'venue_address' => ['required', 'string', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:500'],
             'inspo_image_id' => [
                 'nullable',
@@ -95,6 +146,76 @@ class BookingController extends Controller
             ],
             'new_inspo_image' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
         ]);
+
+        $hasService = filled($validated['service'] ?? null);
+        $hasPackage = filled($validated['package_id'] ?? null);
+
+        if ($hasService === $hasPackage) {
+            throw ValidationException::withMessages([
+                'service' => 'Choose one service or one package.',
+                'package_id' => 'Choose one service or one package.',
+            ]);
+        }
+
+        $package = $hasPackage
+            ? ArtistOffering::where('user_id', $artist->id)->findOrFail($validated['package_id'])
+            : null;
+        $service = $hasService
+            ? ArtistService::where('user_id', $artist->id)->where('name', $validated['service'])->firstOrFail()
+            : null;
+        $basePrice = $package?->price !== null
+            ? (float) $package->price
+            : ($service ? (float) $service->price : null);
+        $basePriceType = $package?->pricing_type ?? 'fixed';
+
+        $requestedQuantities = $validated['add_on_quantities'] ?? [];
+        $selectedAddOnModels = ArtistOffering::where('user_id', $artist->id)
+            ->where('kind', 'add_on')
+            ->where('is_active', true)
+            ->whereIn('id', array_keys($requestedQuantities))
+            ->get()
+            ->keyBy('id');
+
+        if ($selectedAddOnModels->count() !== count($requestedQuantities)) {
+            throw ValidationException::withMessages([
+                'add_on_quantities' => 'One or more selected add-ons are no longer available.',
+            ]);
+        }
+
+        foreach ($requestedQuantities as $addOnId => $quantity) {
+            $addOn = $selectedAddOnModels->get((int) $addOnId);
+            $quantity = (int) $quantity;
+
+            if (! $addOn || $quantity < $addOn->add_on_min_quantity || $quantity > $addOn->add_on_max_quantity) {
+                throw ValidationException::withMessages([
+                    "add_on_quantities.{$addOnId}" => $addOn
+                        ? "Choose a quantity from {$addOn->add_on_min_quantity} to {$addOn->add_on_max_quantity}."
+                        : 'This add-on is no longer available.',
+                ]);
+            }
+        }
+
+        $selectedAddOns = $selectedAddOnModels
+            ->map(function (ArtistOffering $addOn) use ($requestedQuantities) {
+                $quantity = (int) $requestedQuantities[$addOn->id];
+                $unitPrice = $addOn->price === null ? null : (float) $addOn->price;
+
+                return [
+                'id' => $addOn->id,
+                'name' => $addOn->name,
+                'price' => $unitPrice,
+                'quantity' => $quantity,
+                'line_total' => $unitPrice === null ? null : $unitPrice * $quantity,
+                'pricing_type' => $addOn->pricing_type,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $requiresQuote = $basePriceType === 'quote_required'
+            || collect($selectedAddOns)->contains(fn (array $addOn) => $addOn['pricing_type'] === 'quote_required');
+        $estimatedTotal = ($basePrice ?? 0)
+            + collect($selectedAddOns)->sum(fn (array $addOn) => $addOn['line_total'] ?? 0);
 
         if (Carbon::parse("{$validated['booking_date']} {$validated['booking_time']}")->isPast()) {
             throw ValidationException::withMessages([
@@ -121,16 +242,26 @@ class BookingController extends Controller
             $inspoId = $inspo->id;
         }
 
-        Booking::create([
+        $booking = Booking::create([
             'client_id' => $request->user()->id,
             'artist_id' => $artist->id,
-            'service' => $validated['service'],
+            'service' => $package?->name ?? $service->name,
+            'package_id' => $package?->id,
+            'base_price' => $basePrice,
+            'base_price_type' => $basePriceType,
+            'estimated_total' => $estimatedTotal,
+            'selected_add_ons' => $selectedAddOns,
+            'requires_quote' => $requiresQuote,
             'booking_date' => $validated['booking_date'],
             'booking_time' => $validated['booking_time'],
+            'location_type' => 'home_service',
+            'venue_address' => $validated['venue_address'],
             'notes' => $validated['notes'] ?? null,
             'inspo_image_id' => $inspoId,
             'status' => 'pending',
         ]);
+
+        $artist->notify(new NewBookingRequest($booking));
 
         return redirect('/dashboard')->with('success', 'Booking requested!');
     }

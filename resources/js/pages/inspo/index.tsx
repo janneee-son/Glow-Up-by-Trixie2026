@@ -18,7 +18,9 @@ export default function InspoIndex({ images }: Props) {
     const { auth } = usePage<{ auth?: { user?: { name?: string } } }>().props;
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [previews, setPreviews] = useState<string[]>([]);
-    const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
+    const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(
+        null,
+    );
     const [viewingImage, setViewingImage] = useState<InspoImage | null>(null);
     const [justUploaded, setJustUploaded] = useState(false);
 
@@ -71,20 +73,34 @@ export default function InspoIndex({ images }: Props) {
         <>
             <Head title="Inspiration History" />
 
-            <div className="min-h-screen bg-[#F2F5F8]">
-                <DashboardHeader userName={auth?.user?.name ?? 'there'} active="inspo" />
+            <div className="min-h-screen bg-[#F8F5F4]">
+                <DashboardHeader
+                    userName={auth?.user?.name ?? 'there'}
+                    active="inspo"
+                />
 
-                <div className="mx-auto max-w-4xl px-6 py-10 md:px-12">
-                    <div className="mb-6">
-                        <p className="mb-1 text-xs uppercase tracking-widest text-[#5F83AB]">Makeup Inspiration</p>
-                        <h1 className="font-serif text-3xl font-bold text-[#1F2D40]">Your Inspiration History</h1>
-                        <p className="mt-1 text-sm text-[#5B6B82]">
-                            This collection is saved to your profile and available every time you book a session.
-                        </p>
-                    </div>
+                <main className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 md:py-10">
+                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#EADDE3] bg-gradient-to-br from-[#FFF9F6] via-white to-[#F2EDF7] p-6 shadow-lg shadow-[#BDA6B5]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#EADDE3]/50 blur-2xl" />
+                        <div className="relative">
+                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#9B7085] uppercase">
+                                Makeup Inspiration
+                            </p>
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#312532] sm:text-4xl">
+                                Your Inspiration History
+                            </h1>
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#766976] sm:text-base">
+                                This collection is saved to your profile and
+                                available every time you book a session.
+                            </p>
+                        </div>
+                    </section>
 
                     {/* upload form */}
-                    <form onSubmit={handleSubmit} className="mb-8 rounded-2xl border border-[#D3DFEF] bg-white p-5">
+                    <form
+                        onSubmit={handleSubmit}
+                        className="mb-8 rounded-3xl border border-[#EADDE3] bg-white p-5 shadow-lg shadow-[#BDA6B5]/10 sm:p-6"
+                    >
                         <div className="sm:flex sm:items-center sm:gap-4">
                             <input
                                 ref={fileInputRef}
@@ -99,7 +115,12 @@ export default function InspoIndex({ images }: Props) {
                             {previews.length > 0 ? (
                                 <div className="mb-3 flex gap-1.5 sm:mb-0">
                                     {previews.slice(0, 3).map((src, i) => (
-                                        <img key={i} src={src} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
+                                        <img
+                                            key={i}
+                                            src={src}
+                                            alt="Preview"
+                                            className="h-16 w-16 rounded-lg object-cover"
+                                        />
                                     ))}
                                     {previews.length > 3 && (
                                         <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-[#E6EEF8] text-xs font-semibold text-[#5F83AB]">
@@ -117,7 +138,10 @@ export default function InspoIndex({ images }: Props) {
                             )}
 
                             <div className="flex-1">
-                                <label htmlFor="inspo-upload" className="mb-1 block cursor-pointer text-sm font-medium text-[#1F2D40]">
+                                <label
+                                    htmlFor="inspo-upload"
+                                    className="mb-2 block cursor-pointer text-sm font-semibold text-[#312532]"
+                                >
                                     {data.images.length > 0
                                         ? `${data.images.length} image${data.images.length > 1 ? 's' : ''} selected`
                                         : '+ Upload Inspiration (choose one or more)'}
@@ -125,41 +149,60 @@ export default function InspoIndex({ images }: Props) {
                                 <input
                                     type="text"
                                     value={data.caption}
-                                    onChange={(e) => setData('caption', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('caption', e.target.value)
+                                    }
                                     placeholder="Add a short caption (optional)"
                                     maxLength={100}
-                                    className="w-full rounded-lg border border-[#95B1DB] bg-[#FAFCFE] px-3 py-1.5 text-sm text-[#1F2D40] placeholder:text-[#5B6B82]/60 focus-visible:border-[#769AD0] focus-visible:outline-none"
+                                    className="w-full rounded-xl border border-[#DCCAD4] bg-white px-3 py-2 text-sm text-[#312532] placeholder:text-[#9B8A95] focus-visible:border-[#B47B94] focus-visible:ring-2 focus-visible:ring-[#B47B94]/30 focus-visible:outline-none"
                                 />
-                                {errors.images && <p className="mt-1 text-xs text-[#A13F3F]">{errors.images}</p>}
+                                {errors.images && (
+                                    <p className="mt-1 text-xs text-[#A13F3F]">
+                                        {errors.images}
+                                    </p>
+                                )}
                             </div>
 
                             <Button
                                 type="submit"
-                                disabled={data.images.length === 0 || processing}
-                                className="mt-3 w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#95B1DB]/50 transition hover:bg-[#4E7099] disabled:opacity-50 sm:mt-0 sm:w-auto"
+                                disabled={
+                                    data.images.length === 0 || processing
+                                }
+                                className="mt-3 w-full rounded-full bg-[#A8758B] text-white shadow-md shadow-[#B47B94]/25 transition hover:bg-[#94677B] disabled:opacity-50 sm:mt-0 sm:w-auto"
                             >
-                                <Upload className="h-4 w-4" /> {processing ? 'Uploading...' : 'Upload'}
+                                <Upload className="h-4 w-4" />{' '}
+                                {processing ? 'Uploading...' : 'Upload'}
                             </Button>
                         </div>
 
                         {justUploaded && (
-                            <p className="mt-3 text-sm font-medium text-[#2E7D46]">Added to your inspiration history!</p>
+                            <p className="mt-3 text-sm font-medium text-[#2E7D46]">
+                                Added to your inspiration history!
+                            </p>
                         )}
                     </form>
 
                     {/* history */}
                     {images.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#D3DFEF] bg-white px-6 py-16 text-center">
-                            <Sparkles className="h-8 w-8 text-[#95B1DB]" />
-                            <p className="font-semibold text-[#1F2D40]">No inspiration images yet</p>
+                        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-[#DCCAD4] bg-white/80 px-6 py-16 text-center shadow-sm">
+                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#F7EAF0] text-[#A8758B]">
+                                <Sparkles className="h-7 w-7" />
+                            </span>
+                            <p className="font-serif text-lg font-bold text-[#312532]">
+                                No inspiration images yet
+                            </p>
                             <p className="max-w-xs text-sm text-[#5B6B82]">
-                                Upload a photo of a look you'd like to recreate — it'll be here every time you book.
+                                Upload a photo of a look you'd like to recreate
+                                — it'll be here every time you book.
                             </p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                             {images.map((img) => (
-                                <div key={img.id} className="group relative overflow-hidden rounded-xl border border-[#D3DFEF] bg-white">
+                                <div
+                                    key={img.id}
+                                    className="group relative overflow-hidden rounded-2xl border border-[#EADDE3] bg-white shadow-sm shadow-[#BDA6B5]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#BDA6B5]/15"
+                                >
                                     <button
                                         type="button"
                                         onClick={() => setViewingImage(img)}
@@ -173,22 +216,34 @@ export default function InspoIndex({ images }: Props) {
                                         />
                                     </button>
 
-                                    {img.caption && <p className="truncate px-2 py-1.5 text-xs text-[#5B6B82]">{img.caption}</p>}
+                                    {img.caption && (
+                                        <p className="truncate px-2 py-1.5 text-xs text-[#5B6B82]">
+                                            {img.caption}
+                                        </p>
+                                    )}
 
                                     {confirmingDeleteId === img.id ? (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 p-2 text-center">
-                                            <p className="text-xs font-medium text-white">Delete this image?</p>
+                                            <p className="text-xs font-medium text-white">
+                                                Delete this image?
+                                            </p>
                                             <div className="flex gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleDelete(img.id)}
+                                                    onClick={() =>
+                                                        handleDelete(img.id)
+                                                    }
                                                     className="rounded-full bg-[#A13F3F] px-3 py-1 text-xs font-semibold text-white hover:bg-[#8A3434]"
                                                 >
                                                     Delete
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setConfirmingDeleteId(null)}
+                                                    onClick={() =>
+                                                        setConfirmingDeleteId(
+                                                            null,
+                                                        )
+                                                    }
                                                     className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#1F2D40] hover:bg-[#E6EEF8]"
                                                 >
                                                     Cancel
@@ -198,8 +253,10 @@ export default function InspoIndex({ images }: Props) {
                                     ) : (
                                         <button
                                             type="button"
-                                            onClick={() => setConfirmingDeleteId(img.id)}
-                                            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition hover:bg-[#A13F3F] group-hover:opacity-100"
+                                            onClick={() =>
+                                                setConfirmingDeleteId(img.id)
+                                            }
+                                            className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition group-hover:opacity-100 hover:bg-[#A13F3F]"
                                             aria-label="Delete image"
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
@@ -209,7 +266,7 @@ export default function InspoIndex({ images }: Props) {
                             ))}
                         </div>
                     )}
-                </div>
+                </main>
             </div>
 
             {viewingImage && (
@@ -221,17 +278,24 @@ export default function InspoIndex({ images }: Props) {
                         type="button"
                         onClick={() => setViewingImage(null)}
                         aria-label="Close"
-                        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                        className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
                     >
                         <X className="h-5 w-5" />
                     </button>
-                    <div className="flex max-h-full max-w-full flex-col items-center" onClick={(e) => e.stopPropagation()}>
+                    <div
+                        className="flex max-h-full max-w-full flex-col items-center"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <img
                             src={viewingImage.url}
                             alt={viewingImage.caption ?? 'Inspo'}
                             className="max-h-[85vh] max-w-full rounded-lg object-contain"
                         />
-                        {viewingImage.caption && <p className="mt-3 text-center text-sm text-white/80">{viewingImage.caption}</p>}
+                        {viewingImage.caption && (
+                            <p className="mt-3 text-center text-sm text-white/80">
+                                {viewingImage.caption}
+                            </p>
+                        )}
                     </div>
                 </div>
             )}

@@ -27,7 +27,7 @@ export default function AuthSimpleLayout({
             <div className="relative border-b border-[#D3DFEF] bg-[#F2F5F8]/80 backdrop-blur px-8 py-4 flex items-center justify-between">
                 <Link href={home()} className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-[#5F83AB]" />
-                    <p className="font-bold text-[#5F83AB]">JM Makeup Studio</p>
+                    <p className="font-bold text-[#5F83AB]">Glow Up by Trixie</p>
                 </Link>
                 <Link
                     href={home()}

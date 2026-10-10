@@ -37,7 +37,7 @@ type Props = {
 };
 
 const fieldClass =
-    'w-full rounded-xl border border-[#95B1DB] bg-[#FAFCFE] px-3 py-2 text-sm text-[#1F2D40] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/40';
+    'w-full rounded-xl border border-[#DCCAD4] bg-white px-3 py-2 text-sm text-[#312532] placeholder:text-[#9B8A95] focus-visible:border-[#B47B94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B47B94]/30';
 
 function initials(name: string) {
     return name
@@ -50,7 +50,9 @@ function initials(name: string) {
 
 export default function EditProfile({ user }: Props) {
     const { auth } = usePage<{
-        auth?: { user?: { name?: string; role?: 'client' | 'artist' | 'admin' } };
+        auth?: {
+            user?: { name?: string; role?: 'client' | 'artist' | 'admin' };
+        };
     }>().props;
 
     const isArtist = user.role === 'artist';
@@ -69,7 +71,8 @@ export default function EditProfile({ user }: Props) {
         province: user.province ?? '',
         postal_code: user.postal_code ?? '',
         specialty: user.specialty ?? '',
-        years_experience: user.years_experience != null ? String(user.years_experience) : '',
+        years_experience:
+            user.years_experience != null ? String(user.years_experience) : '',
         bio: user.bio ?? '',
     });
 
@@ -99,7 +102,8 @@ export default function EditProfile({ user }: Props) {
         });
     }
 
-    const displayedAvatar = avatarPreview ?? (!data.remove_avatar ? user.avatar_url : null);
+    const displayedAvatar =
+        avatarPreview ?? (!data.remove_avatar ? user.avatar_url : null);
 
     useEffect(() => {
         if (!viewingAvatar) return;
@@ -114,31 +118,34 @@ export default function EditProfile({ user }: Props) {
         <>
             <Head title="Profile" />
 
-            <div className="min-h-screen bg-[#F2F5F8]">
+            <div className="min-h-screen bg-[#F8F5F4]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
                     active="profile"
                 />
 
-                <div className="mx-auto max-w-2xl px-6 py-10 md:px-12">
-                    <div className="mb-6">
-                        <p className="mb-1 text-xs tracking-widest text-[#5F83AB] uppercase">
-                            Profile
-                        </p>
-                        <h1 className="font-serif text-3xl font-bold text-[#1F2D40]">
-                            Your details
-                        </h1>
-                        <p className="mt-1 text-sm text-[#5B6B82]">
-                            {isArtist
-                                ? 'These details are shown to clients on the booking page.'
-                                : 'Your artist uses these to reach you about your bookings.'}
-                        </p>
-                    </div>
+                <main className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-6 md:py-10">
+                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#EADDE3] bg-gradient-to-br from-[#FFF9F6] via-white to-[#F2EDF7] p-6 shadow-lg shadow-[#BDA6B5]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#EADDE3]/50 blur-2xl" />
+                        <div className="relative">
+                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#9B7085] uppercase">
+                                Profile
+                            </p>
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#312532] sm:text-4xl">
+                                Your details
+                            </h1>
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#766976] sm:text-base">
+                                {isArtist
+                                    ? 'These details are shown to clients on the booking page.'
+                                    : 'Your artist uses these to reach you about your bookings.'}
+                            </p>
+                        </div>
+                    </section>
 
                     <form
                         onSubmit={handleSubmit}
-                        className="grid gap-6 rounded-2xl border border-[#D3DFEF] bg-white p-6"
+                        className="grid gap-6 rounded-3xl border border-[#EADDE3] bg-white p-5 shadow-lg shadow-[#BDA6B5]/10 sm:p-7"
                     >
                         {/* avatar */}
                         <div className="flex items-center gap-4">
@@ -163,9 +170,11 @@ export default function EditProfile({ user }: Props) {
                                 )}
                                 <button
                                     type="button"
-                                    onClick={() => fileInputRef.current?.click()}
+                                    onClick={() =>
+                                        fileInputRef.current?.click()
+                                    }
                                     aria-label="Change profile picture"
-                                    className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#5F83AB] text-white shadow-md transition hover:bg-[#4E7099]"
+                                    className="absolute -right-1 -bottom-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#5F83AB] text-white shadow-md transition hover:bg-[#4E7099]"
                                 >
                                     <Camera className="h-3.5 w-3.5" />
                                 </button>
@@ -179,15 +188,20 @@ export default function EditProfile({ user }: Props) {
                             </div>
 
                             <div>
-                                <p className="text-sm font-medium text-[#1F2D40]">Profile picture</p>
-                                <p className="mb-1.5 text-xs text-[#5B6B82]">JPG, PNG or WEBP. Max 2MB.</p>
+                                <p className="text-sm font-medium text-[#1F2D40]">
+                                    Profile picture
+                                </p>
+                                <p className="mb-1.5 text-xs text-[#5B6B82]">
+                                    JPG, PNG or WEBP. Max 2MB.
+                                </p>
                                 {displayedAvatar && (
                                     <button
                                         type="button"
                                         onClick={handleRemoveAvatar}
                                         className="flex items-center gap-1 text-xs font-semibold text-[#A13F3F] transition hover:text-[#8A3434]"
                                     >
-                                        <Trash2 className="h-3 w-3" /> Remove photo
+                                        <Trash2 className="h-3 w-3" /> Remove
+                                        photo
                                     </button>
                                 )}
                             </div>
@@ -265,7 +279,7 @@ export default function EditProfile({ user }: Props) {
 
                         {isArtist && (
                             /* artist details */
-                            <div className="grid gap-4 rounded-xl border border-[#95B1DB]/60 bg-[#EDF3FA] p-4">
+                            <div className="grid gap-4 rounded-2xl border border-[#EADDE3] bg-[#FCF8F8] p-4">
                                 <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
                                     <Briefcase className="h-4 w-4 text-[#5F83AB]" />{' '}
                                     Artist details{' '}
@@ -347,12 +361,14 @@ export default function EditProfile({ user }: Props) {
                             </div>
                         )}
 
-                        {(
+                        {
                             /* address: required for clients, optional for the artist */
-                            <div className="grid gap-4 rounded-xl border border-[#95B1DB]/60 bg-[#EDF3FA] p-4">
+                            <div className="grid gap-4 rounded-2xl border border-[#EADDE3] bg-[#FCF8F8] p-4">
                                 <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
                                     <MapPin className="h-4 w-4 text-[#5F83AB]" />{' '}
-                                    {isArtist ? 'Studio address (optional)' : 'Address'}
+                                    {isArtist
+                                        ? 'Studio address (optional)'
+                                        : 'Address'}
                                 </p>
 
                                 <div className="grid gap-2">
@@ -491,12 +507,12 @@ export default function EditProfile({ user }: Props) {
                                     </div>
                                 </div>
                             </div>
-                        )}
+                        }
 
                         <Button
                             type="submit"
                             disabled={processing || !isDirty}
-                            className="w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#95B1DB]/50 transition duration-200 hover:bg-[#4E7099] hover:shadow-lg disabled:opacity-50"
+                            className="w-full rounded-full bg-[#A8758B] text-white shadow-md shadow-[#B47B94]/25 transition duration-200 hover:bg-[#94677B] hover:shadow-lg disabled:opacity-50"
                         >
                             {processing ? (
                                 <Spinner />
@@ -507,7 +523,7 @@ export default function EditProfile({ user }: Props) {
                         </Button>
                     </form>
 
-                    <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-[#D3DFEF] bg-white p-5">
+                    <div className="mt-6 flex items-center justify-between gap-4 rounded-3xl border border-[#EADDE3] bg-white p-5 shadow-sm shadow-[#BDA6B5]/10">
                         <div>
                             <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
                                 <ShieldCheck className="h-4 w-4 text-[#5F83AB]" />{' '}
@@ -525,7 +541,7 @@ export default function EditProfile({ user }: Props) {
                             Manage
                         </Link>
                     </div>
-                </div>
+                </main>
             </div>
 
             {viewingAvatar && displayedAvatar && (
@@ -537,7 +553,7 @@ export default function EditProfile({ user }: Props) {
                         type="button"
                         onClick={() => setViewingAvatar(false)}
                         aria-label="Close"
-                        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                        className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
                     >
                         <X className="h-5 w-5" />
                     </button>

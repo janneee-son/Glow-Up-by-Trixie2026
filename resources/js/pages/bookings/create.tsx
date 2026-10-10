@@ -1,6 +1,14 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { Brush, CalendarDays, Clock, ImagePlus, PartyPopper, Sparkles, User as UserIcon, X } from 'lucide-react';
+import {
+    Brush,
+    CalendarDays,
+    Clock,
+    ImagePlus,
+    Sparkles,
+    X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import DashboardHeader from '@/components/dashboard-header';
 import { Button } from '@/components/ui/button';
@@ -21,186 +29,293 @@ type InspoImage = {
     caption: string | null;
 };
 
-type Props = {
-    artist: Artist | null;
-    inspoImages: InspoImage[];
+type Service = {
+    id: number;
+    name: string;
+    price: number | string;
+    description: string | null;
 };
 
-const SERVICES = ['Everyday Glam', 'Bridal Makeup', 'Photoshoot Glam', 'Special Events'];
-const OCCASIONS = ['Wedding', 'Prom / Formal', 'Graduation', 'Job Interview', 'Birthday', 'Date Night', 'Photoshoot'];
+type Offering = {
+    id: number;
+    name: string;
+    price: number | string | null;
+    pricing_type: 'fixed' | 'starting_at' | 'quote_required';
+    description: string | null;
+    inclusions: string[];
+    add_on_min_quantity: number;
+    add_on_max_quantity: number;
+};
+
+type Props = {
+    artist: Artist | null;
+    inspoImages?: InspoImage[] | null;
+    services?: Service[] | null;
+    packages?: Offering[] | null;
+    addOns?: Offering[] | null;
+    minimumBookingDate?: string | null;
+};
 
 const fieldClass =
-    'w-full rounded-xl border border-[#95B1DB] bg-[#FAFCFE] px-3 py-2 text-sm text-[#1F2D40] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/40';
+    'w-full rounded-xl border border-[#DCCAD4] bg-white px-3 py-2 text-sm text-[#312532] placeholder:text-[#9B8A95] focus-visible:border-[#B47B94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B47B94]/30';
 
-// Uses local time (not UTC) so the minimum date is correct in the Philippines.
-function todayISO() {
-    const d = new Date();
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().split('T')[0];
-}
+export default function CreateBooking({
+    artist,
+    inspoImages: inspoImagesProp,
+    services: servicesProp,
+    packages: packagesProp,
+    addOns: addOnsProp,
+    minimumBookingDate,
+}: Props) {
+    const inspoImages = Array.isArray(inspoImagesProp) ? inspoImagesProp : [];
 
-export default function CreateBooking({ artist, inspoImages }: Props) {
-    const { auth } = usePage<{ auth?: { user?: { name?: string; role?: 'client' | 'artist' | 'admin' } } }>().props;
+    const services = Array.isArray(servicesProp) ? servicesProp : [];
+    const packages = Array.isArray(packagesProp) ? packagesProp : [];
+    const addOns = Array.isArray(addOnsProp) ? addOnsProp : [];
+
+    const { auth } = usePage<{
+        auth?: {
+            user?: {
+                name?: string;
+                role?: 'client' | 'artist' | 'admin';
+            };
+        };
+    }>().props;
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [newPreview, setNewPreview] = useState<string | null>(null);
     const [viewingUrl, setViewingUrl] = useState<string | null>(null);
-
-    // The occasion is kept separate from the Notes box; the two are only
-    // combined when the form is submitted.
-    const [occasion, setOccasion] = useState('');
-    const [otherMode, setOtherMode] = useState(false);
-    const [otherText, setOtherText] = useState('');
-
-    const { data, setData, post, processing, errors, transform } = useForm<{
+    const { data, setData, post, processing, errors } = useForm<{
         service: string;
+        package_id: number | null;
+        add_on_quantities: Record<number, number>;
         booking_date: string;
         booking_time: string;
+        venue_address: string;
         notes: string;
         inspo_image_id: number | null;
         new_inspo_image: File | null;
     }>({
         service: '',
+        package_id: null,
+        add_on_quantities: {},
         booking_date: '',
         booking_time: '',
+        venue_address: '',
         notes: '',
         inspo_image_id: null,
         new_inspo_image: null,
     });
 
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
+    const selectedService = services.find((service) => service.name === data.service);
+    const selectedPackage = packages.find((pkg) => pkg.id === data.package_id);
+    const selectedAddOns = addOns.filter((addOn) => data.add_on_quantities[addOn.id] != null);
+    const baseOffering = selectedPackage ?? selectedService;
+    const basePriceType = selectedPackage?.pricing_type ?? 'fixed';
+    const basePrice = baseOffering?.price == null ? null : Number(baseOffering.price);
+    const quoteRequired = basePriceType === 'quote_required' || selectedAddOns.some((item) => item.pricing_type === 'quote_required');
+    const estimatedTotal = (basePrice ?? 0) + selectedAddOns.reduce((sum, item) => sum + (item.price == null ? 0 : Number(item.price) * data.add_on_quantities[item.id]), 0);
 
-        // Saved in the existing notes column as "Occasion: X" on the first line.
-        transform((d) => ({
-            ...d,
-            notes: occasion ? `Occasion: ${occasion}\n${d.notes}` : d.notes,
-        }));
+    function toggleAddOn(addOn: Offering) {
+        setData('add_on_quantities', Object.hasOwn(data.add_on_quantities, addOn.id)
+            ? Object.fromEntries(Object.entries(data.add_on_quantities).filter(([id]) => Number(id) !== addOn.id))
+            : { ...data.add_on_quantities, [addOn.id]: addOn.add_on_min_quantity });
+    }
 
+    function changeAddOnQuantity(addOn: Offering, rawValue: string) {
+        const parsed = Number.parseInt(rawValue, 10);
+        const quantity = Number.isNaN(parsed)
+            ? addOn.add_on_min_quantity
+            : Math.min(addOn.add_on_max_quantity, Math.max(addOn.add_on_min_quantity, parsed));
+        setData('add_on_quantities', { ...data.add_on_quantities, [addOn.id]: quantity });
+    }
+
+    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
         post('/book', { forceFormData: true });
     }
 
-    function handleNewInspoChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0] ?? null;
-        setData((prev) => ({ ...prev, new_inspo_image: file, inspo_image_id: file ? null : prev.inspo_image_id }));
+    function handleNewInspoChange(event: ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0] ?? null;
+
+        setData((previous) => ({
+            ...previous,
+            new_inspo_image: file,
+            inspo_image_id: file ? null : previous.inspo_image_id,
+        }));
+
         setNewPreview(file ? URL.createObjectURL(file) : null);
     }
 
     function selectExisting(id: number) {
-        setData((prev) => ({ ...prev, inspo_image_id: id, new_inspo_image: null }));
+        setData((previous) => ({
+            ...previous,
+            inspo_image_id: id,
+            new_inspo_image: null,
+        }));
+
         setNewPreview(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-    }
 
-    function handleChipClick(label: string) {
-        setOtherMode(false);
-        setOtherText('');
-        // tapping the same chip again removes it
-        setOccasion((prev) => (prev === label ? '' : label));
-    }
-
-    function handleOtherClick() {
-        setOtherMode(true);
-        setOccasion(otherText.trim());
-    }
-
-    function handleOtherChange(value: string) {
-        setOtherText(value);
-        setOccasion(value.trim());
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     }
 
     useEffect(() => {
-        if (!viewingUrl) return;
-        function onKeyDown(e: KeyboardEvent) {
-            if (e.key === 'Escape') setViewingUrl(null);
+        if (!viewingUrl) {
+            return;
         }
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
+
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === 'Escape') {
+                setViewingUrl(null);
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
     }, [viewingUrl]);
 
     return (
         <>
             <Head title="Book a Session" />
 
-            <div className="min-h-screen bg-[#F2F5F8]">
-                <DashboardHeader userName={auth?.user?.name ?? 'there'} userRole={auth?.user?.role} active="book" />
+            <div className="min-h-screen bg-[#F8F5F4]">
+                <DashboardHeader
+                    userName={auth?.user?.name ?? 'there'}
+                    userRole={auth?.user?.role}
+                    active="book"
+                />
 
-                <div className="mx-auto max-w-2xl px-6 py-10 md:px-12">
-                    <div className="mb-6">
-                        <p className="mb-1 text-xs uppercase tracking-widest text-[#5F83AB]">Book a Session</p>
-                        <h1 className="font-serif text-3xl font-bold text-[#1F2D40]">Let's get you glammed</h1>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="grid gap-6 rounded-2xl border border-[#D3DFEF] bg-white p-6">
-                        {/* your artist */}
-                        <div className="grid gap-2">
-                            <Label className="flex items-center gap-1.5 text-[#1F2D40]">
-                                <UserIcon className="h-4 w-4 text-[#5F83AB]" /> Your artist
-                            </Label>
-                            {artist ? (
-                                <div className="rounded-xl border border-[#5F83AB] bg-[#E6EEF8] p-3">
-                                    <p className="text-sm font-semibold text-[#1F2D40]">{artist.name}</p>
-                                    <p className="text-xs text-[#5B6B82]">
-                                        {artist.specialty ?? 'Makeup Artist'}
-                                        {artist.years_experience != null && ` · ${artist.years_experience} yrs exp.`}
-                                    </p>
-                                    {artist.bio && <p className="mt-1.5 text-xs text-[#5B6B82]">{artist.bio}</p>}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-[#5B6B82]">Bookings aren't open yet. Check back soon!</p>
-                            )}
+                <main className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-6 md:py-10">
+                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#EADDE3] bg-gradient-to-br from-[#FFF9F6] via-white to-[#F2EDF7] p-6 shadow-lg shadow-[#BDA6B5]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#EADDE3]/50 blur-2xl" />
+                        <div className="relative">
+                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#9B7085] uppercase">
+                                Book a Session
+                            </p>
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#312532] sm:text-4xl">
+                                Let&apos;s get you glammed
+                            </h1>
+                            <p className="mt-2 max-w-xl text-sm leading-6 text-[#766976] sm:text-base">
+                                Choose your look and appointment details. Your
+                                artist will confirm the booking with you.
+                            </p>
                         </div>
+                    </section>
 
-                        {/* service picker */}
+                    <form
+                        onSubmit={handleSubmit}
+                        className="grid gap-6 rounded-3xl border border-[#EADDE3] bg-white p-5 shadow-lg shadow-[#BDA6B5]/10 sm:p-7"
+                    >
                         <div className="grid gap-2">
                             <Label htmlFor="service" className="flex items-center gap-1.5 text-[#1F2D40]">
-                                <Brush className="h-4 w-4 text-[#5F83AB]" /> Service
+                                <Brush className="h-4 w-4 text-[#5F83AB]" /> Choose one service or package
                             </Label>
-                            <select
-                                id="service"
-                                value={data.service}
-                                onChange={(e) => setData('service', e.target.value)}
-                                required
-                                className={fieldClass}
-                            >
-                                <option value="" disabled>
-                                    Select a service
-                                </option>
-                                {SERVICES.map((s) => (
-                                    <option key={s} value={s}>
-                                        {s}
-                                    </option>
-                                ))}
+                            <select id="service" value={data.service} onChange={(event) => setData((previous) => ({ ...previous, service: event.target.value, package_id: null }))} className={fieldClass}>
+                                <option value="">Select a service (optional)</option>
+                                {services.map((service) => <option key={service.id} value={service.name}>{service.name} — ₱{Number(service.price).toLocaleString('en-PH')}</option>)}
                             </select>
                             <InputError message={errors.service} />
+                            <select aria-label="Package" value={data.package_id ?? ''} onChange={(event) => setData((previous) => ({ ...previous, package_id: event.target.value ? Number(event.target.value) : null, service: '' }))} className={fieldClass}>
+                                <option value="">Or select a package (optional)</option>
+                                {packages.map((pkg) => <option key={pkg.id} value={pkg.id}>{pkg.name} — {pkg.pricing_type === 'quote_required' ? 'Price confirmed after booking' : `${pkg.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(pkg.price ?? 0).toLocaleString('en-PH')}`}</option>)}
+                            </select>
+                            <p className="text-xs text-[#766976]">Choose only one. Add-ons below are optional.</p>
+                            <InputError message={errors.package_id} />
                         </div>
 
-                        {/* date + time */}
+                        {addOns.length > 0 && <fieldset className="grid gap-3 rounded-2xl border border-[#EADDE3] bg-[#FCF8F8] p-4">
+                            <legend className="px-1 font-semibold text-[#1F2D40]">Optional add-ons</legend>
+                            {addOns.map((addOn) => {
+                                const selectedQuantity = data.add_on_quantities[addOn.id];
+                                return <label key={addOn.id} className="flex cursor-pointer items-start gap-3 rounded-xl bg-white p-3">
+                                    <input type="checkbox" checked={selectedQuantity != null} onChange={() => toggleAddOn(addOn)} className="mt-1 accent-[#A8758B]" />
+                                    <span className="min-w-0 flex-1"><span className="block font-medium text-[#312532]">{addOn.name}</span>{addOn.description && <span className="mt-0.5 block text-xs text-[#766976]">{addOn.description}</span>}<span className="mt-1 block text-xs text-[#766976]">{addOn.pricing_type === 'quote_required' ? 'Price confirmed after booking' : `${addOn.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(addOn.price ?? 0).toLocaleString('en-PH')} each`}{addOn.add_on_min_quantity > 1 ? ` · minimum ${addOn.add_on_min_quantity}` : ''}</span></span>
+                                    {selectedQuantity != null && <span className="grid shrink-0 gap-1 text-xs font-medium text-[#5B6B82]">Qty
+                                        <input aria-label={`${addOn.name} quantity`} type="number" min={addOn.add_on_min_quantity} max={addOn.add_on_max_quantity} step="1" value={selectedQuantity} onChange={(event) => changeAddOnQuantity(addOn, event.target.value)} onClick={(event) => event.stopPropagation()} className="w-20 rounded-lg border border-[#DCCAD4] px-2 py-1 text-sm text-[#312532]" />
+                                    </span>}
+                                    <InputError message={(errors as unknown as Record<string, string | undefined>)[`add_on_quantities.${addOn.id}`]} />
+                                </label>;
+                            })}
+                            <InputError message={errors.add_on_quantities} />
+                        </fieldset>}
+
+                        {baseOffering && <aside className="rounded-2xl border border-[#EADDE3] bg-gradient-to-r from-[#FFF9F6] to-[#F2EDF7] p-4 text-sm">
+                            <div className="flex justify-between gap-3 font-semibold text-[#312532]"><span>{selectedPackage ? selectedPackage.name : selectedService?.name}</span><span className="shrink-0 text-[#8B4963]">{basePriceType === 'quote_required' ? 'Quote required' : `${basePriceType === 'starting_at' ? 'Starting at ' : ''}₱${(basePrice ?? 0).toLocaleString('en-PH')}`}</span></div>
+                            {selectedAddOns.map((item) => <div key={item.id} className="mt-2 flex justify-between gap-3 text-[#5B6B82]"><span>{item.name} × {data.add_on_quantities[item.id]}</span><span className="shrink-0">{item.pricing_type === 'quote_required' ? 'Quote' : `₱${(Number(item.price ?? 0) * data.add_on_quantities[item.id]).toLocaleString('en-PH')}`}</span></div>)}
+                            <div className="mt-3 flex justify-between border-t border-[#EADDE3] pt-3 font-semibold text-[#312532]"><span>{quoteRequired ? 'Estimated total (final price to confirm)' : 'Estimated total'}</span><span>₱{estimatedTotal.toLocaleString('en-PH')}</span></div>
+                        </aside>}
+
+                        <div className="grid gap-2">
+                            <Label
+                                htmlFor="venue_address"
+                                className="text-[#1F2D40]"
+                            >
+                                Home-service address
+                            </Label>
+                            <textarea
+                                id="venue_address"
+                                value={data.venue_address}
+                                onChange={(event) =>
+                                    setData('venue_address', event.target.value)
+                                }
+                                required
+                                maxLength={1000}
+                                rows={3}
+                                placeholder="Enter the address where the artist will provide the service"
+                                className={`${fieldClass} resize-y`}
+                            />
+                            <InputError message={errors.venue_address} />
+                        </div>
+
                         <div className="grid items-start gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
-                                <Label htmlFor="booking_date" className="flex items-center gap-1.5 text-[#1F2D40]">
-                                    <CalendarDays className="h-4 w-4 text-[#5F83AB]" /> Date
+                                <Label
+                                    htmlFor="booking_date"
+                                    className="flex items-center gap-1.5 text-[#1F2D40]"
+                                >
+                                    <CalendarDays className="h-4 w-4 text-[#5F83AB]" />
+                                    Date
                                 </Label>
                                 <input
                                     id="booking_date"
                                     type="date"
                                     value={data.booking_date}
-                                    onChange={(e) => setData('booking_date', e.target.value)}
+                                    onChange={(event) =>
+                                        setData(
+                                            'booking_date',
+                                            event.target.value,
+                                        )
+                                    }
                                     required
-                                    min={todayISO()}
+                                    min={minimumBookingDate ?? undefined}
                                     className={fieldClass}
                                 />
                                 <InputError message={errors.booking_date} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="booking_time" className="flex items-center gap-1.5 text-[#1F2D40]">
-                                    <Clock className="h-4 w-4 text-[#5F83AB]" /> Time
+                                <Label
+                                    htmlFor="booking_time"
+                                    className="flex items-center gap-1.5 text-[#1F2D40]"
+                                >
+                                    <Clock className="h-4 w-4 text-[#5F83AB]" />
+                                    Time
                                 </Label>
                                 <input
                                     id="booking_time"
                                     type="time"
                                     value={data.booking_time}
-                                    onChange={(e) => setData('booking_time', e.target.value)}
+                                    onChange={(event) =>
+                                        setData(
+                                            'booking_time',
+                                            event.target.value,
+                                        )
+                                    }
                                     required
                                     className={fieldClass}
                                 />
@@ -208,41 +323,61 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                             </div>
                         </div>
 
-                        {/* Makeup Inspiration section */}
-                        <div className="grid gap-2 rounded-xl border border-[#95B1DB]/60 bg-[#EDF3FA] p-4">
+                        <div className="grid gap-2 rounded-2xl border border-[#EADDE3] bg-[#FCF8F8] p-4">
                             <Label className="flex items-center gap-1.5 text-[#1F2D40]">
-                                <ImagePlus className="h-4 w-4 text-[#5F83AB]" /> Makeup Inspiration{' '}
-                                <span className="font-normal text-[#5B6B82]">(optional)</span>
+                                <ImagePlus className="h-4 w-4 text-[#5F83AB]" />
+                                Makeup Inspiration
+                                <span className="font-normal text-[#5B6B82]">
+                                    (optional)
+                                </span>
                             </Label>
+
                             <p className="text-xs text-[#5B6B82]">
-                                Pick from your Inspiration History or upload a new photo — it's saved to your profile and your artist will see it.
+                                Pick from your Inspiration History or upload a
+                                new photo — it&apos;s saved to your profile and
+                                your artist will see it.
                             </p>
 
                             {inspoImages.length > 0 && (
                                 <>
-                                    <p className="mt-1 text-xs font-semibold text-[#1F2D40]">Your Inspiration History</p>
+                                    <p className="mt-1 text-xs font-semibold text-[#1F2D40]">
+                                        Your Inspiration History
+                                    </p>
+
                                     <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                                        {inspoImages.map((img) => (
-                                            <div key={img.id} className="group relative">
+                                        {inspoImages.map((image) => (
+                                            <div
+                                                key={image.id}
+                                                className="group relative"
+                                            >
                                                 <button
                                                     type="button"
-                                                    onClick={() => selectExisting(img.id)}
+                                                    onClick={() =>
+                                                        selectExisting(image.id)
+                                                    }
                                                     className={`block aspect-square w-full overflow-hidden rounded-lg border-2 transition ${
-                                                        data.inspo_image_id === img.id
+                                                        data.inspo_image_id ===
+                                                        image.id
                                                             ? 'border-[#5F83AB] ring-2 ring-[#769AD0]/40'
                                                             : 'border-transparent hover:border-[#95B1DB]'
                                                     }`}
                                                 >
                                                     <img
-                                                        src={img.url}
-                                                        alt={img.caption ?? 'Inspo'}
+                                                        src={image.url}
+                                                        alt={
+                                                            image.caption ??
+                                                            'Inspiration'
+                                                        }
                                                         className="h-full w-full object-cover"
                                                     />
                                                 </button>
+
                                                 <button
                                                     type="button"
-                                                    onClick={() => setViewingUrl(img.url)}
-                                                    className="absolute bottom-1 right-1 rounded-full bg-black/50 p-1 text-white opacity-0 transition hover:bg-black/70 group-hover:opacity-100"
+                                                    onClick={() =>
+                                                        setViewingUrl(image.url)
+                                                    }
+                                                    className="absolute right-1 bottom-1 rounded-full bg-black/50 p-1 text-white opacity-0 transition group-hover:opacity-100 hover:bg-black/70"
                                                     aria-label="View full image"
                                                 >
                                                     <ImagePlus className="h-3 w-3" />
@@ -256,99 +391,66 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                             <div className="mt-2 flex items-center gap-3">
                                 <input
                                     ref={fileInputRef}
+                                    id="new-inspo-upload"
                                     type="file"
                                     accept="image/png,image/jpeg,image/webp"
                                     onChange={handleNewInspoChange}
                                     className="hidden"
-                                    id="new-inspo-upload"
                                 />
-                                {newPreview ? (
+
+                                {newPreview && (
                                     <button
                                         type="button"
-                                        onClick={() => setViewingUrl(newPreview)}
+                                        onClick={() =>
+                                            setViewingUrl(newPreview)
+                                        }
                                         className="h-16 w-16 overflow-hidden rounded-lg border-2 border-[#5F83AB]"
                                     >
-                                        <img src={newPreview} alt="New upload preview" className="h-full w-full object-cover" />
+                                        <img
+                                            src={newPreview}
+                                            alt="New upload preview"
+                                            className="h-full w-full object-cover"
+                                        />
                                     </button>
-                                ) : null}
+                                )}
+
                                 <label
                                     htmlFor="new-inspo-upload"
                                     className="cursor-pointer rounded-full border border-[#95B1DB] bg-white px-4 py-1.5 text-xs font-semibold text-[#5F83AB] transition hover:bg-[#E6EEF8]"
                                 >
-                                    {data.new_inspo_image ? 'Change new photo' : '+ Upload Inspiration'}
+                                    {data.new_inspo_image
+                                        ? 'Change new photo'
+                                        : '+ Upload Inspiration'}
                                 </label>
-                                <Link href="/inspo" className="text-xs font-semibold text-[#5B6B82] underline-offset-2 hover:underline">
+
+                                <Link
+                                    href="/inspo"
+                                    className="text-xs font-semibold text-[#5B6B82] underline-offset-2 hover:underline"
+                                >
                                     View full history
                                 </Link>
                             </div>
+
                             <InputError message={errors.new_inspo_image} />
                             <InputError message={errors.inspo_image_id} />
                         </div>
 
-                        {/* occasion (chips) */}
-                        <div className="grid gap-2">
-                            <Label className="flex items-center gap-1.5 text-[#1F2D40]">
-                                <PartyPopper className="h-4 w-4 text-[#5F83AB]" /> What's the occasion?{' '}
-                                <span className="font-normal text-[#5B6B82]">(optional)</span>
-                            </Label>
-                            <p className="text-xs text-[#5B6B82]">
-                                Not sure what to ask for? Tell us the event and your artist will know what look fits.
-                            </p>
-
-                            <div className="flex flex-wrap gap-2">
-                                {OCCASIONS.map((label) => (
-                                    <button
-                                        key={label}
-                                        type="button"
-                                        onClick={() => handleChipClick(label)}
-                                        aria-pressed={occasion === label && !otherMode}
-                                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                                            occasion === label && !otherMode
-                                                ? 'border-[#5F83AB] bg-[#E6EEF8] text-[#5F83AB]'
-                                                : 'border-[#95B1DB]/60 bg-[#FAFCFE] text-[#5B6B82] hover:bg-[#E6EEF8]/50'
-                                        }`}
-                                    >
-                                        {label}
-                                    </button>
-                                ))}
-                                <button
-                                    type="button"
-                                    onClick={handleOtherClick}
-                                    aria-pressed={otherMode}
-                                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                                        otherMode
-                                            ? 'border-[#5F83AB] bg-[#E6EEF8] text-[#5F83AB]'
-                                            : 'border-[#95B1DB]/60 bg-[#FAFCFE] text-[#5B6B82] hover:bg-[#E6EEF8]/50'
-                                    }`}
-                                >
-                                    Other
-                                </button>
-                            </div>
-
-                            {otherMode && (
-                                <input
-                                    type="text"
-                                    value={otherText}
-                                    onChange={(e) => handleOtherChange(e.target.value)}
-                                    placeholder="Tell us the occasion..."
-                                    maxLength={60}
-                                    className={fieldClass}
-                                />
-                            )}
-                        </div>
-
-                        {/* notes (free text only — the occasion is not written into this box) */}
                         <div className="grid gap-2">
                             <Label htmlFor="notes" className="text-[#1F2D40]">
-                                Notes <span className="font-normal text-[#5B6B82]">(optional)</span>
+                                Notes{' '}
+                                <span className="font-normal text-[#5B6B82]">
+                                    (optional)
+                                </span>
                             </Label>
                             <textarea
                                 id="notes"
                                 value={data.notes}
-                                onChange={(e) => setData('notes', e.target.value)}
+                                onChange={(event) =>
+                                    setData('notes', event.target.value)
+                                }
                                 rows={3}
                                 maxLength={420}
-                                placeholder="Allergies, preferred style, anything else we should know..."
+                                placeholder="Allergies, preferred style, or anything else your artist should know..."
                                 className={`${fieldClass} resize-none`}
                             />
                             <InputError message={errors.notes} />
@@ -356,14 +458,17 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
 
                         <Button
                             type="submit"
-                            disabled={!artist || processing}
-                            className="w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#95B1DB]/50 transition duration-200 hover:bg-[#4E7099] hover:shadow-lg disabled:opacity-50"
+                            disabled={
+                                !artist || (services.length === 0 && packages.length === 0) || (!data.service && !data.package_id) || processing
+                            }
+                            className="w-full rounded-full bg-[#A8758B] text-white shadow-md shadow-[#B47B94]/25 transition duration-200 hover:bg-[#94677B] hover:shadow-lg disabled:opacity-50"
                         >
                             {processing && <Spinner />}
-                            <Sparkles className="h-4 w-4" /> Confirm Booking
+                            <Sparkles className="h-4 w-4" />
+                            Confirm Booking
                         </Button>
                     </form>
-                </div>
+                </main>
             </div>
 
             {viewingUrl && (
@@ -374,16 +479,17 @@ export default function CreateBooking({ artist, inspoImages }: Props) {
                     <button
                         type="button"
                         onClick={() => setViewingUrl(null)}
-                        aria-label="Close"
-                        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                        aria-label="Close image"
+                        className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
                     >
                         <X className="h-5 w-5" />
                     </button>
+
                     <img
                         src={viewingUrl}
-                        alt="Full view"
+                        alt="Full-size inspiration"
                         className="max-h-[85vh] max-w-full rounded-lg object-contain"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(event) => event.stopPropagation()}
                     />
                 </div>
             )}

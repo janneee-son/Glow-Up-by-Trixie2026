@@ -35,7 +35,7 @@ class DashboardController extends Controller
             ]);
         }
 
-        if ($user->role === 'artist') {
+       if (in_array($user->role, ['artist', 'admin'], true)) {
             $bookings = Booking::where('artist_id', $user->id)
                 ->with('client:id,name,phone', 'inspoImage:id,path')
                 ->orderBy('booking_date')
