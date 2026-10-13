@@ -1,6 +1,7 @@
-    import { Head, Link, usePage } from '@inertiajs/react';
-    import { BadgeCheck, Brush, CalendarCheck, Camera, Clock, MapPin, Sparkles } from 'lucide-react';
-    import { dashboard, login, register } from '@/routes';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { useState } from 'react';
+import { BadgeCheck, Brush, CalendarCheck, Clock, Sparkles } from 'lucide-react';
+import { dashboard, login, register } from '@/routes';
 
     type Artist = {
         name: string;
@@ -49,6 +50,7 @@ type Package = {
         { label: 'Packages', href: '#packages' },
         { label: 'How it works', href: '#how-it-works' },
         { label: 'Your artist', href: '#artist' },
+        { label: 'Behind the glam', href: '#behind-the-glam-heading' },
         { label: 'Gallery', href: '#gallery' },
     ];
 
@@ -61,24 +63,14 @@ type Package = {
 
     const ARTIST_PHOTO: string | null = '/images/gallery/artist.png';
 
-    const HERO_PHOTOS: (string | null)[] = [
-        '/images/gallery/image2.png',
-        '/images/gallery/image3.png',
+    const LANDING_SLIDES = [
+        { src: '/images/landing/trixie-banner.jpeg', alt: 'Glow Up by Trixie — Still you, just glowing', caption: 'Glow Up by Trixie' },
+        { src: '/images/landing/behind-the-glam-prep.jpeg', alt: 'Trixie preparing a client before makeup application', caption: 'The prep behind a polished look' },
+        { src: '/images/landing/behind-the-glam-eyes.jpeg', alt: 'Trixie applying eye makeup to a client', caption: 'Every detail, carefully applied' },
+        { src: '/images/landing/behind-the-glam-finish.jpeg', alt: 'Close-up of Trixie applying finishing eye makeup', caption: 'Finishing touches' },
+        { src: '/images/landing/behind-the-glam-photoshoot.jpeg', alt: 'A client posing for a makeup photoshoot', caption: 'Ready for the camera' },
     ];
 
-
-
-    function Photo({ src, alt }: { src: string | null | undefined; alt: string }) {
-        if (src) {
-            return <img src={src} alt={alt} className="h-full w-full object-cover" />;
-        }
-
-        return (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#E6EEF8] to-[#D3DFEF] text-[#5F83AB]/60">
-                <Camera className="h-8 w-8" />
-            </div>
-        );
-    }
 
     function SectionHeading({ title, sub }: { title: string; sub?: string }) {
         return (
@@ -98,6 +90,7 @@ type Package = {
         'inline-flex items-center justify-center rounded-full border border-[#5F83AB]/50 px-7 py-3 text-sm font-semibold text-[#4A6A93] transition-colors duration-200 hover:bg-[#E6EEF8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5F83AB]';
 
     export default function Welcome({ artist, services, packages: packagesProp, galleryImages: galleryImagesProp, }: Props) {
+        const [slideIndex, setSlideIndex] = useState(0);
         const packages = Array.isArray(packagesProp) ? packagesProp : [];
         const galleryImages = Array.isArray(galleryImagesProp)
             ? galleryImagesProp
@@ -174,13 +167,39 @@ type Package = {
                     </header>
 
                     <main id="top" className="flex-1">
+                        <section id="behind-the-glam-heading" aria-label="Glow Up by Trixie banner and behind-the-scenes slideshow" className="w-full">
+                            <div className="relative isolate h-[min(78vh,760px)] min-h-[460px] w-full overflow-hidden bg-[#DCE6F2] shadow-xl shadow-[#456F9E]/15">
+                                <img src={LANDING_SLIDES[slideIndex].src} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#203B5B]/15 via-white/10 to-[#203B5B]/25" />
+                                <img
+                                    key={LANDING_SLIDES[slideIndex].src}
+                                    src={LANDING_SLIDES[slideIndex].src}
+                                    alt={LANDING_SLIDES[slideIndex].alt}
+                                    className={`absolute inset-0 h-full w-full scale-[1.04] object-cover transition-transform duration-700 ${slideIndex === 0 ? 'object-[center_46%]' : 'object-center'}`}
+                                />
+                                <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-4 bg-gradient-to-t from-[#132943]/65 via-[#132943]/25 to-transparent px-4 pb-4 pt-20 sm:px-7 sm:pb-7">
+                                    <div className="rounded-2xl border border-white/40 bg-white/75 px-4 py-3 text-[#203B5B] shadow-lg shadow-black/10 backdrop-blur-md sm:px-5">
+                                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#456F9E]">{slideIndex === 0 ? 'Brand banner' : 'Behind the glam'}</p>
+                                        <p className="mt-1 font-display text-lg font-bold sm:text-xl">{LANDING_SLIDES[slideIndex].caption}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 rounded-2xl border border-white/40 bg-white/75 p-2 shadow-lg shadow-black/10 backdrop-blur-md">
+                                        <button type="button" onClick={() => setSlideIndex((index) => (index - 1 + LANDING_SLIDES.length) % LANDING_SLIDES.length)} aria-label="Previous slide" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-xl font-semibold text-[#345578] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5F83AB]">‹</button>
+                                        <div className="flex items-center gap-1.5 px-1" aria-label={`Slide ${slideIndex + 1} of ${LANDING_SLIDES.length}`}>
+                                            {LANDING_SLIDES.map((slide, index) => <button key={slide.src} type="button" onClick={() => setSlideIndex(index)} aria-label={`Show ${slide.caption}`} aria-current={index === slideIndex} className={`h-2.5 rounded-full transition-all ${index === slideIndex ? 'w-7 bg-[#456F9E]' : 'w-2.5 bg-[#456F9E]/40 hover:bg-[#456F9E]/70'}`} />)}
+                                        </div>
+                                        <button type="button" onClick={() => setSlideIndex((index) => (index + 1) % LANDING_SLIDES.length)} aria-label="Next slide" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-xl font-semibold text-[#345578] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5F83AB]">›</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
                         <section className="mx-auto grid max-w-6xl items-center gap-14 px-8 py-16 lg:grid-cols-2 lg:py-24">
                             <div>
-                                <p className="mb-4 text-sm font-medium text-[#4A6A93]">
+                                <p className="mb-4 text-sm font-bold tracking-[0.18em] text-[#456F9E]">
                                     STILL YOU, JUST GLOWING.
                                 </p>
-                                <h2 className="font-display text-4xl font-bold leading-[1.1] sm:text-6xl">
-                                    Makeup for the day you want to remember
+                                <h2 className="font-display text-4xl font-bold leading-[1.1] text-[#203B5B] drop-shadow-sm sm:text-6xl">
+                                    Makeup that feels like <span className="text-[#5F83AB]">you</span>, at your most radiant
                                 </h2>
                                 <p className="mt-5 max-w-md text-lg leading-relaxed text-[#5B6B82]">
                                     Pick a service, choose a time, and your artist confirms. Share photos of the
@@ -214,17 +233,17 @@ type Package = {
                                 </ul>
                             </div>
 
-                            <div className="relative mx-auto h-[400px] w-full max-w-md sm:h-[480px]">
-                                <div className="absolute right-6 top-6 h-56 w-56 rounded-full bg-[#D3DFEF]/60" />
-                                <div className="absolute left-0 top-0 z-10 h-[84%] w-[60%] overflow-hidden rounded-t-full rounded-b-2xl border-4 border-white shadow-xl shadow-[#95B1DB]/40">
-                                    <Photo src={HERO_PHOTOS[0]} alt="Makeup look" />
-                                </div>
-                                <div className="absolute bottom-0 right-0 z-10 h-[58%] w-[48%] overflow-hidden rounded-t-full rounded-b-2xl border-4 border-white shadow-xl shadow-[#95B1DB]/40">
-                                    <Photo src={HERO_PHOTOS[1]} alt="Makeup look" />
-                                </div>
-                                <div className="absolute bottom-3 left-2 z-20 flex max-w-[12rem] items-start gap-2 rounded-xl bg-white px-4 py-3 text-sm shadow-lg shadow-[#95B1DB]/40">
-                                    <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#5F83AB]" />
-                                    <span>Your artist confirms every booking</span>
+                            <div className="relative mx-auto w-full max-w-md">
+                                <div className="absolute -right-5 -top-5 h-48 w-48 rounded-full bg-[#D3DFEF]/70 blur-sm" />
+                                <div className="relative rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-white via-white to-[#E6EEF8] p-8 shadow-xl shadow-[#5F83AB]/15 sm:p-10">
+                                    <Sparkles className="mb-6 h-9 w-9 text-[#5F83AB]" />
+                                    <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#456F9E]">Your look, your moment</p>
+                                    <h3 className="mt-3 font-display text-3xl font-bold leading-tight text-[#203B5B] sm:text-4xl">Soft glam, thoughtfully made.</h3>
+                                    <p className="mt-4 leading-relaxed text-[#526B88]">From soft Korean and Thai-inspired makeup to natural glam, each look is tailored to bring out your own features.</p>
+                                    <div className="mt-7 flex items-center gap-3 rounded-2xl bg-white/90 p-4 shadow-sm">
+                                        <BadgeCheck className="h-5 w-5 shrink-0 text-[#4F7EAF]" />
+                                        <span className="text-sm font-semibold text-[#345578]">Your artist confirms every booking</span>
+                                    </div>
                                 </div>
                             </div>
                         </section>
@@ -466,12 +485,16 @@ type Package = {
                         </section>
                     </main>
 
-                    <footer className="flex items-center justify-between border-t border-[#D3DFEF] px-8 py-6 text-sm text-[#5B6B82]">
+                    <footer className="flex flex-col gap-4 border-t border-[#D3DFEF] bg-white px-8 py-6 text-sm text-[#526B88] sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-2">
                             <Sparkles className="h-4 w-4 text-[#5F83AB]" />
                             <span className="font-semibold text-[#1F2D40]">Glow Up by Trixie</span>
                         </div>
-                        <span>© {new Date().getFullYear()} All rights reserved.</span>
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                            <a href="https://www.facebook.com/glowupbytrixieph" target="_blank" rel="noreferrer" className="font-semibold text-[#456F9E] transition hover:text-[#203B5B]">Facebook: Glow Up by Trixie</a>
+                            <a href="https://www.tiktok.com/@GlowUpByTrixie" target="_blank" rel="noreferrer" className="font-semibold text-[#456F9E] transition hover:text-[#203B5B]">TikTok: @GlowUpByTrixie</a>
+                            <span>© {new Date().getFullYear()} All rights reserved.</span>
+                        </div>
                     </footer>
                 </div>
             </>
