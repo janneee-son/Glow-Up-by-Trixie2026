@@ -73,23 +73,23 @@ export default function InspoIndex({ images }: Props) {
         <>
             <Head title="Inspiration History" />
 
-            <div className="min-h-screen bg-[#F2F5F8]">
+            <div className="min-h-screen bg-[#faf7f4]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     active="inspo"
                 />
 
                 <main className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 md:py-10">
-                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-[#FAFCFE] via-white to-[#E6EEF8] p-6 shadow-lg shadow-[#95B1DB]/10 md:p-8">
-                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#D3DFEF]/50 blur-2xl" />
+                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#e8d7cf] bg-gradient-to-br from-[#fffcf8] via-white to-[#f4e9e5] p-6 shadow-lg shadow-[#c9a66b]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#e8d7cf]/50 blur-2xl" />
                         <div className="relative">
-                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
+                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
                                 Makeup Inspiration
                             </p>
-                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1F2D40] sm:text-4xl">
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1a1a1a] sm:text-4xl">
                                 Your Inspiration History
                             </h1>
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5B6B82] sm:text-base">
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#4a4a4a] sm:text-base">
                                 This collection is saved to your profile and
                                 available every time you book a session.
                             </p>
@@ -99,7 +99,7 @@ export default function InspoIndex({ images }: Props) {
                     {/* upload form */}
                     <form
                         onSubmit={handleSubmit}
-                        className="mb-8 rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-lg shadow-[#95B1DB]/10 sm:p-6"
+                        className="mb-8 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-lg shadow-[#c9a66b]/10 sm:p-6"
                     >
                         <div className="sm:flex sm:items-center sm:gap-4">
                             <input
@@ -123,7 +123,7 @@ export default function InspoIndex({ images }: Props) {
                                         />
                                     ))}
                                     {previews.length > 3 && (
-                                        <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-[#E6EEF8] text-xs font-semibold text-[#5F83AB]">
+                                        <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-[#f4e9e5] text-xs font-semibold text-[#8a6a2f]">
                                             +{previews.length - 3}
                                         </div>
                                     )}
@@ -131,7 +131,7 @@ export default function InspoIndex({ images }: Props) {
                             ) : (
                                 <label
                                     htmlFor="inspo-upload"
-                                    className="mb-3 flex h-20 w-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[#95B1DB] text-[#5F83AB] transition hover:bg-[#E6EEF8]/50 sm:mb-0"
+                                    className="mb-3 flex h-20 w-20 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[#c9a66b] text-[#8a6a2f] transition hover:bg-[#f4e9e5]/50 sm:mb-0"
                                 >
                                     <ImagePlus className="h-6 w-6" />
                                 </label>
@@ -140,7 +140,7 @@ export default function InspoIndex({ images }: Props) {
                             <div className="flex-1">
                                 <label
                                     htmlFor="inspo-upload"
-                                    className="mb-2 block cursor-pointer text-sm font-semibold text-[#1F2D40]"
+                                    className="mb-2 block cursor-pointer text-sm font-semibold text-[#1a1a1a]"
                                 >
                                     {data.images.length > 0
                                         ? `${data.images.length} image${data.images.length > 1 ? 's' : ''} selected`
@@ -154,7 +154,7 @@ export default function InspoIndex({ images }: Props) {
                                     }
                                     placeholder="Add a short caption (optional)"
                                     maxLength={100}
-                                    className="w-full rounded-xl border border-[#B5C8E5] bg-white px-3 py-2 text-sm text-[#1F2D40] placeholder:text-[#758299] focus-visible:border-[#769AD0] focus-visible:ring-2 focus-visible:ring-[#769AD0]/30 focus-visible:outline-none"
+                                    className="w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] placeholder:text-[#6b625a] focus-visible:border-[#8a6a2f] focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30 focus-visible:outline-none"
                                 />
                                 {errors.images && (
                                     <p className="mt-1 text-xs text-[#A13F3F]">
@@ -168,7 +168,7 @@ export default function InspoIndex({ images }: Props) {
                                 disabled={
                                     data.images.length === 0 || processing
                                 }
-                                className="mt-3 w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#769AD0]/25 transition hover:bg-[#5F83AB] disabled:opacity-50 sm:mt-0 sm:w-auto"
+                                className="mt-3 w-full rounded-full bg-[#8a6a2f] text-white shadow-md shadow-[#8a6a2f]/25 transition hover:bg-[#8a6a2f] disabled:opacity-50 sm:mt-0 sm:w-auto"
                             >
                                 <Upload className="h-4 w-4" />{' '}
                                 {processing ? 'Uploading...' : 'Upload'}
@@ -184,14 +184,14 @@ export default function InspoIndex({ images }: Props) {
 
                     {/* history */}
                     {images.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-[#B5C8E5] bg-white/80 px-6 py-16 text-center shadow-sm">
-                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E6EEF8] text-[#5F83AB]">
+                        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-[#d7c0a2] bg-white/80 px-6 py-16 text-center shadow-sm">
+                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f4e9e5] text-[#8a6a2f]">
                                 <Sparkles className="h-7 w-7" />
                             </span>
-                            <p className="font-serif text-lg font-bold text-[#1F2D40]">
+                            <p className="font-serif text-lg font-bold text-[#1a1a1a]">
                                 No inspiration images yet
                             </p>
-                            <p className="max-w-xs text-sm text-[#5B6B82]">
+                            <p className="max-w-xs text-sm text-[#4a4a4a]">
                                 Upload a photo of a look you'd like to recreate
                                 — it'll be here every time you book.
                             </p>
@@ -201,7 +201,7 @@ export default function InspoIndex({ images }: Props) {
                             {images.map((img) => (
                                 <div
                                     key={img.id}
-                                    className="group relative overflow-hidden rounded-2xl border border-[#D3DFEF] bg-white shadow-sm shadow-[#95B1DB]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#95B1DB]/15"
+                                    className="group relative overflow-hidden rounded-2xl border border-[#e8d7cf] bg-white shadow-sm shadow-[#c9a66b]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#c9a66b]/15"
                                 >
                                     <button
                                         type="button"
@@ -217,7 +217,7 @@ export default function InspoIndex({ images }: Props) {
                                     </button>
 
                                     {img.caption && (
-                                        <p className="truncate px-2 py-1.5 text-xs text-[#5B6B82]">
+                                        <p className="truncate px-2 py-1.5 text-xs text-[#4a4a4a]">
                                             {img.caption}
                                         </p>
                                     )}
@@ -244,7 +244,7 @@ export default function InspoIndex({ images }: Props) {
                                                             null,
                                                         )
                                                     }
-                                                    className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#1F2D40] hover:bg-[#E6EEF8]"
+                                                    className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#1a1a1a] hover:bg-[#f4e9e5]"
                                                 >
                                                     Cancel
                                                 </button>

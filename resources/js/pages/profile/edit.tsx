@@ -39,7 +39,7 @@ type Props = {
 };
 
 const fieldClass =
-    'w-full rounded-xl border border-[#B5C8E5] bg-white px-3 py-2 text-sm text-[#1F2D40] placeholder:text-[#758299] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/30';
+    'w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] placeholder:text-[#6b625a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30';
 
 function initials(name: string) {
     return name
@@ -122,7 +122,7 @@ export default function EditProfile({ user }: Props) {
         <>
             <Head title="Profile" />
 
-            <div className="min-h-screen bg-[#F2F5F8]">
+            <div className="min-h-screen bg-[#faf7f4]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
@@ -130,16 +130,16 @@ export default function EditProfile({ user }: Props) {
                 />
 
                 <main className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-6 md:py-10">
-                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-[#FAFCFE] via-white to-[#E6EEF8] p-6 shadow-lg shadow-[#95B1DB]/10 md:p-8">
-                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#D3DFEF]/50 blur-2xl" />
+                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#e8d7cf] bg-gradient-to-br from-[#fffcf8] via-white to-[#f4e9e5] p-6 shadow-lg shadow-[#c9a66b]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#e8d7cf]/50 blur-2xl" />
                         <div className="relative">
-                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
+                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
                                 Profile
                             </p>
-                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1F2D40] sm:text-4xl">
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1a1a1a] sm:text-4xl">
                                 Your details
                             </h1>
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5B6B82] sm:text-base">
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#4a4a4a] sm:text-base">
                                 {isArtist
                                     ? 'These details are shown to clients on the booking page.'
                                     : 'Your artist uses these to reach you about your bookings.'}
@@ -149,7 +149,7 @@ export default function EditProfile({ user }: Props) {
 
                     <form
                         onSubmit={handleSubmit}
-                        className="grid gap-6 rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-lg shadow-[#95B1DB]/10 sm:p-7"
+                        className="grid gap-6 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-lg shadow-[#c9a66b]/10 sm:p-7"
                     >
                         {/* avatar */}
                         <div className="flex items-center gap-4">
@@ -164,11 +164,11 @@ export default function EditProfile({ user }: Props) {
                                         <img
                                             src={displayedAvatar}
                                             alt={user.name}
-                                            className="h-20 w-20 rounded-full object-cover ring-2 ring-[#D3DFEF]"
+                                            className="h-20 w-20 rounded-full object-cover ring-2 ring-[#e8d7cf]"
                                         />
                                     </button>
                                 ) : (
-                                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#EDF3FA] text-xl font-semibold text-[#5F83AB] ring-2 ring-[#D3DFEF]">
+                                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#f4e9e5] text-xl font-semibold text-[#8a6a2f] ring-2 ring-[#e8d7cf]">
                                         {initials(user.name)}
                                     </div>
                                 )}
@@ -178,7 +178,7 @@ export default function EditProfile({ user }: Props) {
                                         fileInputRef.current?.click()
                                     }
                                     aria-label="Change profile picture"
-                                    className="absolute -right-1 -bottom-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#5F83AB] text-white shadow-md transition hover:bg-[#4E7099]"
+                                    className="absolute -right-1 -bottom-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#8a6a2f] text-white shadow-md transition hover:bg-[#735829]"
                                 >
                                     <Camera className="h-3.5 w-3.5" />
                                 </button>
@@ -192,10 +192,10 @@ export default function EditProfile({ user }: Props) {
                             </div>
 
                             <div>
-                                <p className="text-sm font-medium text-[#1F2D40]">
+                                <p className="text-sm font-medium text-[#1a1a1a]">
                                     Profile picture
                                 </p>
-                                <p className="mb-1.5 text-xs text-[#5B6B82]">
+                                <p className="mb-1.5 text-xs text-[#4a4a4a]">
                                     JPG, PNG or WEBP. Max 2MB.
                                 </p>
                                 {displayedAvatar && (
@@ -215,9 +215,9 @@ export default function EditProfile({ user }: Props) {
                         <div className="grid gap-2">
                             <Label
                                 htmlFor="name"
-                                className="flex items-center gap-1.5 text-[#1F2D40]"
+                                className="flex items-center gap-1.5 text-[#1a1a1a]"
                             >
-                                <UserIcon className="h-4 w-4 text-[#5F83AB]" />{' '}
+                                <UserIcon className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                 Full name
                             </Label>
                             <input
@@ -238,9 +238,9 @@ export default function EditProfile({ user }: Props) {
                         <div className="grid gap-2">
                             <Label
                                 htmlFor="email"
-                                className="flex items-center gap-1.5 text-[#1F2D40]"
+                                className="flex items-center gap-1.5 text-[#1a1a1a]"
                             >
-                                <Mail className="h-4 w-4 text-[#5F83AB]" />{' '}
+                                <Mail className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                 Email
                             </Label>
                             <input
@@ -251,7 +251,7 @@ export default function EditProfile({ user }: Props) {
                                 disabled
                                 className={`${fieldClass} cursor-not-allowed opacity-70`}
                             />
-                            <p className="text-xs text-[#5B6B82]">
+                            <p className="text-xs text-[#4a4a4a]">
                                 Your email is your login, so it can't be changed
                                 here.
                             </p>
@@ -260,9 +260,9 @@ export default function EditProfile({ user }: Props) {
                         <div className="grid gap-2">
                             <Label
                                 htmlFor="phone"
-                                className="flex items-center gap-1.5 text-[#1F2D40]"
+                                className="flex items-center gap-1.5 text-[#1a1a1a]"
                             >
-                                <Phone className="h-4 w-4 text-[#5F83AB]" />{' '}
+                                <Phone className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                 Mobile number
                             </Label>
                             <input
@@ -283,11 +283,11 @@ export default function EditProfile({ user }: Props) {
 
                         {isArtist && (
                             /* artist details */
-                            <div className="grid gap-4 rounded-2xl border border-[#D3DFEF] bg-[#FAFCFE] p-4">
-                                <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
-                                    <Briefcase className="h-4 w-4 text-[#5F83AB]" />{' '}
+                            <div className="grid gap-4 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
+                                <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1a1a1a]">
+                                    <Briefcase className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                     Artist details{' '}
-                                    <span className="font-normal text-[#5B6B82]">
+                                    <span className="font-normal text-[#4a4a4a]">
                                         (optional)
                                     </span>
                                 </p>
@@ -295,7 +295,7 @@ export default function EditProfile({ user }: Props) {
                                 <div className="grid gap-2">
                                     <Label
                                         htmlFor="specialty"
-                                        className="text-[#1F2D40]"
+                                        className="text-[#1a1a1a]"
                                     >
                                         Specialty
                                     </Label>
@@ -316,7 +316,7 @@ export default function EditProfile({ user }: Props) {
                                 <div className="grid gap-2">
                                     <Label
                                         htmlFor="years_experience"
-                                        className="text-[#1F2D40]"
+                                        className="text-[#1a1a1a]"
                                     >
                                         Years of experience
                                     </Label>
@@ -345,7 +345,7 @@ export default function EditProfile({ user }: Props) {
                                 <div className="grid gap-2">
                                     <Label
                                         htmlFor="bio"
-                                        className="text-[#1F2D40]"
+                                        className="text-[#1a1a1a]"
                                     >
                                         Short bio
                                     </Label>
@@ -363,14 +363,14 @@ export default function EditProfile({ user }: Props) {
                                     <InputError message={errors.bio} />
                                 </div>
 
-                                <div className="border-t border-[#D3DFEF] pt-4">
-                                    <p className="text-sm font-semibold text-[#1F2D40]">Transportation starting fees</p>
-                                    <p className="mt-1 text-xs leading-5 text-[#5B6B82]">
+                                <div className="border-t border-[#e8d7cf] pt-4">
+                                    <p className="text-sm font-semibold text-[#1a1a1a]">Transportation starting fees</p>
+                                    <p className="mt-1 text-xs leading-5 text-[#4a4a4a]">
                                         Clients see the matching starting fee after choosing their service location. You can confirm the final travel price from the full address.
                                     </p>
                                     <div className="mt-3 grid gap-4 sm:grid-cols-2">
                                         <div className="grid gap-2">
-                                            <Label htmlFor="metro_manila_travel_fee" className="text-[#1F2D40]">Metro Manila (₱)</Label>
+                                            <Label htmlFor="metro_manila_travel_fee" className="text-[#1a1a1a]">Metro Manila (₱)</Label>
                                             <input
                                                 id="metro_manila_travel_fee"
                                                 type="number"
@@ -386,7 +386,7 @@ export default function EditProfile({ user }: Props) {
                                             <InputError message={errors.metro_manila_travel_fee} />
                                         </div>
                                         <div className="grid gap-2">
-                                            <Label htmlFor="out_of_town_travel_fee" className="text-[#1F2D40]">Nearby provinces (₱)</Label>
+                                            <Label htmlFor="out_of_town_travel_fee" className="text-[#1a1a1a]">Nearby provinces (₱)</Label>
                                             <input
                                                 id="out_of_town_travel_fee"
                                                 type="number"
@@ -408,9 +408,9 @@ export default function EditProfile({ user }: Props) {
 
                         {
                             /* address: required for clients, optional for the artist */
-                            <div className="grid gap-4 rounded-2xl border border-[#D3DFEF] bg-[#FAFCFE] p-4">
-                                <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
-                                    <MapPin className="h-4 w-4 text-[#5F83AB]" />{' '}
+                            <div className="grid gap-4 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
+                                <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1a1a1a]">
+                                    <MapPin className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                     {isArtist
                                         ? 'Studio address (optional)'
                                         : 'Address'}
@@ -419,7 +419,7 @@ export default function EditProfile({ user }: Props) {
                                 <div className="grid gap-2">
                                     <Label
                                         htmlFor="street_address"
-                                        className="text-[#1F2D40]"
+                                        className="text-[#1a1a1a]"
                                     >
                                         House no. / Street
                                     </Label>
@@ -448,7 +448,7 @@ export default function EditProfile({ user }: Props) {
                                     <div className="grid gap-2">
                                         <Label
                                             htmlFor="barangay"
-                                            className="text-[#1F2D40]"
+                                            className="text-[#1a1a1a]"
                                         >
                                             Barangay
                                         </Label>
@@ -473,7 +473,7 @@ export default function EditProfile({ user }: Props) {
                                     <div className="grid gap-2">
                                         <Label
                                             htmlFor="city"
-                                            className="text-[#1F2D40]"
+                                            className="text-[#1a1a1a]"
                                         >
                                             City / Municipality
                                         </Label>
@@ -497,7 +497,7 @@ export default function EditProfile({ user }: Props) {
                                     <div className="grid gap-2">
                                         <Label
                                             htmlFor="province"
-                                            className="text-[#1F2D40]"
+                                            className="text-[#1a1a1a]"
                                         >
                                             Province
                                         </Label>
@@ -522,7 +522,7 @@ export default function EditProfile({ user }: Props) {
                                     <div className="grid gap-2">
                                         <Label
                                             htmlFor="postal_code"
-                                            className="text-[#1F2D40]"
+                                            className="text-[#1a1a1a]"
                                         >
                                             Postal code
                                         </Label>
@@ -557,7 +557,7 @@ export default function EditProfile({ user }: Props) {
                         <Button
                             type="submit"
                             disabled={processing || !isDirty}
-                            className="w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#769AD0]/25 transition duration-200 hover:bg-[#5F83AB] hover:shadow-lg disabled:opacity-50"
+                            className="w-full rounded-full bg-[#8a6a2f] text-white shadow-md shadow-[#8a6a2f]/25 transition duration-200 hover:bg-[#8a6a2f] hover:shadow-lg disabled:opacity-50"
                         >
                             {processing ? (
                                 <Spinner />
@@ -568,20 +568,20 @@ export default function EditProfile({ user }: Props) {
                         </Button>
                     </form>
 
-                    <div className="mt-6 flex items-center justify-between gap-4 rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-sm shadow-[#95B1DB]/10">
+                    <div className="mt-6 flex items-center justify-between gap-4 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm shadow-[#c9a66b]/10">
                         <div>
-                            <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
-                                <ShieldCheck className="h-4 w-4 text-[#5F83AB]" />{' '}
+                            <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1a1a1a]">
+                                <ShieldCheck className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                 Password &amp; security
                             </p>
-                            <p className="text-xs text-[#5B6B82]">
+                            <p className="text-xs text-[#4a4a4a]">
                                 Change your password or manage two-factor
                                 sign-in.
                             </p>
                         </div>
                         <Link
                             href="/settings/security"
-                            className="shrink-0 rounded-full border border-[#95B1DB] px-4 py-1.5 text-sm font-semibold text-[#5F83AB] transition-colors duration-200 hover:bg-[#E6EEF8]"
+                            className="shrink-0 rounded-full border border-[#c9a66b] px-4 py-1.5 text-sm font-semibold text-[#8a6a2f] transition-colors duration-200 hover:bg-[#f4e9e5]"
                         >
                             Manage
                         </Link>

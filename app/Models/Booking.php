@@ -25,6 +25,7 @@ class Booking extends Model
         'estimated_total',
         'selected_add_ons',
         'requires_quote',
+        'transportation_fee_pending',
     ];
 
     protected function casts(): array
@@ -34,6 +35,7 @@ class Booking extends Model
             'estimated_total' => 'decimal:2',
             'selected_add_ons' => 'array',
             'requires_quote' => 'boolean',
+            'transportation_fee_pending' => 'boolean',
         ];
     }
 

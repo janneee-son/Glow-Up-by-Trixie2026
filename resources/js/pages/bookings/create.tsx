@@ -63,7 +63,7 @@ type Props = {
 };
 
 const fieldClass =
-    'w-full rounded-xl border border-[#B5C8E5] bg-white px-3 py-2 text-sm text-[#1F2D40] placeholder:text-[#758299] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/30';
+    'w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] placeholder:text-[#6b625a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30';
 
 function isBridalPartyAddOn(name: string): boolean {
     return /mother\s+of\s+the\s+bride|bridesmaid|flower\s+girl/i.test(name);
@@ -268,7 +268,7 @@ export default function CreateBooking({
         <>
             <Head title="Book a Session" />
 
-            <div className="min-h-screen bg-[#F2F5F8]">
+            <div className="min-h-screen bg-[#faf7f4]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
@@ -276,16 +276,16 @@ export default function CreateBooking({
                 />
 
                 <main className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-6 md:py-10">
-                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-[#FAFCFE] via-white to-[#E6EEF8] p-6 shadow-lg shadow-[#95B1DB]/10 md:p-8">
-                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#D3DFEF]/50 blur-2xl" />
+                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#e8d7cf] bg-gradient-to-br from-[#fffcf8] via-white to-[#f4e9e5] p-6 shadow-lg shadow-[#c9a66b]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#e8d7cf]/50 blur-2xl" />
                         <div className="relative">
-                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
+                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
                                 Book a Session
                             </p>
-                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1F2D40] sm:text-4xl">
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1a1a1a] sm:text-4xl">
                                 Let&apos;s get you glammed
                             </h1>
-                            <p className="mt-2 max-w-xl text-sm leading-6 text-[#5B6B82] sm:text-base">
+                            <p className="mt-2 max-w-xl text-sm leading-6 text-[#4a4a4a] sm:text-base">
                                 Choose your look and appointment details. Your
                                 artist will confirm the booking with you.
                             </p>
@@ -294,11 +294,11 @@ export default function CreateBooking({
 
                     <form
                         onSubmit={handleSubmit}
-                        className="grid gap-6 rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-lg shadow-[#95B1DB]/10 sm:p-7"
+                        className="grid gap-6 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-lg shadow-[#c9a66b]/10 sm:p-7"
                     >
                         <div className="grid gap-2">
-                            <Label htmlFor="service" className="flex items-center gap-1.5 text-[#1F2D40]">
-                                <Brush className="h-4 w-4 text-[#5F83AB]" /> Choose one service or package
+                            <Label htmlFor="service" className="flex items-center gap-1.5 text-[#1a1a1a]">
+                                <Brush className="h-4 w-4 text-[#8a6a2f]" /> Choose one service or package
                             </Label>
                             <select id="service" value={data.service} onChange={(event) => handleServiceChange(event.target.value)} className={fieldClass}>
                                 <option value="">Select a service (optional)</option>
@@ -309,19 +309,19 @@ export default function CreateBooking({
                                 <option value="">Or select a package (optional)</option>
                                 {packages.map((pkg) => <option key={pkg.id} value={pkg.id}>{pkg.name} — {pkg.pricing_type === 'quote_required' ? 'Price confirmed after booking' : `${pkg.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(pkg.price ?? 0).toLocaleString('en-PH')}`}</option>)}
                             </select>
-                            <p className="text-xs text-[#5B6B82]">Choose only one. Add-ons below are optional.</p>
+                            <p className="text-xs text-[#4a4a4a]">Choose only one. Add-ons below are optional.</p>
                             <InputError message={errors.package_id} />
                         </div>
 
-                        {visibleAddOns.length > 0 && <fieldset className="grid gap-3 rounded-2xl border border-[#D3DFEF] bg-[#FAFCFE] p-4">
-                            <legend className="px-1 font-semibold text-[#1F2D40]">Optional add-ons</legend>
+                        {visibleAddOns.length > 0 && <fieldset className="grid gap-3 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
+                            <legend className="px-1 font-semibold text-[#1a1a1a]">Optional add-ons</legend>
                             {visibleAddOns.map((addOn) => {
                                 const selectedQuantity = data.add_on_quantities[addOn.id];
                                 return <label key={addOn.id} className="flex cursor-pointer items-start gap-3 rounded-xl bg-white p-3">
-                                    <input type="checkbox" checked={selectedQuantity != null} onChange={() => toggleAddOn(addOn)} className="mt-1 accent-[#5F83AB]" />
-                                    <span className="min-w-0 flex-1"><span className="block font-medium text-[#1F2D40]">{addOn.name}</span>{addOn.description && <span className="mt-0.5 block text-xs text-[#5B6B82]">{addOn.description}</span>}<span className="mt-1 block text-xs text-[#5B6B82]">{addOn.pricing_type === 'quote_required' ? 'Price confirmed after booking' : `${addOn.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(addOn.price ?? 0).toLocaleString('en-PH')} each`}{usesQuantityLimits(addOn.name) && addOn.add_on_min_quantity > 1 ? ` · minimum ${addOn.add_on_min_quantity}` : ''}</span></span>
-                                    {selectedQuantity != null && usesQuantityLimits(addOn.name) && <span className="grid shrink-0 gap-1 text-xs font-medium text-[#5B6B82]">Qty
-                                        <input aria-label={`${addOn.name} quantity`} type="number" min={addOn.add_on_min_quantity} max={addOn.add_on_max_quantity} step="1" value={selectedQuantity} onChange={(event) => changeAddOnQuantity(addOn, event.target.value)} onClick={(event) => event.stopPropagation()} className="w-20 rounded-lg border border-[#B5C8E5] px-2 py-1 text-sm text-[#1F2D40]" />
+                                    <input type="checkbox" checked={selectedQuantity != null} onChange={() => toggleAddOn(addOn)} className="mt-1 accent-[#8a6a2f]" />
+                                    <span className="min-w-0 flex-1"><span className="block font-medium text-[#1a1a1a]">{addOn.name}</span>{addOn.description && <span className="mt-0.5 block text-xs text-[#4a4a4a]">{addOn.description}</span>}<span className="mt-1 block text-xs text-[#4a4a4a]">{addOn.pricing_type === 'quote_required' ? 'Price confirmed after booking' : `${addOn.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(addOn.price ?? 0).toLocaleString('en-PH')} each`}{usesQuantityLimits(addOn.name) && addOn.add_on_min_quantity > 1 ? ` · minimum ${addOn.add_on_min_quantity}` : ''}</span></span>
+                                    {selectedQuantity != null && usesQuantityLimits(addOn.name) && <span className="grid shrink-0 gap-1 text-xs font-medium text-[#4a4a4a]">Qty
+                                        <input aria-label={`${addOn.name} quantity`} type="number" min={addOn.add_on_min_quantity} max={addOn.add_on_max_quantity} step="1" value={selectedQuantity} onChange={(event) => changeAddOnQuantity(addOn, event.target.value)} onClick={(event) => event.stopPropagation()} className="w-20 rounded-lg border border-[#d7c0a2] px-2 py-1 text-sm text-[#1a1a1a]" />
                                     </span>}
                                     <InputError message={(errors as unknown as Record<string, string | undefined>)[`add_on_quantities.${addOn.id}`]} />
                                 </label>;
@@ -329,17 +329,17 @@ export default function CreateBooking({
                             <InputError message={errors.add_on_quantities} />
                         </fieldset>}
 
-                        {baseOffering && <aside className="rounded-2xl border border-[#D3DFEF] bg-gradient-to-r from-[#FAFCFE] to-[#E6EEF8] p-4 text-sm">
-                            <div className="flex justify-between gap-3 font-semibold text-[#1F2D40]"><span>{selectedPackage ? selectedPackage.name : selectedService?.name}</span><span className="shrink-0 text-[#5F83AB]">{basePriceType === 'quote_required' ? 'Quote required' : `${basePriceType === 'starting_at' ? 'Starting at ' : ''}₱${(basePrice ?? 0).toLocaleString('en-PH')}`}</span></div>
-                            {selectedAddOns.map((item) => <div key={item.id} className="mt-2 flex justify-between gap-3 text-[#5B6B82]"><span>{item.name} × {data.add_on_quantities[item.id]}</span><span className="shrink-0">{item.pricing_type === 'quote_required' ? 'Quote' : `₱${(Number(item.price ?? 0) * data.add_on_quantities[item.id]).toLocaleString('en-PH')}`}</span></div>)}
-                            {isRushBooking && <div className="mt-2 flex justify-between gap-3 text-[#5B6B82]"><span>Rush booking fee</span><span className="shrink-0">₱{rushBookingFee.toLocaleString('en-PH')}</span></div>}
-                            {isEarlyCallTime && <div className="mt-2 flex justify-between gap-3 text-[#5B6B82]"><span>Early call time fee</span><span className="shrink-0">₱{earlyCallTimeFee.toLocaleString('en-PH')}</span></div>}
-                            {data.service_city && <div className="mt-2 flex justify-between gap-3 text-[#5B6B82]"><span>{isNearbyProvince ? 'Out-of-town transportation (starting fee)' : 'Metro Manila transportation (starting fee)'}</span><span className="shrink-0">₱{travelFee.toLocaleString('en-PH')}</span></div>}
-                            <div className="mt-3 flex justify-between border-t border-[#D3DFEF] pt-3 font-semibold text-[#1F2D40]"><span>{quoteRequired ? 'Estimated total (final price to confirm)' : 'Estimated total'}</span><span>₱{estimatedTotal.toLocaleString('en-PH')}</span></div>
+                        {baseOffering && <aside className="rounded-2xl border border-[#e8d7cf] bg-gradient-to-r from-[#fffcf8] to-[#f4e9e5] p-4 text-sm">
+                            <div className="flex justify-between gap-3 font-semibold text-[#1a1a1a]"><span>{selectedPackage ? selectedPackage.name : selectedService?.name}</span><span className="shrink-0 text-[#8a6a2f]">{basePriceType === 'quote_required' ? 'Quote required' : `${basePriceType === 'starting_at' ? 'Starting at ' : ''}₱${(basePrice ?? 0).toLocaleString('en-PH')}`}</span></div>
+                            {selectedAddOns.map((item) => <div key={item.id} className="mt-2 flex justify-between gap-3 text-[#4a4a4a]"><span>{item.name} × {data.add_on_quantities[item.id]}</span><span className="shrink-0">{item.pricing_type === 'quote_required' ? 'Quote' : `₱${(Number(item.price ?? 0) * data.add_on_quantities[item.id]).toLocaleString('en-PH')}`}</span></div>)}
+                            {isRushBooking && <div className="mt-2 flex justify-between gap-3 text-[#4a4a4a]"><span>Rush booking fee</span><span className="shrink-0">₱{rushBookingFee.toLocaleString('en-PH')}</span></div>}
+                            {isEarlyCallTime && <div className="mt-2 flex justify-between gap-3 text-[#4a4a4a]"><span>Early call time fee</span><span className="shrink-0">₱{earlyCallTimeFee.toLocaleString('en-PH')}</span></div>}
+                            {data.service_city && <div className="mt-2 flex justify-between gap-3 text-[#4a4a4a]"><span>{isNearbyProvince ? 'Out-of-town transportation (starting fee)' : 'Metro Manila transportation (starting fee)'}</span><span className="shrink-0">₱{travelFee.toLocaleString('en-PH')}</span></div>}
+                            <div className="mt-3 flex justify-between border-t border-[#e8d7cf] pt-3 font-semibold text-[#1a1a1a]"><span>{quoteRequired ? 'Estimated total (final price to confirm)' : 'Estimated total'}</span><span>₱{estimatedTotal.toLocaleString('en-PH')}</span></div>
                         </aside>}
 
                         <div className="grid gap-2">
-                            <Label htmlFor="service_city" className="text-[#1F2D40]">Service city or municipality</Label>
+                            <Label htmlFor="service_city" className="text-[#1a1a1a]">Service city or municipality</Label>
                             <select
                                 id="service_city"
                                 value={data.service_city}
@@ -355,14 +355,14 @@ export default function CreateBooking({
                                     {serviceCities.nearbyProvince.map((city) => <option key={city} value={city}>{city}</option>)}
                                 </optgroup>
                             </select>
-                            {data.service_city && <p className="text-xs text-[#5B6B82]">Transportation fees are starting amounts. The final fee depends on the full service address and Trixie will confirm it.</p>}
+                            {data.service_city && <p className="text-xs text-[#4a4a4a]">Transportation fees are starting amounts. The final fee depends on the full service address and Trixie will confirm it.</p>}
                             <InputError message={errors.service_city} />
                         </div>
 
                         <div className="grid gap-2">
                             <Label
                                 htmlFor="venue_address"
-                                className="text-[#1F2D40]"
+                                className="text-[#1a1a1a]"
                             >
                                 Street and barangay address
                             </Label>
@@ -385,9 +385,9 @@ export default function CreateBooking({
                             <div className="grid gap-2">
                                 <Label
                                     htmlFor="booking_date"
-                                    className="flex items-center gap-1.5 text-[#1F2D40]"
+                                    className="flex items-center gap-1.5 text-[#1a1a1a]"
                                 >
-                                    <CalendarDays className="h-4 w-4 text-[#5F83AB]" />
+                                    <CalendarDays className="h-4 w-4 text-[#8a6a2f]" />
                                     Date
                                 </Label>
                                 <input
@@ -410,9 +410,9 @@ export default function CreateBooking({
                             <div className="grid gap-2">
                                 <Label
                                     htmlFor="booking_time"
-                                    className="flex items-center gap-1.5 text-[#1F2D40]"
+                                    className="flex items-center gap-1.5 text-[#1a1a1a]"
                                 >
-                                    <Clock className="h-4 w-4 text-[#5F83AB]" />
+                                    <Clock className="h-4 w-4 text-[#8a6a2f]" />
                                     Time
                                 </Label>
                                 <input
@@ -432,7 +432,7 @@ export default function CreateBooking({
                             </div>
                         </div>
 
-                        <p className="rounded-xl bg-[#FAFCFE] px-3 py-2 text-xs leading-5 text-[#5B6B82]">
+                        <p className="rounded-xl bg-[#fffcf8] px-3 py-2 text-xs leading-5 text-[#4a4a4a]">
                             Regular sessions take about 1½ hours; bridal and
                             wedding bookings reserve up to 3 hours. The artist
                             usually accepts up to two bookings per day, while
@@ -449,16 +449,16 @@ export default function CreateBooking({
                             This start time qualifies for the ₱{earlyCallTimeFee.toLocaleString('en-PH')} early call-time fee.
                         </p>}
 
-                        <div className="grid gap-2 rounded-2xl border border-[#D3DFEF] bg-[#FAFCFE] p-4">
-                            <Label className="flex items-center gap-1.5 text-[#1F2D40]">
-                                <ImagePlus className="h-4 w-4 text-[#5F83AB]" />
+                        <div className="grid gap-2 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
+                            <Label className="flex items-center gap-1.5 text-[#1a1a1a]">
+                                <ImagePlus className="h-4 w-4 text-[#8a6a2f]" />
                                 Makeup Inspiration
-                                <span className="font-normal text-[#5B6B82]">
+                                <span className="font-normal text-[#4a4a4a]">
                                     (optional)
                                 </span>
                             </Label>
 
-                            <p className="text-xs text-[#5B6B82]">
+                            <p className="text-xs text-[#4a4a4a]">
                                 Pick from your Inspiration History or upload a
                                 new photo — it&apos;s saved to your profile and
                                 your artist will see it.
@@ -466,7 +466,7 @@ export default function CreateBooking({
 
                             {inspoImages.length > 0 && (
                                 <>
-                                    <p className="mt-1 text-xs font-semibold text-[#1F2D40]">
+                                    <p className="mt-1 text-xs font-semibold text-[#1a1a1a]">
                                         Your Inspiration History
                                     </p>
 
@@ -484,8 +484,8 @@ export default function CreateBooking({
                                                     className={`block aspect-square w-full overflow-hidden rounded-lg border-2 transition ${
                                                         data.inspo_image_id ===
                                                         image.id
-                                                            ? 'border-[#5F83AB] ring-2 ring-[#769AD0]/40'
-                                                            : 'border-transparent hover:border-[#95B1DB]'
+                                                            ? 'border-[#8a6a2f] ring-2 ring-[#8a6a2f]/40'
+                                                            : 'border-transparent hover:border-[#c9a66b]'
                                                     }`}
                                                 >
                                                     <img
@@ -530,7 +530,7 @@ export default function CreateBooking({
                                         onClick={() =>
                                             setViewingUrl(newPreview)
                                         }
-                                        className="h-16 w-16 overflow-hidden rounded-lg border-2 border-[#5F83AB]"
+                                        className="h-16 w-16 overflow-hidden rounded-lg border-2 border-[#8a6a2f]"
                                     >
                                         <img
                                             src={newPreview}
@@ -542,7 +542,7 @@ export default function CreateBooking({
 
                                 <label
                                     htmlFor="new-inspo-upload"
-                                    className="cursor-pointer rounded-full border border-[#95B1DB] bg-white px-4 py-1.5 text-xs font-semibold text-[#5F83AB] transition hover:bg-[#E6EEF8]"
+                                    className="cursor-pointer rounded-full border border-[#c9a66b] bg-white px-4 py-1.5 text-xs font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5]"
                                 >
                                     {data.new_inspo_image
                                         ? 'Change new photo'
@@ -551,7 +551,7 @@ export default function CreateBooking({
 
                                 <Link
                                     href="/inspo"
-                                    className="text-xs font-semibold text-[#5B6B82] underline-offset-2 hover:underline"
+                                    className="text-xs font-semibold text-[#4a4a4a] underline-offset-2 hover:underline"
                                 >
                                     View full history
                                 </Link>
@@ -562,9 +562,9 @@ export default function CreateBooking({
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="notes" className="text-[#1F2D40]">
+                            <Label htmlFor="notes" className="text-[#1a1a1a]">
                                 Notes{' '}
-                                <span className="font-normal text-[#5B6B82]">
+                                <span className="font-normal text-[#4a4a4a]">
                                     (optional)
                                 </span>
                             </Label>
@@ -587,7 +587,7 @@ export default function CreateBooking({
                             disabled={
                                 !artist || (services.length === 0 && packages.length === 0) || (!data.service && !data.package_id) || processing
                             }
-                            className="w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#769AD0]/25 transition duration-200 hover:bg-[#5F83AB] hover:shadow-lg disabled:opacity-50"
+                            className="w-full rounded-full bg-[#8a6a2f] text-white shadow-md shadow-[#8a6a2f]/25 transition duration-200 hover:bg-[#8a6a2f] hover:shadow-lg disabled:opacity-50"
                         >
                             {processing && <Spinner />}
                             <Sparkles className="h-4 w-4" />
