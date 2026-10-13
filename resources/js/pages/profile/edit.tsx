@@ -33,11 +33,13 @@ type Props = {
         specialty: string | null;
         years_experience: number | null;
         bio: string | null;
+        metro_manila_travel_fee: number | null;
+        out_of_town_travel_fee: number | null;
     };
 };
 
 const fieldClass =
-    'w-full rounded-xl border border-[#DCCAD4] bg-white px-3 py-2 text-sm text-[#312532] placeholder:text-[#9B8A95] focus-visible:border-[#B47B94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B47B94]/30';
+    'w-full rounded-xl border border-[#B5C8E5] bg-white px-3 py-2 text-sm text-[#1F2D40] placeholder:text-[#758299] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/30';
 
 function initials(name: string) {
     return name
@@ -74,6 +76,8 @@ export default function EditProfile({ user }: Props) {
         years_experience:
             user.years_experience != null ? String(user.years_experience) : '',
         bio: user.bio ?? '',
+        metro_manila_travel_fee: String(user.metro_manila_travel_fee ?? 500),
+        out_of_town_travel_fee: String(user.out_of_town_travel_fee ?? 1000),
     });
 
     function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -118,7 +122,7 @@ export default function EditProfile({ user }: Props) {
         <>
             <Head title="Profile" />
 
-            <div className="min-h-screen bg-[#F8F5F4]">
+            <div className="min-h-screen bg-[#F2F5F8]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
@@ -126,16 +130,16 @@ export default function EditProfile({ user }: Props) {
                 />
 
                 <main className="mx-auto w-full max-w-3xl px-4 py-7 sm:px-6 md:py-10">
-                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#EADDE3] bg-gradient-to-br from-[#FFF9F6] via-white to-[#F2EDF7] p-6 shadow-lg shadow-[#BDA6B5]/10 md:p-8">
-                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#EADDE3]/50 blur-2xl" />
+                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-[#FAFCFE] via-white to-[#E6EEF8] p-6 shadow-lg shadow-[#95B1DB]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#D3DFEF]/50 blur-2xl" />
                         <div className="relative">
-                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#9B7085] uppercase">
+                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
                                 Profile
                             </p>
-                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#312532] sm:text-4xl">
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1F2D40] sm:text-4xl">
                                 Your details
                             </h1>
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#766976] sm:text-base">
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5B6B82] sm:text-base">
                                 {isArtist
                                     ? 'These details are shown to clients on the booking page.'
                                     : 'Your artist uses these to reach you about your bookings.'}
@@ -145,7 +149,7 @@ export default function EditProfile({ user }: Props) {
 
                     <form
                         onSubmit={handleSubmit}
-                        className="grid gap-6 rounded-3xl border border-[#EADDE3] bg-white p-5 shadow-lg shadow-[#BDA6B5]/10 sm:p-7"
+                        className="grid gap-6 rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-lg shadow-[#95B1DB]/10 sm:p-7"
                     >
                         {/* avatar */}
                         <div className="flex items-center gap-4">
@@ -279,7 +283,7 @@ export default function EditProfile({ user }: Props) {
 
                         {isArtist && (
                             /* artist details */
-                            <div className="grid gap-4 rounded-2xl border border-[#EADDE3] bg-[#FCF8F8] p-4">
+                            <div className="grid gap-4 rounded-2xl border border-[#D3DFEF] bg-[#FAFCFE] p-4">
                                 <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
                                     <Briefcase className="h-4 w-4 text-[#5F83AB]" />{' '}
                                     Artist details{' '}
@@ -358,12 +362,53 @@ export default function EditProfile({ user }: Props) {
                                     />
                                     <InputError message={errors.bio} />
                                 </div>
+
+                                <div className="border-t border-[#D3DFEF] pt-4">
+                                    <p className="text-sm font-semibold text-[#1F2D40]">Transportation starting fees</p>
+                                    <p className="mt-1 text-xs leading-5 text-[#5B6B82]">
+                                        Clients see the matching starting fee after choosing their service location. You can confirm the final travel price from the full address.
+                                    </p>
+                                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="metro_manila_travel_fee" className="text-[#1F2D40]">Metro Manila (₱)</Label>
+                                            <input
+                                                id="metro_manila_travel_fee"
+                                                type="number"
+                                                min={0}
+                                                max={1000000}
+                                                step={1}
+                                                inputMode="numeric"
+                                                value={data.metro_manila_travel_fee}
+                                                onChange={(e) => setData('metro_manila_travel_fee', e.target.value)}
+                                                required
+                                                className={fieldClass}
+                                            />
+                                            <InputError message={errors.metro_manila_travel_fee} />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="out_of_town_travel_fee" className="text-[#1F2D40]">Nearby provinces (₱)</Label>
+                                            <input
+                                                id="out_of_town_travel_fee"
+                                                type="number"
+                                                min={0}
+                                                max={1000000}
+                                                step={1}
+                                                inputMode="numeric"
+                                                value={data.out_of_town_travel_fee}
+                                                onChange={(e) => setData('out_of_town_travel_fee', e.target.value)}
+                                                required
+                                                className={fieldClass}
+                                            />
+                                            <InputError message={errors.out_of_town_travel_fee} />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
                         {
                             /* address: required for clients, optional for the artist */
-                            <div className="grid gap-4 rounded-2xl border border-[#EADDE3] bg-[#FCF8F8] p-4">
+                            <div className="grid gap-4 rounded-2xl border border-[#D3DFEF] bg-[#FAFCFE] p-4">
                                 <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
                                     <MapPin className="h-4 w-4 text-[#5F83AB]" />{' '}
                                     {isArtist
@@ -512,7 +557,7 @@ export default function EditProfile({ user }: Props) {
                         <Button
                             type="submit"
                             disabled={processing || !isDirty}
-                            className="w-full rounded-full bg-[#A8758B] text-white shadow-md shadow-[#B47B94]/25 transition duration-200 hover:bg-[#94677B] hover:shadow-lg disabled:opacity-50"
+                            className="w-full rounded-full bg-[#5F83AB] text-white shadow-md shadow-[#769AD0]/25 transition duration-200 hover:bg-[#5F83AB] hover:shadow-lg disabled:opacity-50"
                         >
                             {processing ? (
                                 <Spinner />
@@ -523,7 +568,7 @@ export default function EditProfile({ user }: Props) {
                         </Button>
                     </form>
 
-                    <div className="mt-6 flex items-center justify-between gap-4 rounded-3xl border border-[#EADDE3] bg-white p-5 shadow-sm shadow-[#BDA6B5]/10">
+                    <div className="mt-6 flex items-center justify-between gap-4 rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-sm shadow-[#95B1DB]/10">
                         <div>
                             <p className="flex items-center gap-1.5 text-sm font-semibold text-[#1F2D40]">
                                 <ShieldCheck className="h-4 w-4 text-[#5F83AB]" />{' '}

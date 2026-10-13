@@ -24,7 +24,7 @@ class DashboardController extends Controller
 
         if ($user->role === 'client') {
             $bookings = Booking::where('client_id', $user->id)
-                ->with('artist:id,name,phone,specialty', 'inspoImage:id,path')
+                ->with('artist:id,name,phone,specialty', 'inspoImage:id,path', 'package:id,description,inclusions')
                 ->orderBy('booking_date')
                 ->orderBy('booking_time')
                 ->get()

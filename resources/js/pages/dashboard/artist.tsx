@@ -18,10 +18,12 @@ type Booking = {
     base_price?: number | string | null;
     base_price_type?: 'fixed' | 'starting_at' | 'quote_required';
     estimated_total?: number | string | null;
-    selected_add_ons?: { id: number; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string }[] | null;
+    selected_add_ons?: { id: number | null; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string; is_system_fee?: boolean }[] | null;
     requires_quote?: boolean;
     booking_date: string;
     booking_time: string;
+    location_type?: string | null;
+    venue_address?: string | null;
     status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
     notes: string | null;
     artist_message: string | null;
@@ -72,6 +74,13 @@ function splitNotes(notes: string | null) {
         : { occasion: null, text: notes };
 }
 
+function transportationFeeForBooking(booking: Booking): string {
+    const feeItem = booking.selected_add_ons?.find(
+        (item) => item.is_system_fee && /transportation/i.test(item.name),
+    );
+    return String(feeItem?.line_total ?? feeItem?.price ?? 0);
+}
+
 function isPastBooking(booking: Booking) {
     const dt = new Date(`${booking.booking_date}T${booking.booking_time}`);
     return (
@@ -91,6 +100,8 @@ export default function ArtistDashboard({ bookings }: Props) {
     const [busyId, setBusyId] = useState<number | null>(null);
     const [viewingUrl, setViewingUrl] = useState<string | null>(null);
     const [messages, setMessages] = useState<Record<number, string>>({});
+    const [transportationFees, setTransportationFees] = useState<Record<number, string>>({});
+    const [transportationFeeErrors, setTransportationFeeErrors] = useState<Record<number, string>>({});
 
     const pending = useMemo(
         () => bookings.filter((b) => b.status === 'pending'),
@@ -134,6 +145,32 @@ export default function ArtistDashboard({ bookings }: Props) {
         );
     }
 
+    function saveTransportationFee(booking: Booking) {
+        const fee = transportationFees[booking.id] ?? transportationFeeForBooking(booking);
+
+        setBusyId(booking.id);
+        setTransportationFeeErrors((current) => ({ ...current, [booking.id]: '' }));
+        router.patch(
+            `/book/${booking.id}/transportation-fee`,
+            { transportation_fee: fee },
+            {
+                preserveScroll: true,
+                onError: (errors) => setTransportationFeeErrors((current) => ({
+                    ...current,
+                    [booking.id]: String(errors.transportation_fee ?? 'Could not update the transportation fee.'),
+                })),
+                onFinish: () => {
+                    setBusyId(null);
+                    setTransportationFees((current) => {
+                        const next = { ...current };
+                        delete next[booking.id];
+                        return next;
+                    });
+                },
+            },
+        );
+    }
+
     useEffect(() => {
         if (!viewingUrl) return;
         function onKeyDown(e: KeyboardEvent) {
@@ -147,7 +184,7 @@ export default function ArtistDashboard({ bookings }: Props) {
         <>
             <Head title="Artist Dashboard" />
 
-            <div className="min-h-screen bg-[#F8F5F4]">
+            <div className="min-h-screen bg-[#F2F5F8]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
@@ -155,25 +192,25 @@ export default function ArtistDashboard({ bookings }: Props) {
                 />
 
                 <main className="mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 md:py-10">
-                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#EADDE3] bg-gradient-to-br from-[#FFF9F6] via-white to-[#F2EDF7] p-6 shadow-lg shadow-[#BDA6B5]/10 md:p-8">
-                        <div className="pointer-events-none absolute -top-12 -right-10 h-48 w-48 rounded-full bg-[#EADDE3]/50 blur-2xl" />
+                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-[#FAFCFE] via-white to-[#E6EEF8] p-6 shadow-lg shadow-[#95B1DB]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-48 w-48 rounded-full bg-[#D3DFEF]/50 blur-2xl" />
                         <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
                             <div>
-                                <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#EADDE3] bg-white/80 px-3 py-1.5 text-xs font-semibold tracking-[0.16em] text-[#9B7085] uppercase">
+                                <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#D3DFEF] bg-white/80 px-3 py-1.5 text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
                                     <Sparkles className="h-3.5 w-3.5" /> Artist
                                     studio
                                 </span>
-                                <h1 className="font-serif text-3xl font-bold tracking-tight text-[#312532] sm:text-4xl">
+                                <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1F2D40] sm:text-4xl">
                                     Welcome back,{' '}
                                     {auth?.user?.name?.split(' ')[0] ?? 'there'}
                                     !
                                 </h1>
-                                <p className="mt-2 max-w-xl text-sm leading-6 text-[#766976] sm:text-base">
+                                <p className="mt-2 max-w-xl text-sm leading-6 text-[#5B6B82] sm:text-base">
                                     Your schedule, client requests, and
                                     completed looks—all in one place.
                                 </p>
                             </div>
-                            <div className="hidden h-20 w-20 shrink-0 items-center justify-center rounded-full border border-white bg-white/70 text-[#B47B94] shadow-sm sm:flex">
+                            <div className="hidden h-20 w-20 shrink-0 items-center justify-center rounded-full border border-white bg-white/70 text-[#769AD0] shadow-sm sm:flex">
                                 <Sparkles
                                     className="h-9 w-9"
                                     strokeWidth={1.4}
@@ -186,36 +223,36 @@ export default function ArtistDashboard({ bookings }: Props) {
                         aria-label="Booking summary"
                         className="mb-8 grid gap-3 sm:grid-cols-3"
                     >
-                        <div className="rounded-2xl border border-[#EADDE3] bg-white p-4 shadow-sm shadow-[#BDA6B5]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#967D8B] uppercase">
+                        <div className="rounded-2xl border border-[#D3DFEF] bg-white p-4 shadow-sm shadow-[#95B1DB]/10">
+                            <p className="text-xs font-semibold tracking-wider text-[#5B6B82] uppercase">
                                 Needs your reply
                             </p>
-                            <p className="mt-2 font-serif text-3xl font-bold text-[#A75F78]">
+                            <p className="mt-2 font-serif text-3xl font-bold text-[#5F83AB]">
                                 {pending.length}
                             </p>
-                            <p className="mt-1 text-xs text-[#827681]">
+                            <p className="mt-1 text-xs text-[#5B6B82]">
                                 Pending client requests
                             </p>
                         </div>
-                        <div className="rounded-2xl border border-[#EADDE3] bg-white p-4 shadow-sm shadow-[#BDA6B5]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#967D8B] uppercase">
+                        <div className="rounded-2xl border border-[#D3DFEF] bg-white p-4 shadow-sm shadow-[#95B1DB]/10">
+                            <p className="text-xs font-semibold tracking-wider text-[#5B6B82] uppercase">
                                 On your schedule
                             </p>
                             <p className="mt-2 font-serif text-3xl font-bold text-[#5F83AB]">
                                 {upcoming.length}
                             </p>
-                            <p className="mt-1 text-xs text-[#827681]">
+                            <p className="mt-1 text-xs text-[#5B6B82]">
                                 Upcoming sessions
                             </p>
                         </div>
-                        <div className="rounded-2xl border border-[#EADDE3] bg-white p-4 shadow-sm shadow-[#BDA6B5]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#967D8B] uppercase">
+                        <div className="rounded-2xl border border-[#D3DFEF] bg-white p-4 shadow-sm shadow-[#95B1DB]/10">
+                            <p className="text-xs font-semibold tracking-wider text-[#5B6B82] uppercase">
                                 Beautifully done
                             </p>
                             <p className="mt-2 font-serif text-3xl font-bold text-[#718B72]">
                                 {completedCount}
                             </p>
-                            <p className="mt-1 text-xs text-[#827681]">
+                            <p className="mt-1 text-xs text-[#5B6B82]">
                                 Completed bookings
                             </p>
                         </div>
@@ -226,14 +263,14 @@ export default function ArtistDashboard({ bookings }: Props) {
                         <div className="mb-9">
                             <div className="mb-3 flex items-end justify-between gap-3">
                                 <div>
-                                    <p className="text-xs font-semibold tracking-[0.16em] text-[#A2768B] uppercase">
+                                    <p className="text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
                                         Your inbox
                                     </p>
-                                    <h2 className="mt-1 font-serif text-2xl font-bold text-[#312532]">
+                                    <h2 className="mt-1 font-serif text-2xl font-bold text-[#1F2D40]">
                                         Pending requests
                                     </h2>
                                 </div>
-                                <span className="rounded-full bg-[#F4E8EE] px-3 py-1 text-sm font-semibold text-[#A75F78]">
+                                <span className="rounded-full bg-[#E6EEF8] px-3 py-1 text-sm font-semibold text-[#5F83AB]">
                                     {pending.length} waiting
                                 </span>
                             </div>
@@ -242,12 +279,47 @@ export default function ArtistDashboard({ bookings }: Props) {
                                     <div
                                         key={booking.id}
                                         id={`booking-${booking.id}`}
-                                        className="rounded-3xl border border-[#E4D2DC] bg-white p-5 shadow-md shadow-[#BDA6B5]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#BDA6B5]/15 sm:p-6"
+                                        className="rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-md shadow-[#95B1DB]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#95B1DB]/15 sm:p-6"
                                     >
                                         <BookingHeader
                                             booking={booking}
                                             onViewInspo={setViewingUrl}
                                         />
+
+                                        <div className="mt-4 rounded-2xl border border-[#D3DFEF] bg-[#FAFCFE] p-4">
+                                            <label htmlFor={`travel-fee-${booking.id}`} className="block text-sm font-semibold text-[#1F2D40]">
+                                                Confirm transportation fee
+                                            </label>
+                                            <p className="mt-1 text-xs leading-5 text-[#5B6B82]">
+                                                Adjust the starting fee for this address. The client will see the revised estimate and get a notification.
+                                            </p>
+                                            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                                                <div className="relative w-full sm:max-w-xs">
+                                                    <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-[#5B6B82]">₱</span>
+                                                    <input
+                                                        id={`travel-fee-${booking.id}`}
+                                                        type="number"
+                                                        min={0}
+                                                        max={1000000}
+                                                        step={1}
+                                                        inputMode="numeric"
+                                                        value={transportationFees[booking.id] ?? transportationFeeForBooking(booking)}
+                                                        onChange={(event) => setTransportationFees((current) => ({ ...current, [booking.id]: event.target.value }))}
+                                                        className="w-full rounded-xl border border-[#B5C8E5] bg-white py-2 pr-3 pl-8 text-sm text-[#1F2D40] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/30"
+                                                        aria-label="Transportation fee for this booking"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    disabled={busyId === booking.id || transportationFees[booking.id] === '' || Number(transportationFees[booking.id] ?? 0) < 0 || Number(transportationFees[booking.id] ?? 0) > 1000000}
+                                                    onClick={() => saveTransportationFee(booking)}
+                                                    className="rounded-full border border-[#5F83AB] px-4 py-2 text-xs font-semibold text-[#5F83AB] transition hover:bg-[#E6EEF8] disabled:opacity-50"
+                                                >
+                                                    Send updated estimate
+                                                </button>
+                                            </div>
+                                            {transportationFeeErrors[booking.id] && <p role="alert" className="mt-2 text-xs text-[#A13F3F]">{transportationFeeErrors[booking.id]}</p>}
+                                        </div>
 
                                         {/* optional message to client */}
                                         <div className="mt-4 grid gap-1.5">
@@ -312,21 +384,21 @@ export default function ArtistDashboard({ bookings }: Props) {
 
                     {/* schedule */}
                     <div className="mb-5">
-                        <p className="text-xs font-semibold tracking-[0.16em] text-[#A2768B] uppercase">
+                        <p className="text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
                             Plan your day
                         </p>
-                        <h2 className="mt-1 mb-4 font-serif text-2xl font-bold text-[#312532]">
+                        <h2 className="mt-1 mb-4 font-serif text-2xl font-bold text-[#1F2D40]">
                             Your schedule
                         </h2>
                     </div>
-                    <div className="mb-6 inline-flex rounded-full border border-[#EADDE3] bg-white p-1 shadow-sm">
+                    <div className="mb-6 inline-flex rounded-full border border-[#D3DFEF] bg-white p-1 shadow-sm">
                         <button
                             type="button"
                             onClick={() => setTab('upcoming')}
                             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
                                 tab === 'upcoming'
-                                    ? 'bg-[#A8758B] text-white shadow-sm'
-                                    : 'text-[#766976] hover:text-[#A75F78]'
+                                    ? 'bg-[#5F83AB] text-white shadow-sm'
+                                    : 'text-[#5B6B82] hover:text-[#5F83AB]'
                             }`}
                         >
                             Upcoming ({upcoming.length})
@@ -336,8 +408,8 @@ export default function ArtistDashboard({ bookings }: Props) {
                             onClick={() => setTab('past')}
                             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
                                 tab === 'past'
-                                    ? 'bg-[#A8758B] text-white shadow-sm'
-                                    : 'text-[#766976] hover:text-[#A75F78]'
+                                    ? 'bg-[#5F83AB] text-white shadow-sm'
+                                    : 'text-[#5B6B82] hover:text-[#5F83AB]'
                             }`}
                         >
                             Past ({past.length})
@@ -345,11 +417,11 @@ export default function ArtistDashboard({ bookings }: Props) {
                     </div>
 
                     {visible.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-[#DCCAD4] bg-white/80 px-6 py-16 text-center shadow-sm">
-                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#F7EAF0] text-[#A8758B]">
+                        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-[#B5C8E5] bg-white/80 px-6 py-16 text-center shadow-sm">
+                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E6EEF8] text-[#5F83AB]">
                                 <Sparkles className="h-7 w-7" />
                             </span>
-                            <p className="font-serif text-lg font-bold text-[#312532]">
+                            <p className="font-serif text-lg font-bold text-[#1F2D40]">
                                 {tab === 'upcoming'
                                     ? 'No upcoming sessions'
                                     : 'No past sessions'}
@@ -361,7 +433,7 @@ export default function ArtistDashboard({ bookings }: Props) {
                                 <div
                                     key={booking.id}
                                     id={`booking-${booking.id}`}
-                                    className="rounded-3xl border border-[#EADDE3] bg-white p-5 shadow-sm shadow-[#BDA6B5]/10 transition hover:-translate-y-0.5 hover:shadow-md sm:p-6"
+                                    className="rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-sm shadow-[#95B1DB]/10 transition hover:-translate-y-0.5 hover:shadow-md sm:p-6"
                                 >
                                     <BookingHeader
                                         booking={booking}
@@ -427,7 +499,7 @@ function BookingHeader({
                     <p className="font-serif text-lg font-bold text-[#1F2D40]">
                         {booking.service}
                     </p>
-                    {booking.base_price_type && <p className="mt-1 text-sm font-semibold text-[#A75F78]">
+                    {booking.base_price_type && <p className="mt-1 text-sm font-semibold text-[#5F83AB]">
                         {booking.requires_quote ? 'Final price to be confirmed' : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
                     </p>}
                     <p className="text-sm text-[#5B6B82]">
@@ -442,7 +514,8 @@ function BookingHeader({
             </div>
 
             {!!booking.selected_add_ons?.length && <p className="mb-3 text-xs text-[#5B6B82]">Client add-ons: {booking.selected_add_ons.map((item) => `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`).join(', ')}</p>}
-            {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#312532]">{booking.requires_quote ? 'Known subtotal' : 'Estimated total'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
+            {booking.venue_address && <p className="mb-3 text-sm text-[#5B6B82]">Home service · {booking.location_type === 'nearby_province' ? 'Nearby province' : 'Metro Manila'} · {booking.venue_address}</p>}
+            {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#1F2D40]">{booking.requires_quote ? 'Starting estimate · final price to confirm' : 'Estimated total'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
 
             <div className="flex flex-wrap gap-4 text-sm text-[#5B6B82]">
                 <span className="flex items-center gap-1.5">

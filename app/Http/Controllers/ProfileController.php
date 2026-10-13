@@ -29,6 +29,8 @@ class ProfileController extends Controller
                     'specialty',
                     'years_experience',
                     'bio',
+                    'metro_manila_travel_fee',
+                    'out_of_town_travel_fee',
                 ),
                 'avatar_url' => $user->avatar ? Storage::url($user->avatar) : null,
             ],
@@ -61,6 +63,8 @@ class ProfileController extends Controller
                 'specialty' => ['nullable', 'string', 'max:100'],
                 'years_experience' => ['nullable', 'integer', 'min:0', 'max:60'],
                 'bio' => ['nullable', 'string', 'max:300'],
+                'metro_manila_travel_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+                'out_of_town_travel_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
             ];
         }
 

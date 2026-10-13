@@ -1,26 +1,26 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
 import { BadgeCheck, Brush, CalendarCheck, Clock, Sparkles } from 'lucide-react';
+import BehindTheGlow from '@/components/landing/BehindTheGlow';
+import SocialLinks from '@/components/landing/SocialLinks';
 import { dashboard, login, register } from '@/routes';
 
-    type Artist = {
-        name: string;
-        specialty: string | null;
-        years_experience: number | null;
-        bio: string | null;
-        street_address: string | null;
-        barangay: string | null;
-        city: string | null;
-        province: string | null;
-        postal_code: string | null;
-    };
+type Artist = {
+    name: string;
+    specialty: string | null;
+    years_experience: number | null;
+    bio: string | null;
+    street_address: string | null;
+    barangay: string | null;
+    city: string | null;
+    province: string | null;
+    postal_code: string | null;
+};
 
 type Service = {
-        id: number;
-        name: string;
-        price: number | string;
-        description: string | null;
-    
+    id: number;
+    name: string;
+    price: number | string;
+    description: string | null;
 };
 
 type Package = {
@@ -32,471 +32,485 @@ type Package = {
     inclusions: string[] | null;
 };
 
-    type GalleryImage = {
-        id: number;
-        caption: string | null;
-        image_url: string;
-    };
+type GalleryImage = {
+    id: number;
+    caption: string | null;
+    image_url: string;
+};
 
-    type Props = {
-        artist: Artist | null;
-        services: Service[];
-        packages?: Package[] | null;
-        galleryImages?: GalleryImage[] | null;
-    };
+type Props = {
+    artist: Artist | null;
+    services: Service[];
+    packages?: Package[] | null;
+    galleryImages?: GalleryImage[] | null;
+};
 
-    const NAV_LINKS = [
-        { label: 'Services', href: '#services' },
-        { label: 'Packages', href: '#packages' },
-        { label: 'How it works', href: '#how-it-works' },
-        { label: 'Your artist', href: '#artist' },
-        { label: 'Behind the glam', href: '#behind-the-glam-heading' },
-        { label: 'Gallery', href: '#gallery' },
-    ];
+/*
+ * Brand palette (4 colors + 1 supporting neutral)
+ *   ink        #1A1A1A  text, dark sections
+ *   ivory      #FAF7F4  page background
+ *   blush      #E8B4B8  soft accents, borders, hover
+ *   champagne  #C9A66B  buttons, highlights
+ *   muted text #4A4A4A  secondary copy
+ * Darker accents for small text on light backgrounds (the bright ones are too faint to read):
+ *   champagne-deep #8A6A2F, blush-deep #B9656D
+ */
 
-    const STEPS = [
-        { title: 'Choose', desc: 'Pick a service and tell us the occasion.' },
-        { title: 'Book', desc: 'Select a date and time that works for you.' },
-        { title: 'Get glammed', desc: 'Show up and let your artist work their magic.' },
-        { title: 'Shine', desc: 'Walk out confident and camera-ready.' },
-    ];
+const NAV_LINKS = [
+    { label: 'Services', href: '#services' },
+    { label: 'Packages', href: '#packages' },
+    { label: 'How it works', href: '#how-it-works' },
+    { label: 'Your artist', href: '#artist' },
+    { label: 'Behind the glam', href: '#behind-the-glam' },
+    { label: 'Gallery', href: '#gallery' },
+];
 
-    const ARTIST_PHOTO: string | null = '/images/gallery/artist.png';
+const STEPS = [
+    { title: 'Choose', desc: 'Pick a service and tell us the occasion.' },
+    { title: 'Book', desc: 'Select a date and time that works for you.' },
+    { title: 'Get glammed', desc: 'Show up and let your artist work their magic.' },
+    { title: 'Shine', desc: 'Walk out confident and camera-ready.' },
+];
 
-    const LANDING_SLIDES = [
-        { src: '/images/landing/trixie-banner.jpeg', alt: 'Glow Up by Trixie — Still you, just glowing', caption: 'Glow Up by Trixie' },
-        { src: '/images/landing/behind-the-glam-prep.jpeg', alt: 'Trixie preparing a client before makeup application', caption: 'The prep behind a polished look' },
-        { src: '/images/landing/behind-the-glam-eyes.jpeg', alt: 'Trixie applying eye makeup to a client', caption: 'Every detail, carefully applied' },
-        { src: '/images/landing/behind-the-glam-finish.jpeg', alt: 'Close-up of Trixie applying finishing eye makeup', caption: 'Finishing touches' },
-        { src: '/images/landing/behind-the-glam-photoshoot.jpeg', alt: 'A client posing for a makeup photoshoot', caption: 'Ready for the camera' },
-    ];
+const ARTIST_PHOTO: string | null = '/images/gallery/artist.png';
 
+function SectionHeading({ title, sub }: { title: string; sub?: string }) {
+    return (
+        <div className="mb-10 max-w-xl">
+            <h3 className="font-display text-3xl font-bold leading-tight text-[#1A1A1A] sm:text-4xl">{title}</h3>
+            {sub && <p className="mt-3 leading-relaxed text-[#4A4A4A]">{sub}</p>}
+        </div>
+    );
+}
 
-    function SectionHeading({ title, sub }: { title: string; sub?: string }) {
-        return (
-            <div className="mb-10 max-w-xl">
-                <h3 className="font-display text-3xl font-bold leading-tight text-[#1F2D40] sm:text-4xl">
-                    {title}
-                </h3>
-                {sub && <p className="mt-3 leading-relaxed text-[#5B6B82]">{sub}</p>}
-            </div>
-        );
-    }
+const primaryBtn =
+    'inline-flex items-center justify-center rounded-full bg-[#9A7430] px-7 py-3 text-sm font-semibold text-white shadow-md shadow-[#9A7430]/30 transition duration-200 hover:bg-[#A8545C] hover:shadow-[0_0_22px_rgba(168,84,92,0.4)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8A6A2F]';
 
-    const primaryBtn =
-        'inline-flex items-center justify-center rounded-full bg-[#5F83AB] px-7 py-3 text-sm font-semibold text-white shadow-md shadow-[#95B1DB]/50 transition-colors duration-200 hover:bg-[#4E7099] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5F83AB]';
+const secondaryBtn =
+    'inline-flex items-center justify-center rounded-full border border-[#1A1A1A]/40 px-7 py-3 text-sm font-semibold text-[#1A1A1A] transition-colors duration-200 hover:bg-[#E8B4B8]/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A1A1A]';
 
-    const secondaryBtn =
-        'inline-flex items-center justify-center rounded-full border border-[#5F83AB]/50 px-7 py-3 text-sm font-semibold text-[#4A6A93] transition-colors duration-200 hover:bg-[#E6EEF8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5F83AB]';
+export default function Welcome({ artist, services, packages: packagesProp, galleryImages: galleryImagesProp }: Props) {
+    const packages = Array.isArray(packagesProp) ? packagesProp : [];
+    const galleryImages = Array.isArray(galleryImagesProp) ? galleryImagesProp : [];
 
-    export default function Welcome({ artist, services, packages: packagesProp, galleryImages: galleryImagesProp, }: Props) {
-        const [slideIndex, setSlideIndex] = useState(0);
-        const packages = Array.isArray(packagesProp) ? packagesProp : [];
-        const galleryImages = Array.isArray(galleryImagesProp)
-            ? galleryImagesProp
-            : [];
-            
-        const { auth } = usePage<{ auth?: { user?: unknown } }>().props;
-        const isLoggedIn = Boolean(auth?.user);
-        const bookHref = isLoggedIn ? dashboard() : register();
+    const { auth } = usePage<{ auth?: { user?: unknown } }>().props;
+    const isLoggedIn = Boolean(auth?.user);
+    const bookHref = isLoggedIn ? dashboard() : register();
 
-        const navLinks = NAV_LINKS.filter((link) => link.href !== '#artist' || artist);
+    const navLinks = NAV_LINKS.filter((link) => link.href !== '#artist' || artist);
 
-        const firstName = artist?.name.split(' ')[0] ?? '';
-        const initials = artist
-            ? artist.name
-                .split(' ')
-                .map((word) => word[0])
-                .slice(0, 2)
-                .join('')
-                .toUpperCase()
-            : '';
+    const firstName = artist?.name.split(' ')[0] ?? '';
+    const initials = artist
+        ? artist.name
+              .split(' ')
+              .map((word) => word[0])
+              .slice(0, 2)
+              .join('')
+              .toUpperCase()
+        : '';
 
+    return (
+        <>
+            <Head title="Glow Up by Trixie | Book Your Makeup Session" />
 
+            <div className="flex min-h-screen flex-col bg-[#FAF7F4] text-[#1A1A1A]">
+                <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#E8B4B8]/50 bg-[#FAF7F4]/90 px-8 py-4 backdrop-blur">
+                    <a href="#top" className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-[#8A6A2F]" />
+                        <span className="font-display text-lg font-bold text-[#1A1A1A]">Glow Up by Trixie</span>
+                    </a>
 
-        return (
-            <>
-                <Head title="Glow Up by Trixie | Book Your Makeup Session" />
+                    <nav className="hidden items-center gap-8 text-sm text-[#4A4A4A] md:flex">
+                        {navLinks.map((link) => (
+                            <a
+                                key={link.href}
+                                href={link.href}
+                                className="transition-colors duration-200 hover:text-[#8A6A2F]"
+                            >
+                                {link.label}
+                            </a>
+                        ))}
+                    </nav>
 
-                <div className="flex min-h-screen flex-col bg-[#F2F5F8] text-[#1F2D40]">
-                    <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#D3DFEF] bg-[#F2F5F8]/90 px-8 py-4 backdrop-blur">
-                        <a href="#top" className="flex items-center gap-2">
-                            <Sparkles className="h-5 w-5 text-[#5F83AB]" />
-                            <span className="font-display text-lg font-bold text-[#5F83AB]">
-                                Glow Up by Trixie
-                            </span>
-                        </a>
-
-                        <nav className="hidden items-center gap-8 text-sm text-[#5B6B82] md:flex">
-                            {navLinks.map((link) => (
-                                <a
-                                    key={link.href}
-                                    href={link.href}
-                                    className="transition-colors duration-200 hover:text-[#5F83AB]"
-                                >
-                                    {link.label}
-                                </a>
-                            ))}
-                        </nav>
-
-                        <div className="flex gap-3">
-                            {isLoggedIn ? (
+                    <div className="flex gap-3">
+                        {isLoggedIn ? (
+                            <Link
+                                href={dashboard()}
+                                className="rounded-full bg-[#9A7430] px-4 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#A8545C]"
+                            >
+                                Dashboard
+                            </Link>
+                        ) : (
+                            <>
                                 <Link
-                                    href={dashboard()}
-                                    className="rounded-full bg-[#5F83AB] px-4 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#4E7099]"
+                                    href={login()}
+                                    className="rounded-full border border-[#1A1A1A]/30 px-4 py-1.5 text-sm text-[#1A1A1A] transition-colors duration-200 hover:bg-[#E8B4B8]/25"
                                 >
-                                    Dashboard
+                                    Log in
                                 </Link>
-                            ) : (
-                                <>
-                                    <Link
-                                        href={login()}
-                                        className="rounded-full border border-[#95B1DB] px-4 py-1.5 text-sm text-[#5F83AB] transition-colors duration-200 hover:bg-[#E6EEF8]"
-                                    >
-                                        Log in
-                                    </Link>
-                                    <Link
-                                        href={register()}
-                                        className="rounded-full bg-[#5F83AB] px-4 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#4E7099]"
-                                    >
-                                        Sign up
-                                    </Link>
-                                </>
-                            )}
+                                <Link
+                                    href={register()}
+                                    className="rounded-full bg-[#9A7430] px-4 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#A8545C]"
+                                >
+                                    Sign up
+                                </Link>
+                            </>
+                        )}
+                    </div>
+                </header>
+
+                <main id="top" className="flex-1">
+                    {/* Artist banner: her name, tagline and contact details are already part of the image */}
+                    <section aria-label="Glow Up by Trixie" className="gl-hero">
+                        <picture>
+                            <source media="(min-width: 768px)" srcSet="/images/landing/trixie-banner.webp" />
+                            <img
+                                className="gl-hero__img"
+                                src="/images/landing/trixie-banner.webp"
+                                alt="Glow Up by Trixie. Still you, just glowing. A makeup artist's brush kit and lit vanity mirror."
+                                width={1402}
+                                height={1122}
+                                fetchPriority="high"
+                            />
+                        </picture>
+                        <div className="gl-hero__bar">
+                            <Link href={bookHref} className="gl-btn">
+                                {isLoggedIn ? 'Book a session' : 'Book your glow'}
+                            </Link>
+                            <SocialLinks variant="light" className="mt-4" />
                         </div>
-                    </header>
+                    </section>
 
-                    <main id="top" className="flex-1">
-                        <section id="behind-the-glam-heading" aria-label="Glow Up by Trixie banner and behind-the-scenes slideshow" className="w-full">
-                            <div className="relative isolate h-[min(78vh,760px)] min-h-[460px] w-full overflow-hidden bg-[#DCE6F2] shadow-xl shadow-[#456F9E]/15">
-                                <img src={LANDING_SLIDES[slideIndex].src} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
-                                <div className="absolute inset-0 bg-gradient-to-br from-[#203B5B]/15 via-white/10 to-[#203B5B]/25" />
-                                <img
-                                    key={LANDING_SLIDES[slideIndex].src}
-                                    src={LANDING_SLIDES[slideIndex].src}
-                                    alt={LANDING_SLIDES[slideIndex].alt}
-                                    className={`absolute inset-0 h-full w-full scale-[1.04] object-cover transition-transform duration-700 ${slideIndex === 0 ? 'object-[center_46%]' : 'object-center'}`}
-                                />
-                                <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-4 bg-gradient-to-t from-[#132943]/65 via-[#132943]/25 to-transparent px-4 pb-4 pt-20 sm:px-7 sm:pb-7">
-                                    <div className="rounded-2xl border border-white/40 bg-white/75 px-4 py-3 text-[#203B5B] shadow-lg shadow-black/10 backdrop-blur-md sm:px-5">
-                                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#456F9E]">{slideIndex === 0 ? 'Brand banner' : 'Behind the glam'}</p>
-                                        <p className="mt-1 font-display text-lg font-bold sm:text-xl">{LANDING_SLIDES[slideIndex].caption}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2 rounded-2xl border border-white/40 bg-white/75 p-2 shadow-lg shadow-black/10 backdrop-blur-md">
-                                        <button type="button" onClick={() => setSlideIndex((index) => (index - 1 + LANDING_SLIDES.length) % LANDING_SLIDES.length)} aria-label="Previous slide" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-xl font-semibold text-[#345578] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5F83AB]">‹</button>
-                                        <div className="flex items-center gap-1.5 px-1" aria-label={`Slide ${slideIndex + 1} of ${LANDING_SLIDES.length}`}>
-                                            {LANDING_SLIDES.map((slide, index) => <button key={slide.src} type="button" onClick={() => setSlideIndex(index)} aria-label={`Show ${slide.caption}`} aria-current={index === slideIndex} className={`h-2.5 rounded-full transition-all ${index === slideIndex ? 'w-7 bg-[#456F9E]' : 'w-2.5 bg-[#456F9E]/40 hover:bg-[#456F9E]/70'}`} />)}
-                                        </div>
-                                        <button type="button" onClick={() => setSlideIndex((index) => (index + 1) % LANDING_SLIDES.length)} aria-label="Next slide" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-xl font-semibold text-[#345578] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5F83AB]">›</button>
-                                    </div>
-                                </div>
+                    {/* Behind-the-scenes slideshow */}
+                    <BehindTheGlow />
+
+                    {/* First layout: text only, since the photos are already in the slideshow and Recent work */}
+                    <section className="mx-auto grid max-w-6xl items-center gap-14 px-8 py-16 lg:grid-cols-2 lg:py-24">
+                        <div>
+                            <p className="mb-4 font-display text-xl italic text-[#8A6A2F]">Still you, just glowing.</p>
+                            <h2 className="font-display text-4xl font-bold leading-[1.1] text-[#1A1A1A] sm:text-6xl">
+                                Makeup that feels like{' '}
+                                <span className="bg-gradient-to-r from-[#8A6A2F] to-[#B9656D] bg-clip-text text-transparent">
+                                    you
+                                </span>
+                                , at your most radiant
+                            </h2>
+                            <p className="mt-5 max-w-md text-lg leading-relaxed text-[#4A4A4A]">
+                                Pick a service, choose a time, and your artist confirms. Share photos of the look you
+                                have in mind and show up ready.
+                            </p>
+
+                            <div className="mt-8 flex flex-wrap gap-3">
+                                <Link href={bookHref} className={primaryBtn}>
+                                    {isLoggedIn ? 'Book a session' : 'Book now'}
+                                </Link>
+                                {artist && (
+                                    <a href="#artist" className={secondaryBtn}>
+                                        Meet your Artist
+                                    </a>
+                                )}
                             </div>
-                        </section>
 
-                        <section className="mx-auto grid max-w-6xl items-center gap-14 px-8 py-16 lg:grid-cols-2 lg:py-24">
-                            <div>
-                                <p className="mb-4 text-sm font-bold tracking-[0.18em] text-[#456F9E]">
-                                    STILL YOU, JUST GLOWING.
+                            <ul className="mt-10 grid gap-2.5 text-sm text-[#4A4A4A]">
+                                <li className="flex items-center gap-2">
+                                    <BadgeCheck className="h-4 w-4 text-[#8A6A2F]" />
+                                    Professional makeup artist
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4 text-[#8A6A2F]" />
+                                    Taken times are blocked automatically
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <CalendarCheck className="h-4 w-4 text-[#8A6A2F]" />
+                                    Reschedule from your account
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div className="relative mx-auto w-full max-w-md">
+                            <div className="absolute -right-5 -top-5 h-48 w-48 rounded-full bg-[#E8B4B8]/40 blur-sm" />
+                            <div className="relative rounded-[2rem] border border-[#E8B4B8]/60 bg-gradient-to-br from-white via-white to-[#E8B4B8]/20 p-8 shadow-xl shadow-[#C9A66B]/20 sm:p-10">
+                                <Sparkles className="mb-6 h-9 w-9 text-[#C9A66B]" />
+                                <p className="text-sm font-semibold text-[#8A6A2F]">Your look, your moment</p>
+                                <h3 className="mt-3 font-display text-3xl font-bold leading-tight text-[#1A1A1A] sm:text-4xl">
+                                    Soft glam, thoughtfully made.
+                                </h3>
+                                <p className="mt-4 leading-relaxed text-[#4A4A4A]">
+                                    From soft Korean and Thai-inspired makeup to natural glam, each look is tailored to
+                                    bring out your own features.
                                 </p>
-                                <h2 className="font-display text-4xl font-bold leading-[1.1] text-[#203B5B] drop-shadow-sm sm:text-6xl">
-                                    Makeup that feels like <span className="text-[#5F83AB]">you</span>, at your most radiant
-                                </h2>
-                                <p className="mt-5 max-w-md text-lg leading-relaxed text-[#5B6B82]">
-                                    Pick a service, choose a time, and your artist confirms. Share photos of the
-                                    look you have in mind and show up ready.
-                                </p>
-
-                                <div className="mt-8 flex flex-wrap gap-3">
-                                    <Link href={bookHref} className={primaryBtn}>
-                                        {isLoggedIn ? 'Book a session' : 'Book now'}
-                                    </Link>
-                                    {artist && (
-                                        <a href="#artist" className={secondaryBtn}>
-                                            Meet your Artist
-                                        </a>
-                                    )}
-                                </div>
-
-                                <ul className="mt-10 grid gap-2.5 text-sm text-[#5B6B82]">
-                                    <li className="flex items-center gap-2">
-                                        <BadgeCheck className="h-4 w-4 text-[#5F83AB]" />
-                                        Professional makeup artist
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <Clock className="h-4 w-4 text-[#5F83AB]" />
-                                        Taken times are blocked automatically
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <CalendarCheck className="h-4 w-4 text-[#5F83AB]" />
-                                        Reschedule from your account
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <div className="relative mx-auto w-full max-w-md">
-                                <div className="absolute -right-5 -top-5 h-48 w-48 rounded-full bg-[#D3DFEF]/70 blur-sm" />
-                                <div className="relative rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-white via-white to-[#E6EEF8] p-8 shadow-xl shadow-[#5F83AB]/15 sm:p-10">
-                                    <Sparkles className="mb-6 h-9 w-9 text-[#5F83AB]" />
-                                    <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#456F9E]">Your look, your moment</p>
-                                    <h3 className="mt-3 font-display text-3xl font-bold leading-tight text-[#203B5B] sm:text-4xl">Soft glam, thoughtfully made.</h3>
-                                    <p className="mt-4 leading-relaxed text-[#526B88]">From soft Korean and Thai-inspired makeup to natural glam, each look is tailored to bring out your own features.</p>
-                                    <div className="mt-7 flex items-center gap-3 rounded-2xl bg-white/90 p-4 shadow-sm">
-                                        <BadgeCheck className="h-5 w-5 shrink-0 text-[#4F7EAF]" />
-                                        <span className="text-sm font-semibold text-[#345578]">Your artist confirms every booking</span>
-                                    </div>
+                                <div className="mt-7 flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm">
+                                    <BadgeCheck className="h-5 w-5 shrink-0 text-[#8A6A2F]" />
+                                    <span className="text-sm font-semibold text-[#1A1A1A]">
+                                        Your artist confirms every booking
+                                    </span>
                                 </div>
                             </div>
-                        </section>
+                        </div>
+                    </section>
 
-                        <section id="services" className="scroll-mt-20 bg-[#E6EEF8]/70 px-8 py-16">
-                            <div className="mx-auto max-w-5xl">
-                                <SectionHeading
-                                    title="Services"
-                                    sub="Explore the active services currently offered by your artist."
-                                />
-                                <div className="divide-y divide-[#95B1DB]/50 border-y border-[#95B1DB]/50">
-                                    {services.map((service) => (
-                                        <div
-                                            key={service.id}
-                                            className="grid items-center gap-3 py-6 sm:grid-cols-[2fr_3fr_auto] sm:gap-8"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Brush className="h-5 w-5 shrink-0 text-[#5F83AB]" />
-                                                <div>
-                                                    <h4 className="font-display text-2xl font-bold">
-                                                        {service.name}
-                                                    </h4>
-                                                    <p className="text-sm font-semibold text-[#4A6A93]">
-                                                        ₱
-                                                        {Number(service.price).toLocaleString('en-PH', {
-                                                            minimumFractionDigits: 2,
-                                                        })}
-                                                    </p>
-                                                </div>
+                    <section id="services" className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16">
+                        <div className="mx-auto max-w-5xl">
+                            <SectionHeading
+                                title="Services"
+                                sub="Explore the active services currently offered by your artist."
+                            />
+                            <div className="divide-y divide-[#E8B4B8]/60 border-y border-[#E8B4B8]/60">
+                                {services.map((service) => (
+                                    <div
+                                        key={service.id}
+                                        className="grid items-center gap-3 py-6 sm:grid-cols-[2fr_3fr_auto] sm:gap-8"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Brush className="h-5 w-5 shrink-0 text-[#8A6A2F]" />
+                                            <div>
+                                                <h4 className="font-display text-2xl font-bold">{service.name}</h4>
+                                                <p className="text-sm font-semibold text-[#8A6A2F]">
+                                                    ₱
+                                                    {Number(service.price).toLocaleString('en-PH', {
+                                                        minimumFractionDigits: 2,
+                                                    })}
+                                                </p>
                                             </div>
-                                            <p className="text-[#5B6B82]">
-                                                {service.description || 'Ask your artist for service details.'}
+                                        </div>
+                                        <p className="text-[#4A4A4A]">
+                                            {service.description || 'Ask your artist for service details.'}
+                                        </p>
+                                        <Link
+                                            href={bookHref}
+                                            className="text-sm font-semibold text-[#1A1A1A] underline decoration-[#C9A66B] decoration-2 underline-offset-4 transition-colors duration-200 hover:text-[#8A6A2F]"
+                                        >
+                                            Book this service
+                                        </Link>
+                                    </div>
+                                ))}
+                                {services.length === 0 && (
+                                    <p className="py-6 text-sm text-[#4A4A4A]">
+                                        Services will appear here when the artist adds them.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="packages" className="scroll-mt-20 px-8 py-16">
+                        <div className="mx-auto max-w-5xl">
+                            <SectionHeading
+                                title="Packages"
+                                sub="Choose a complete look package. Optional add-ons are available during booking."
+                            />
+                            {packages.length > 0 ? (
+                                <div className="grid gap-5 md:grid-cols-2">
+                                    {packages.map((pkg) => (
+                                        <article
+                                            key={pkg.id}
+                                            className="rounded-3xl border border-[#E8B4B8]/60 bg-white p-6 shadow-sm"
+                                        >
+                                            <h4 className="font-display text-2xl font-bold">{pkg.name}</h4>
+                                            <p className="mt-2 font-semibold text-[#8A6A2F]">
+                                                {pkg.pricing_type === 'quote_required'
+                                                    ? 'Price confirmed after booking'
+                                                    : `${pkg.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(pkg.price ?? 0).toLocaleString('en-PH')}`}
                                             </p>
+                                            {pkg.description && (
+                                                <p className="mt-3 text-sm leading-relaxed text-[#4A4A4A]">
+                                                    {pkg.description}
+                                                </p>
+                                            )}
+                                            {!!pkg.inclusions?.length && (
+                                                <ul className="mt-4 grid gap-1 text-sm text-[#4A4A4A]">
+                                                    {pkg.inclusions.map((item, index) => (
+                                                        <li key={`${pkg.id}-${index}`} className="flex gap-2">
+                                                            <span className="text-[#8A6A2F]">✓</span>
+                                                            {item}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
                                             <Link
                                                 href={bookHref}
-                                                className="text-sm font-semibold text-[#4A6A93] underline underline-offset-4 transition-colors duration-200 hover:text-[#5F83AB]"
+                                                className="mt-5 inline-flex text-sm font-semibold text-[#1A1A1A] underline decoration-[#C9A66B] decoration-2 underline-offset-4 transition-colors duration-200 hover:text-[#8A6A2F]"
                                             >
-                                                Book this service
+                                                Book this package
                                             </Link>
-                                        </div>
+                                        </article>
                                     ))}
-                                    {services.length === 0 && (
-                                        <p className="py-6 text-sm text-[#5B6B82]">
-                                            Services will appear here when the artist adds them.
-                                        </p>
+                                </div>
+                            ) : (
+                                <p className="rounded-2xl border border-dashed border-[#E8B4B8] bg-white/70 p-5 text-sm text-[#4A4A4A]">
+                                    Packages will appear here when they are added by the artist.
+                                </p>
+                            )}
+                        </div>
+                    </section>
+
+                    <section id="how-it-works" className="scroll-mt-20 px-8 py-16">
+                        <div className="mx-auto max-w-5xl">
+                            <SectionHeading title="From booking to glam in four steps" />
+                            <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="absolute left-5 right-5 top-5 hidden h-px bg-[#E8B4B8] lg:block" />
+                                {STEPS.map((step, index) => (
+                                    <div key={step.title} className="relative">
+                                        <div className="relative mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-[#1A1A1A] text-sm font-semibold text-[#C9A66B] ring-8 ring-[#FAF7F4]">
+                                            {index + 1}
+                                        </div>
+                                        <p className="font-display text-xl font-bold">{step.title}</p>
+                                        <p className="mt-1 text-sm leading-relaxed text-[#4A4A4A]">{step.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {artist && (
+                        <section id="artist" className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-20">
+                            <div className="mx-auto grid max-w-5xl items-center gap-14 md:grid-cols-[22rem_1fr]">
+                                <div className="relative mx-auto w-full max-w-sm">
+                                    <div className="absolute -right-5 -top-5 h-56 w-56 rounded-full bg-[#C9A66B]/30" />
+                                    <div className="relative z-10 aspect-[3/4] overflow-hidden rounded-t-full rounded-b-3xl border-4 border-white bg-[#E8B4B8]/40 shadow-xl shadow-[#C9A66B]/30">
+                                        {ARTIST_PHOTO ? (
+                                            <img
+                                                src={ARTIST_PHOTO}
+                                                alt={artist.name}
+                                                className="h-full w-full object-cover object-left"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center">
+                                                <span className="font-display text-7xl font-bold text-[#8A6A2F]">
+                                                    {initials}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {artist.years_experience != null && (
+                                        <div className="absolute -bottom-4 -left-3 z-20 rounded-xl bg-white px-5 py-3 shadow-lg shadow-[#C9A66B]/30">
+                                            <p className="font-display text-3xl font-bold leading-none text-[#8A6A2F]">
+                                                {artist.years_experience}
+                                            </p>
+                                            <p className="mt-1 text-xs text-[#4A4A4A]">
+                                                {artist.years_experience === 1 ? 'year' : 'years'} of experience
+                                            </p>
+                                        </div>
                                     )}
                                 </div>
-                            </div>
-                        </section>
 
-                        <section id="packages" className="scroll-mt-20 px-8 py-16">
-                            <div className="mx-auto max-w-5xl">
-                                <SectionHeading title="Packages" sub="Choose a complete look package. Optional add-ons are available during booking." />
-                                {packages.length > 0 ? <div className="grid gap-5 md:grid-cols-2">
-                                    {packages.map((pkg) => <article key={pkg.id} className="rounded-3xl border border-[#D3DFEF] bg-white p-6 shadow-sm">
-                                        <h4 className="font-display text-2xl font-bold">{pkg.name}</h4>
-                                        <p className="mt-2 font-semibold text-[#4A6A93]">{pkg.pricing_type === 'quote_required' ? 'Price confirmed after booking' : `${pkg.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(pkg.price ?? 0).toLocaleString('en-PH')}`}</p>
-                                        {pkg.description && <p className="mt-3 text-sm leading-relaxed text-[#5B6B82]">{pkg.description}</p>}
-                                        {!!pkg.inclusions?.length && <ul className="mt-4 grid gap-1 text-sm text-[#5B6B82]">{pkg.inclusions.map((item, index) => <li key={`${pkg.id}-${index}`} className="flex gap-2"><span className="text-[#5F83AB]">✓</span>{item}</li>)}</ul>}
-                                        <Link href={bookHref} className="mt-5 inline-flex text-sm font-semibold text-[#4A6A93] underline underline-offset-4">Book this package</Link>
-                                    </article>)}
-                                </div> : <p className="rounded-2xl border border-dashed border-[#95B1DB] bg-white/70 p-5 text-sm text-[#5B6B82]">Packages will appear here when they are added by the artist.</p>}
-                            </div>
-                        </section>
+                                <div>
+                                    <p className="text-sm font-semibold text-[#8A6A2F]">Meet your artist</p>
+                                    <h3 className="mt-2 font-display text-4xl font-bold leading-tight sm:text-5xl">
+                                        {artist.name}
+                                    </h3>
+                                    <p className="mt-2 text-lg text-[#8A6A2F]">{artist.specialty ?? 'Makeup artist'}</p>
 
-                        <section id="how-it-works" className="scroll-mt-20 px-8 py-16">
-                            <div className="mx-auto max-w-5xl">
-                                <SectionHeading title="From booking to glam in four steps" />
-                                <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                                    <div className="absolute left-5 right-5 top-5 hidden h-px bg-[#95B1DB] lg:block" />
-                                    {STEPS.map((step, index) => (
-                                        <div key={step.title} className="relative">
-                                            <div className="relative mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-[#5F83AB] text-sm font-semibold text-white ring-8 ring-[#F2F5F8]">
-                                                {index + 1}
-                                            </div>
-                                            <p className="font-display text-xl font-bold">{step.title}</p>
-                                            <p className="mt-1 text-sm leading-relaxed text-[#5B6B82]">
-                                                {step.desc}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </section>
+                                    {artist.bio && (
+                                        <p className="mt-6 max-w-xl border-l-4 border-[#C9A66B] pl-5 font-display text-xl italic leading-relaxed text-[#1A1A1A]">
+                                            {artist.bio}
+                                        </p>
+                                    )}
 
-                        {artist && (
-                            <section
-                                id="artist"
-                                className="scroll-mt-20 bg-[#E6EEF8]/70 px-8 py-20"
-                            >
-                                <div className="mx-auto grid max-w-5xl items-center gap-14 md:grid-cols-[22rem_1fr]">
-                                    <div className="relative mx-auto w-full max-w-sm">
-                                        <div className="absolute -right-5 -top-5 h-56 w-56 rounded-full bg-[#D3DFEF]/80" />
-                                        <div className="relative z-10 aspect-[3/4] overflow-hidden rounded-t-full rounded-b-3xl border-4 border-white bg-[#D3DFEF] shadow-xl shadow-[#95B1DB]/40">
-                                            {ARTIST_PHOTO ? (
-                                                <img
-                                                    src={ARTIST_PHOTO}
-                                                    alt={artist.name}
-                                                    className="h-full w-full object-cover object-left"
-                                                />
-                                            ) : (
-                                                <div className="flex h-full w-full items-center justify-center">
-                                                    <span className="font-display text-7xl font-bold text-[#5F83AB]">
-                                                        {initials}
-                                                    </span>
-                                                </div>
+                                    <div className="mt-8">
+                                        <p className="mb-3 text-sm font-semibold">Services</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {services.map((service) => (
+                                                <Link
+                                                    key={service.id}
+                                                    href={bookHref}
+                                                    className="rounded-full border border-[#1A1A1A]/30 px-4 py-1.5 text-sm text-[#1A1A1A] transition-colors duration-200 hover:bg-white"
+                                                >
+                                                    {service.name}
+                                                </Link>
+                                            ))}
+                                            {services.length === 0 && (
+                                                <p className="text-sm text-[#4A4A4A]">No services listed yet.</p>
                                             )}
                                         </div>
+                                    </div>
 
+                                    <div className="mt-8 grid max-w-lg grid-cols-3 gap-4 border-t border-[#E8B4B8]/60 pt-6">
                                         {artist.years_experience != null && (
-                                            <div className="absolute -bottom-4 -left-3 z-20 rounded-xl bg-white px-5 py-3 shadow-lg shadow-[#95B1DB]/40">
-                                                <p className="font-display text-3xl font-bold leading-none text-[#4A6A93]">
+                                            <div>
+                                                <p className="font-display text-3xl font-bold text-[#8A6A2F]">
                                                     {artist.years_experience}
                                                 </p>
-                                                <p className="mt-1 text-xs text-[#5B6B82]">
-                                                    {artist.years_experience === 1 ? 'year' : 'years'} of experience
+                                                <p className="text-sm text-[#4A4A4A]">
+                                                    {artist.years_experience === 1 ? 'year' : 'years'} in the craft
                                                 </p>
                                             </div>
                                         )}
-                                    </div>
-
-                                    <div>
-                                        <p className="text-sm font-medium text-[#4A6A93]">Meet your artist</p>
-                                        <h3 className="mt-2 font-display text-4xl font-bold leading-tight sm:text-5xl">
-                                            {artist.name}
-                                        </h3>
-                                        <p className="mt-2 text-lg text-[#4A6A93]">
-                                            {artist.specialty ?? 'Makeup artist'}
-                                        </p>
-
-                                        {artist.bio && (
-                                            <p className="mt-6 max-w-xl border-l-4 border-[#95B1DB] pl-5 font-display text-xl italic leading-relaxed text-[#1F2D40]">
-                                                {artist.bio}
+                                        <div>
+                                            <p className="font-display text-3xl font-bold text-[#8A6A2F]">
+                                                {services.length}
                                             </p>
-                                        )}
-
-                                        <div className="mt-8">
-                                            <p className="mb-3 text-sm font-semibold">Services</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {services.map((service) => (
-                                                    <Link
-                                                        key={service.id}
-                                                        href={bookHref}
-                                                        className="rounded-full border border-[#95B1DB] px-4 py-1.5 text-sm text-[#4A6A93] transition-colors duration-200 hover:bg-white"
-                                                    >
-                                                        {service.name}
-                                                    </Link>
-                                                ))}
-                                                {services.length === 0 && (
-                                                    <p className="text-sm text-[#5B6B82]">
-                                                        No services listed yet.
-                                                    </p>
-                                                )}
-                                            </div>
+                                            <p className="text-sm text-[#4A4A4A]">services offered</p>
                                         </div>
-
-                                        <div className="mt-8 grid max-w-lg grid-cols-3 gap-4 border-t border-[#95B1DB]/50 pt-6">
-                                            {artist.years_experience != null && (
-                                                <div>
-                                                    <p className="font-display text-3xl font-bold text-[#4A6A93]">
-                                                        {artist.years_experience}
-                                                    </p>
-                                                    <p className="text-sm text-[#5B6B82]">
-                                                        {artist.years_experience === 1 ? 'year' : 'years'} in the craft
-                                                    </p>
-                                                </div>
-                                            )}
-                                            <div>
-                                                <p className="font-display text-3xl font-bold text-[#4A6A93]">
-                                                    {services.length}
-                                                </p>
-                                                <p className="text-sm text-[#5B6B82]">services offered</p>
-                                            </div>
-                                            <div>
-                                                <p className="font-display text-3xl font-bold text-[#4A6A93]">1:1</p>
-                                                <p className="text-sm text-[#5B6B82]">
-                                                    the same artist, every time
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-8 flex flex-wrap gap-3">
-                                            <Link href={bookHref} className={primaryBtn}>
-                                                Book with {firstName}
-                                            </Link>
-                                            <a href="#gallery" className={secondaryBtn}>
-                                                See recent work
-                                            </a>
+                                        <div>
+                                            <p className="font-display text-3xl font-bold text-[#8A6A2F]">1:1</p>
+                                            <p className="text-sm text-[#4A4A4A]">the same artist, every time</p>
                                         </div>
                                     </div>
-                                </div>
-                            </section>
-                        )}
 
-                        <section id="gallery" className="scroll-mt-20 px-8 pb-16">
-                            <div className="mx-auto max-w-6xl">
-                                <SectionHeading title="Recent work" />
-                                <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-4">
-                                    {galleryImages.map((image) => (
-    <div
-        key={image.id}
-        className="w-[75%] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#D3DFEF] bg-white sm:w-[40%] lg:w-[24%]"
-    >
-        <img
-            src={image.image_url}
-            alt={image.caption || 'Makeup work'}
-            className="aspect-[4/5] w-full object-cover"
-        />
-        {image.caption && (
-            <p className="truncate px-3 py-2 text-sm text-[#5B6B82]">
-                {image.caption}
-            </p>
-        )}
-    </div>
-))}
+                                    <div className="mt-8 flex flex-wrap gap-3">
+                                        <Link href={bookHref} className={primaryBtn}>
+                                            Book with {firstName}
+                                        </Link>
+                                        <a href="#gallery" className={secondaryBtn}>
+                                            See recent work
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </section>
+                    )}
 
-                        
-
-                        <section className="bg-[#5F83AB] px-8 py-14 text-white">
-                            <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-                                <div>
-                                    <h3 className="font-display text-3xl font-bold">
-                                        Ready to book your session?
-                                    </h3>
-                                    <p className="mt-2 max-w-md text-white/90">
-                                        It takes a minute. Your artist confirms the time with you.
-                                    </p>
-                                </div>
-                                <Link
-                                    href={bookHref}
-                                    className="whitespace-nowrap rounded-full bg-white px-7 py-3 text-sm font-semibold text-[#4A6A93] transition-colors duration-200 hover:bg-[#F2F5F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                                >
-                                    {isLoggedIn ? 'Book a session' : 'Create your account'}
-                                </Link>
+                    <section id="gallery" className="scroll-mt-20 px-8 py-16">
+                        <div className="mx-auto max-w-6xl">
+                            <SectionHeading title="Recent work" />
+                            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4">
+                                {galleryImages.map((image) => (
+                                    <div
+                                        key={image.id}
+                                        className="w-[75%] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#E8B4B8]/60 bg-white sm:w-[40%] lg:w-[24%]"
+                                    >
+                                        <img
+                                            src={image.image_url}
+                                            alt={image.caption || 'Makeup work'}
+                                            className="aspect-[4/5] w-full object-cover"
+                                        />
+                                        {image.caption && (
+                                            <p className="truncate px-3 py-2 text-sm text-[#4A4A4A]">{image.caption}</p>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
-                        </section>
-                    </main>
+                        </div>
+                    </section>
 
-                    <footer className="flex flex-col gap-4 border-t border-[#D3DFEF] bg-white px-8 py-6 text-sm text-[#526B88] sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-[#5F83AB]" />
-                            <span className="font-semibold text-[#1F2D40]">Glow Up by Trixie</span>
+                    <section className="bg-[#1A1A1A] px-8 py-14 text-[#FAF7F4]">
+                        <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+                            <div>
+                                <h3 className="font-display text-3xl font-bold">Ready to book your session?</h3>
+                                <p className="mt-2 max-w-md text-[#FAF7F4]/85">
+                                    It takes a minute. Your artist confirms the time with you.
+                                </p>
+                            </div>
+                            <Link href={bookHref} className="gl-btn whitespace-nowrap">
+                                {isLoggedIn ? 'Book a session' : 'Create your account'}
+                            </Link>
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                            <a href="https://www.facebook.com/glowupbytrixieph" target="_blank" rel="noreferrer" className="font-semibold text-[#456F9E] transition hover:text-[#203B5B]">Facebook: Glow Up by Trixie</a>
-                            <a href="https://www.tiktok.com/@GlowUpByTrixie" target="_blank" rel="noreferrer" className="font-semibold text-[#456F9E] transition hover:text-[#203B5B]">TikTok: @GlowUpByTrixie</a>
-                            <span>© {new Date().getFullYear()} All rights reserved.</span>
-                        </div>
-                    </footer>
-                </div>
-            </>
-        );
-    }
+                    </section>
+                </main>
+
+                <footer className="flex flex-col gap-4 border-t border-[#C9A66B]/30 bg-[#1A1A1A] px-8 py-6 text-sm text-[#FAF7F4]/80 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-[#C9A66B]" />
+                        <span className="font-semibold text-[#FAF7F4]">Glow Up by Trixie</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                        <SocialLinks variant="dark" showPhone />
+                        <span>© {new Date().getFullYear()} All rights reserved.</span>
+                    </div>
+                </footer>
+            </div>
+        </>
+    );
+}

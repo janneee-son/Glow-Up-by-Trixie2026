@@ -1,0 +1,256 @@
+/* Glow Up By Trixie — brand tokens + landing styles
+   Import once, e.g. at the top of resources/css/app.css:  @import './brand.css';  */
+
+:root {
+  --ink: #1a1a1a;
+  --ink-soft: #333333;
+  --ivory: #faf7f4;
+  --blush: #e8b4b8;
+  --blush-deep: #b9656d;      /* blush for text on ivory (passes 4.5:1) */
+  --champagne: #c9a66b;
+  --champagne-deep: #8a6a2f;  /* champagne for text on ivory (passes 4.5:1) */
+  --gold: #9a7430;            /* button fill: white text on it passes ~4.3:1 */
+  --rose: #a8545c;            /* button hover: white text on it passes ~5:1 */
+
+  --font-display: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  --font-body: var(--font-sans); /* follows the site's body font set in app.css */
+}
+
+/* ---------- Shared bits ---------- */
+.gl-btn {
+  display: inline-block;
+  padding: 0.85rem 2rem;
+  background: linear-gradient(135deg, var(--gold), var(--champagne-deep));
+  color: #fff;
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(138, 106, 47, 0.28);
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+.gl-btn:hover,
+.gl-btn:focus-visible {
+  background: var(--rose);
+  box-shadow: 0 0 22px rgba(168, 84, 92, 0.4);
+}
+:where(.gl-btn, .gl-slider button, .gl-social a):focus-visible {
+  outline: 2px solid var(--champagne-deep);
+  outline-offset: 3px;
+}
+
+/* ---------- Hero banner ---------- */
+.gl-hero {
+  background: var(--ivory);
+  padding-bottom: 2rem;
+  text-align: center;
+}
+.gl-hero__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* wide screens use the extended 2:1 banner; cap its height on very large monitors */
+@media (min-width: 768px) {
+  .gl-hero__img {
+    aspect-ratio: 2 / 1;
+    max-height: 80vh;
+    object-fit: cover;
+    object-position: center;
+  }
+}
+/* frosted-glass panel for the button + social links, overlapping the banner's bottom edge */
+.gl-hero__bar {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  margin-top: -3rem;
+  padding: 1.1rem 1.75rem 1.2rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(201, 166, 107, 0.45);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(26, 26, 26, 0.15);
+}
+
+/* ---------- Slideshow ("Behind the Glow") ---------- */
+.gl-slider {
+  position: relative;
+  isolation: isolate;
+  background: var(--ivory);
+  color: var(--ink);
+  padding: 3rem 0 3.5rem;
+  overflow: hidden;
+  font-family: var(--font-body);
+  --card-w: min(72vw, 320px);
+  --step: calc(var(--card-w) * 0.78);
+}
+/* soft, blurred wash of the current photo behind a near-white veil */
+.gl-slider__backdrop {
+  position: absolute;
+  inset: -15%;
+  width: 130%;
+  height: 130%;
+  object-fit: cover;
+  filter: blur(55px) saturate(1.2);
+  opacity: 0.45;
+  z-index: -2;
+}
+.gl-slider::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(250, 247, 244, 0.8), rgba(250, 247, 244, 0.92));
+}
+.gl-slider__head {
+  text-align: center;
+  padding: 0 1rem;
+  margin-bottom: 2rem;
+}
+.gl-slider__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--champagne-deep), var(--blush-deep));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.gl-slider__sub {
+  margin: 0.6rem auto 0;
+  max-width: 34rem;
+  color: #4a4a4a;
+  line-height: 1.6;
+}
+
+.gl-slider__stage {
+  position: relative;
+  height: calc(var(--card-w) * 4 / 3);
+  touch-action: pan-y;
+}
+.gl-slider__card {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--card-w);
+  height: 100%;
+  margin: 0;
+  border-radius: 1.1rem;
+  overflow: hidden;
+  background: #000;
+  transform: translateX(calc(-50% + var(--rel) * var(--step))) scale(var(--scale));
+  opacity: var(--op);
+  filter: brightness(var(--bright));
+  z-index: var(--z);
+  transition: transform 0.7s cubic-bezier(0.22, 0.8, 0.28, 1), opacity 0.7s ease, filter 0.7s ease;
+  box-shadow: 0 14px 32px rgba(26, 26, 26, 0.2);
+}
+.gl-slider__card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.gl-slider__card[data-active='true'] {
+  box-shadow: 0 0 0 2px rgba(201, 166, 107, 0.7), 0 0 36px rgba(201, 166, 107, 0.3),
+    0 20px 40px rgba(26, 26, 26, 0.25);
+}
+
+.gl-slider__caption {
+  text-align: center;
+  margin: 1.5rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  min-height: 1.8rem;
+}
+
+.gl-slider__controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+.gl-slider__arrow {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--champagne-deep);
+  background: transparent;
+  color: var(--champagne-deep);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.gl-slider__arrow:hover {
+  background: var(--champagne-deep);
+  color: #fff;
+}
+.gl-slider__dots {
+  display: flex;
+  gap: 0.55rem;
+}
+.gl-slider__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(26, 26, 26, 0.22);
+  cursor: pointer;
+  transition: background-color 0.2s ease, width 0.3s ease;
+}
+.gl-slider__dot[aria-current='true'] {
+  width: 1.6rem;
+  border-radius: 999px;
+  background: var(--champagne-deep);
+}
+
+@media (min-width: 768px) {
+  .gl-slider { --card-w: 340px; --step: 300px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-slider__card,
+  .gl-slider__dot,
+  .gl-btn { transition: none; }
+}
+
+/* ---------- Social links ---------- */
+.gl-social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.25rem;
+  justify-content: center;
+  align-items: center;
+  font-family: var(--font-body);
+}
+.gl-social a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: inherit;
+  text-decoration: none;
+  background-image: linear-gradient(var(--champagne), var(--champagne));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 2px;
+  padding-bottom: 2px;
+  transition: background-size 0.3s ease, color 0.2s ease;
+}
+.gl-social a:hover,
+.gl-social a:focus-visible {
+  background-size: 100% 2px;
+}
+.gl-social svg { width: 1.25rem; height: 1.25rem; flex: none; }
+
+/* Footer variant: on ivory, uses the darker accent so text stays readable */
+.gl-social--light { color: var(--ink); }
+.gl-social--light a:hover { color: var(--champagne-deep); }
+/* On dark backgrounds */
+.gl-social--dark { color: var(--ivory); }
+.gl-social--dark a:hover { color: var(--champagne); }
