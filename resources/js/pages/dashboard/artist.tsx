@@ -19,6 +19,12 @@ type Booking = {
     base_price_type?: 'fixed' | 'starting_at' | 'quote_required';
     estimated_total?: number | string | null;
     transportation_fee_pending?: boolean;
+    final_makeup_price?: number | string | null;
+    quote_reason?: string | null;
+    quote_pending?: boolean;
+    quote_accepted_at?: string | null;
+    deposit_status?: 'not_due' | 'due' | 'submitted' | 'received';
+    deposit_reference?: string | null;
     selected_add_ons?: { id: number | null; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string; is_system_fee?: boolean }[] | null;
     requires_quote?: boolean;
     booking_date: string;
@@ -101,8 +107,10 @@ export default function ArtistDashboard({ bookings }: Props) {
     const [busyId, setBusyId] = useState<number | null>(null);
     const [viewingUrl, setViewingUrl] = useState<string | null>(null);
     const [messages, setMessages] = useState<Record<number, string>>({});
+    const [makeupPrices, setMakeupPrices] = useState<Record<number, string>>({});
     const [transportationFees, setTransportationFees] = useState<Record<number, string>>({});
-    const [transportationFeeErrors, setTransportationFeeErrors] = useState<Record<number, string>>({});
+    const [quoteReasons, setQuoteReasons] = useState<Record<number, string>>({});
+    const [quoteErrors, setQuoteErrors] = useState<Record<number, string>>({});
 
     const pending = useMemo(
         () => bookings.filter((b) => b.status === 'pending'),
@@ -146,30 +154,35 @@ export default function ArtistDashboard({ bookings }: Props) {
         );
     }
 
-    function saveTransportationFee(booking: Booking) {
+    function sendQuote(booking: Booking) {
+        const makeupPrice = makeupPrices[booking.id] ?? String(booking.final_makeup_price ?? booking.base_price ?? '');
         const fee = transportationFees[booking.id] ?? transportationFeeForBooking(booking);
+        const reason = quoteReasons[booking.id] ?? booking.quote_reason ?? '';
 
         setBusyId(booking.id);
-        setTransportationFeeErrors((current) => ({ ...current, [booking.id]: '' }));
+        setQuoteErrors((current) => ({ ...current, [booking.id]: '' }));
         router.patch(
-            `/book/${booking.id}/transportation-fee`,
-            { transportation_fee: fee },
+            `/book/${booking.id}/quote`,
+            { final_makeup_price: makeupPrice, transportation_fee: fee, quote_reason: reason },
             {
                 preserveScroll: true,
-                onError: (errors) => setTransportationFeeErrors((current) => ({
+                onError: (errors) => setQuoteErrors((current) => ({
                     ...current,
-                    [booking.id]: String(errors.transportation_fee ?? 'Could not update the transportation fee.'),
+                    [booking.id]: String(errors.quote_reason ?? errors.final_makeup_price ?? errors.transportation_fee ?? 'Could not send the final quote.'),
                 })),
                 onFinish: () => {
                     setBusyId(null);
-                    setTransportationFees((current) => {
-                        const next = { ...current };
-                        delete next[booking.id];
-                        return next;
-                    });
                 },
             },
         );
+    }
+
+    function markDepositReceived(booking: Booking) {
+        setBusyId(booking.id);
+        router.patch(`/book/${booking.id}/deposit/received`, {}, {
+            preserveScroll: true,
+            onFinish: () => setBusyId(null),
+        });
     }
 
     useEffect(() => {
@@ -288,15 +301,27 @@ export default function ArtistDashboard({ bookings }: Props) {
                                         />
 
                                         <div className="mt-4 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
-                                            <label htmlFor={`travel-fee-${booking.id}`} className="block text-sm font-semibold text-[#1a1a1a]">
-                                                Confirm transportation fee
-                                            </label>
+                                            <h3 className="text-sm font-semibold text-[#1a1a1a]">Prepare the final quote</h3>
                                             <p className="mt-1 text-xs leading-5 text-[#4a4a4a]">
-                                                Adjust the starting fee for this address. The client will see the revised estimate and get a notification.
+                                                Review the inspiration and address, then send one itemized makeup and transportation price for the client to approve.
                                             </p>
-                                            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                                                <div className="relative w-full sm:max-w-xs">
-                                                    <span className="absolute top-1/2 left-3 -translate-y-1/2 text-sm text-[#4a4a4a]">₱</span>
+                                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                                <div>
+                                                    <label htmlFor={`makeup-price-${booking.id}`} className="mb-1 block text-xs font-medium text-[#4a4a4a]">Final makeup price (₱)</label>
+                                                    <input
+                                                        id={`makeup-price-${booking.id}`}
+                                                        type="number"
+                                                        min={0}
+                                                        max={1000000}
+                                                        step="0.01"
+                                                        inputMode="decimal"
+                                                        value={makeupPrices[booking.id] ?? String(booking.final_makeup_price ?? booking.base_price ?? '')}
+                                                        onChange={(event) => setMakeupPrices((current) => ({ ...current, [booking.id]: event.target.value }))}
+                                                        className="w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label htmlFor={`travel-fee-${booking.id}`} className="mb-1 block text-xs font-medium text-[#4a4a4a]">Transportation fee (₱)</label>
                                                     <input
                                                         id={`travel-fee-${booking.id}`}
                                                         type="number"
@@ -306,23 +331,43 @@ export default function ArtistDashboard({ bookings }: Props) {
                                                         inputMode="numeric"
                                                         value={transportationFees[booking.id] ?? transportationFeeForBooking(booking)}
                                                         onChange={(event) => setTransportationFees((current) => ({ ...current, [booking.id]: event.target.value }))}
-                                                        className="w-full rounded-xl border border-[#d7c0a2] bg-white py-2 pr-3 pl-8 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
-                                                        aria-label="Transportation fee for this booking"
+                                                        className="w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
                                                     />
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    disabled={busyId === booking.id || transportationFees[booking.id] === '' || Number(transportationFees[booking.id] ?? 0) < 0 || Number(transportationFees[booking.id] ?? 0) > 1000000}
-                                                    onClick={() => saveTransportationFee(booking)}
-                                                    className="rounded-full border border-[#8a6a2f] px-4 py-2 text-xs font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5] disabled:opacity-50"
-                                                >
-                                                    Send updated estimate
-                                                </button>
                                             </div>
-                                            {transportationFeeErrors[booking.id] && <p role="alert" className="mt-2 text-xs text-[#A13F3F]">{transportationFeeErrors[booking.id]}</p>}
+                                            <div className="mt-3">
+                                                <label htmlFor={`quote-reason-${booking.id}`} className="mb-1 block text-xs font-medium text-[#4a4a4a]">Reason for a price above the starting price</label>
+                                                <textarea
+                                                    id={`quote-reason-${booking.id}`}
+                                                    rows={2}
+                                                    maxLength={500}
+                                                    value={quoteReasons[booking.id] ?? booking.quote_reason ?? ''}
+                                                    onChange={(event) => setQuoteReasons((current) => ({ ...current, [booking.id]: event.target.value }))}
+                                                    placeholder="For example, the requested look needs extra styling or preparation."
+                                                    className="w-full resize-y rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] placeholder:text-[#4a4a4a]/60 focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={busyId === booking.id || makeupPrices[booking.id] === '' || transportationFees[booking.id] === '' || Number(makeupPrices[booking.id] ?? booking.final_makeup_price ?? booking.base_price ?? 0) < 0 || Number(transportationFees[booking.id] ?? 0) < 0}
+                                                onClick={() => sendQuote(booking)}
+                                                className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
+                                            >
+                                                {busyId === booking.id ? 'Sending…' : 'Send itemized quote'}
+                                            </button>
+                                            {quoteErrors[booking.id] && <p role="alert" className="mt-2 text-xs text-[#A13F3F]">{quoteErrors[booking.id]}</p>}
                                         </div>
 
-                                        {booking.transportation_fee_pending && <p className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-4 py-3 text-sm font-medium text-[#8a6a2f]">Waiting for the client to accept the revised transportation estimate or cancel the booking. You can confirm after they accept.</p>}
+                                        {(booking.quote_pending || booking.transportation_fee_pending) && <p className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-4 py-3 text-sm font-medium text-[#8a6a2f]">The itemized quote is with the client. They must approve it before the deposit step.</p>}
+                                        {booking.quote_accepted_at && booking.deposit_status === 'due' && <p className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-4 py-3 text-sm font-medium text-[#8a6a2f]">Quote accepted. Waiting for the 50% deposit of ₱{(Number(booking.estimated_total ?? 0) / 2).toLocaleString('en-PH', { minimumFractionDigits: 2 })}.</p>}
+                                        {booking.deposit_status === 'submitted' && (
+                                            <div className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4 text-sm">
+                                                <p className="font-semibold text-[#1a1a1a]">Client marked the deposit as sent</p>
+                                                <p className="mt-1 text-[#4a4a4a]">Reference or note: {booking.deposit_reference}</p>
+                                                <button type="button" disabled={busyId === booking.id} onClick={() => markDepositReceived(booking)} className="mt-3 rounded-full bg-[#2E7D46] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50">{busyId === booking.id ? 'Saving…' : 'Mark deposit received'}</button>
+                                            </div>
+                                        )}
+                                        {booking.deposit_status === 'received' && <p className="mt-3 rounded-xl border border-[#b7d5bb] bg-[#f1f7f1] px-4 py-3 text-sm font-medium text-[#426948]">50% deposit received. You can now confirm the booking.</p>}
 
                                         {/* optional message to client */}
                                         <div className="mt-4 grid gap-1.5">
@@ -358,18 +403,18 @@ export default function ArtistDashboard({ bookings }: Props) {
                                         <div className="mt-3 flex gap-2">
                                             <button
                                                 type="button"
-                                                disabled={busyId === booking.id || booking.transportation_fee_pending}
+                                                disabled={busyId === booking.id || booking.quote_pending || booking.transportation_fee_pending || booking.deposit_status !== 'received'}
                                                 onClick={() =>
                                                     act(booking.id, 'accept')
                                                 }
                                                 className="flex items-center gap-1.5 rounded-full bg-[#2E7D46] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
                                             >
                                                 <Check className="h-3.5 w-3.5" />{' '}
-                                                {booking.transportation_fee_pending ? 'Waiting for client' : 'Accept'}
+                                                {booking.quote_pending || booking.transportation_fee_pending ? 'Waiting for quote approval' : booking.deposit_status !== 'received' ? 'Waiting for deposit' : 'Confirm booking'}
                                             </button>
                                             <button
                                                 type="button"
-                                                disabled={busyId === booking.id || booking.transportation_fee_pending}
+                                                disabled={busyId === booking.id}
                                                 onClick={() =>
                                                     act(booking.id, 'decline')
                                                 }
@@ -502,9 +547,13 @@ function BookingHeader({
                     <p className="font-serif text-lg font-bold text-[#1a1a1a]">
                         {booking.service}
                     </p>
-                    {booking.base_price_type && <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
-                        {booking.requires_quote ? 'Final price to be confirmed' : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
-                    </p>}
+                    {booking.final_makeup_price != null ? (
+                        <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">Final makeup quote: ₱{Number(booking.final_makeup_price).toLocaleString('en-PH')}</p>
+                    ) : booking.base_price_type && (
+                        <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
+                            {booking.requires_quote || booking.base_price_type === 'quote_required' ? 'Artist quote needed' : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
+                        </p>
+                    )}
                     <p className="text-sm text-[#4a4a4a]">
                         with {booking.client.name}
                     </p>
@@ -518,7 +567,8 @@ function BookingHeader({
 
             {!!booking.selected_add_ons?.length && <p className="mb-3 text-xs text-[#4a4a4a]">Client add-ons: {booking.selected_add_ons.map((item) => `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`).join(', ')}</p>}
             {booking.venue_address && <p className="mb-3 text-sm text-[#4a4a4a]">Home service · {booking.location_type === 'nearby_province' ? 'Nearby province' : 'Metro Manila'} · {booking.venue_address}</p>}
-            {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">{booking.requires_quote ? 'Starting estimate · final price to confirm' : 'Estimated total'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
+            {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">{booking.quote_accepted_at ? 'Final quoted total' : booking.quote_pending ? 'Quote sent for client approval' : 'Starting estimate'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
+            {booking.quote_reason && <p className="mb-3 text-sm text-[#4a4a4a]">Quote note: {booking.quote_reason}</p>}
 
             <div className="flex flex-wrap gap-4 text-sm text-[#4a4a4a]">
                 <span className="flex items-center gap-1.5">

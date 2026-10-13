@@ -59,7 +59,7 @@ test('client can accept an updated transportation estimate and the artist is not
 
     expect($booking->fresh()->transportation_fee_pending)->toBeFalse();
     Notification::assertSentTo($artist, ArtistBookingUpdate::class, function (ArtistBookingUpdate $notification) use ($booking) {
-        return $notification->toArray($booking->artist)['event'] === 'travel_fee_accepted';
+        return $notification->toArray($booking->artist)['event'] === 'quote_accepted';
     });
 });
 

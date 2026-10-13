@@ -90,6 +90,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/book/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
     Route::patch('/book/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');
     Route::patch('/book/{booking}/accept', [BookingController::class, 'accept'])->name('bookings.accept');
+    Route::patch('/book/{booking}/quote', [BookingController::class, 'sendQuote'])->name('bookings.quote');
+    Route::patch('/book/{booking}/quote/accept', [BookingController::class, 'acceptQuote'])->name('bookings.quote.accept');
+    Route::patch('/book/{booking}/deposit', [BookingController::class, 'submitDeposit'])->name('bookings.deposit.submit');
+    Route::patch('/book/{booking}/deposit/received', [BookingController::class, 'markDepositReceived'])->name('bookings.deposit.received');
     Route::patch('/book/{booking}/transportation-fee', [BookingController::class, 'updateTransportationFee'])->name('bookings.transportation-fee');
     Route::patch('/book/{booking}/transportation-fee/accept', [BookingController::class, 'acceptTransportationFee'])->name('bookings.transportation-fee.accept');
     Route::patch('/book/{booking}/decline', [BookingController::class, 'decline'])->name('bookings.decline');

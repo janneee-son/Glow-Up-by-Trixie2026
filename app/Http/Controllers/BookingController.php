@@ -364,9 +364,15 @@ class BookingController extends Controller
         );
 
         abort_unless(
-            ! $booking->transportation_fee_pending,
+            ! $booking->transportation_fee_pending && ! $booking->quote_pending,
             422,
-            'The client must accept the updated transportation fee first.'
+            'The client must accept the final quote first.'
+        );
+
+        abort_unless(
+            $booking->quote_accepted_at !== null && $booking->deposit_status === 'received',
+            422,
+            'The final quote must be accepted and the 50% deposit received before confirming this booking.'
         );
 
         $validated = $request->validate([
@@ -392,14 +398,42 @@ class BookingController extends Controller
 
     public function updateTransportationFee(Request $request, Booking $booking)
     {
-        abort_unless($booking->artist_id === $request->user()->id, 403);
-        abort_unless($booking->status === 'pending', 422, 'Only pending booking requests can be repriced.');
-
-        $validated = $request->validate([
-            'transportation_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+        $request->merge([
+            'final_makeup_price' => $booking->final_makeup_price ?? $booking->base_price ?? 0,
+            'quote_reason' => $booking->quote_reason,
         ]);
 
-        $addOns = $booking->selected_add_ons ?? [];
+        return $this->saveQuote($request, $booking);
+    }
+
+    public function sendQuote(Request $request, Booking $booking)
+    {
+        return $this->saveQuote($request, $booking);
+    }
+
+    private function saveQuote(Request $request, Booking $booking)
+    {
+        abort_unless($booking->artist_id === $request->user()->id, 403);
+        abort_unless($booking->status === 'pending', 422, 'Only pending booking requests can be quoted.');
+        abort_unless(! in_array($booking->deposit_status, ['submitted', 'received'], true), 422, 'A quote cannot be changed after the deposit has been submitted.');
+
+        $validated = $request->validate([
+            'final_makeup_price' => ['required', 'numeric', 'min:0', 'max:1000000'],
+            'transportation_fee' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'quote_reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $startingPrice = (float) ($booking->base_price ?? 0);
+        $finalMakeupPrice = (float) $validated['final_makeup_price'];
+
+        if ($finalMakeupPrice > $startingPrice && blank($validated['quote_reason'] ?? null)) {
+            throw ValidationException::withMessages([
+                'quote_reason' => 'Explain why the final makeup price is above the starting price.',
+            ]);
+        }
+
+        $originalAddOns = $booking->selected_add_ons ?? [];
+        $addOns = $originalAddOns;
         $transportIndex = null;
         foreach ($addOns as $index => $addOn) {
             if (($addOn['is_system_fee'] ?? false) && preg_match('/transportation/i', $addOn['name'] ?? '') === 1) {
@@ -412,9 +446,6 @@ class BookingController extends Controller
         $oldFee = 0;
         if ($transportIndex !== null) {
             $oldFee = (float) ($addOns[$transportIndex]['line_total'] ?? $addOns[$transportIndex]['price'] ?? 0);
-            if ((int) $oldFee === $newFee) {
-                return back()->with('success', 'The transportation fee is already set to that amount.');
-            }
             $addOns[$transportIndex]['price'] = $newFee;
             $addOns[$transportIndex]['line_total'] = $newFee;
         } else {
@@ -427,42 +458,99 @@ class BookingController extends Controller
             $transportIndex = array_key_last($addOns);
         }
 
-        $estimatedTotal = $booking->estimated_total === null
-            ? null
-            : max(0, (float) $booking->estimated_total - $oldFee + $newFee);
+        $oldMakeupPrice = (float) ($booking->final_makeup_price ?? $booking->base_price ?? 0);
+        $existingTotal = $booking->estimated_total === null
+            ? $oldMakeupPrice + collect($originalAddOns)->sum(fn (array $item) => (float) ($item['line_total'] ?? 0))
+            : (float) $booking->estimated_total;
+        $estimatedTotal = max(0, $existingTotal - $oldMakeupPrice - $oldFee + $finalMakeupPrice + $newFee);
 
         $booking->update([
             'selected_add_ons' => $addOns,
             'estimated_total' => $estimatedTotal,
+            'final_makeup_price' => $finalMakeupPrice,
+            'quote_reason' => $validated['quote_reason'] ?? null,
+            'quote_pending' => true,
+            'quote_accepted_at' => null,
+            'deposit_status' => 'not_due',
+            'deposit_reference' => null,
+            'deposit_received_at' => null,
             'transportation_fee_pending' => true,
         ]);
 
         $booking->loadMissing('client', 'artist');
         $booking->client?->notifications()
             ->where('data->booking_id', $booking->id)
-            ->where('data->event', 'travel_fee_updated')
+            ->whereIn('data->event', ['travel_fee_updated', 'quote_updated'])
             ->delete();
-        $booking->client?->notify(new ArtistBookingUpdate($booking, 'travel_fee_updated'));
+        $booking->client?->notify(new ArtistBookingUpdate($booking, 'quote_updated'));
 
-        return back()->with('success', 'Updated transportation estimate sent to the client.');
+        return back()->with('success', 'The itemized makeup and transportation quote was sent to the client.');
     }
 
     public function acceptTransportationFee(Request $request, Booking $booking)
     {
+        return $this->acceptQuote($request, $booking);
+    }
+
+    public function acceptQuote(Request $request, Booking $booking)
+    {
         abort_unless($booking->client_id === $request->user()->id, 403);
         abort_unless($booking->status === 'pending', 422, 'This booking is no longer pending.');
-        abort_unless($booking->transportation_fee_pending, 422, 'There is no updated transportation fee to accept.');
+        abort_unless($booking->quote_pending || $booking->transportation_fee_pending, 422, 'There is no updated quote to accept.');
 
-        $booking->update(['transportation_fee_pending' => false]);
+        $booking->update([
+            'quote_pending' => false,
+            'quote_accepted_at' => now(),
+            'transportation_fee_pending' => false,
+            'deposit_status' => 'due',
+        ]);
 
         $booking->loadMissing('client', 'artist');
         $booking->client?->notifications()
             ->where('data->booking_id', $booking->id)
-            ->where('data->event', 'travel_fee_updated')
+            ->whereIn('data->event', ['travel_fee_updated', 'quote_updated'])
             ->delete();
-        $booking->artist?->notify(new ArtistBookingUpdate($booking, 'travel_fee_accepted'));
+        $booking->artist?->notify(new ArtistBookingUpdate($booking, 'quote_accepted'));
 
-        return back()->with('success', 'Transportation estimate accepted. Trixie can now confirm your booking.');
+        return back()->with('success', 'Quote accepted. Send the 50% deposit to secure your booking.');
+    }
+
+    public function submitDeposit(Request $request, Booking $booking)
+    {
+        abort_unless($booking->client_id === $request->user()->id, 403);
+        abort_unless($booking->status === 'pending', 422, 'This booking is no longer awaiting a deposit.');
+        abort_unless($booking->deposit_status === 'due', 422, 'There is no deposit awaiting submission.');
+
+        $validated = $request->validate([
+            'deposit_reference' => ['required', 'string', 'max:120'],
+        ]);
+
+        $booking->update([
+            'deposit_status' => 'submitted',
+            'deposit_reference' => $validated['deposit_reference'],
+        ]);
+
+        $booking->loadMissing('client', 'artist');
+        $booking->artist?->notify(new ArtistBookingUpdate($booking, 'deposit_submitted'));
+
+        return back()->with('success', 'Deposit marked as sent. Trixie will verify it and confirm your booking.');
+    }
+
+    public function markDepositReceived(Request $request, Booking $booking)
+    {
+        abort_unless($booking->artist_id === $request->user()->id, 403);
+        abort_unless($booking->status === 'pending', 422, 'This booking is no longer awaiting deposit verification.');
+        abort_unless($booking->deposit_status === 'submitted', 422, 'The client has not marked the deposit as sent.');
+
+        $booking->update([
+            'deposit_status' => 'received',
+            'deposit_received_at' => now(),
+        ]);
+
+        $booking->loadMissing('client', 'artist');
+        $booking->client?->notify(new ArtistBookingUpdate($booking, 'deposit_received'));
+
+        return back()->with('success', 'Deposit marked as received. You can now confirm the booking.');
     }
 
     public function decline(Request $request, Booking $booking)

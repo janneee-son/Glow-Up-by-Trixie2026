@@ -26,6 +26,13 @@ class Booking extends Model
         'selected_add_ons',
         'requires_quote',
         'transportation_fee_pending',
+        'final_makeup_price',
+        'quote_reason',
+        'quote_pending',
+        'quote_accepted_at',
+        'deposit_status',
+        'deposit_reference',
+        'deposit_received_at',
     ];
 
     protected function casts(): array
@@ -36,6 +43,10 @@ class Booking extends Model
             'selected_add_ons' => 'array',
             'requires_quote' => 'boolean',
             'transportation_fee_pending' => 'boolean',
+            'final_makeup_price' => 'decimal:2',
+            'quote_pending' => 'boolean',
+            'quote_accepted_at' => 'datetime',
+            'deposit_received_at' => 'datetime',
         ];
     }
 
