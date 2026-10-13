@@ -15,7 +15,7 @@ type Props = {
 };
 
 const inputClass =
-    'w-full rounded-xl border border-[#DCCAD4] bg-white px-3 py-2 text-sm text-[#312532] placeholder:text-[#9B8A95] focus-visible:border-[#B47B94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B47B94]/30';
+    'w-full rounded-xl border border-[#B5C8E5] bg-white px-3 py-2 text-sm text-[#1F2D40] placeholder:text-[#758299] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/30';
 
 export default function GalleryIndex({ images: imagesProp }: Props) {
     const images = Array.isArray(imagesProp) ? imagesProp : [];
@@ -60,7 +60,7 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
         <>
             <Head title="Manage Recent Work" />
 
-            <div className="min-h-screen bg-[#F8F5F4]">
+            <div className="min-h-screen bg-[#F2F5F8]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'Trixie'}
                     userRole={auth?.user?.role}
@@ -68,16 +68,16 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
                 />
 
                 <main className="mx-auto grid w-full max-w-5xl gap-6 px-4 py-7 sm:px-6 md:py-10">
-                    <section className="relative overflow-hidden rounded-[2rem] border border-[#EADDE3] bg-gradient-to-br from-[#FFF9F6] via-white to-[#F2EDF7] p-6 shadow-lg shadow-[#BDA6B5]/10 md:p-8">
-                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#EADDE3]/50 blur-2xl" />
+                    <section className="relative overflow-hidden rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-[#FAFCFE] via-white to-[#E6EEF8] p-6 shadow-lg shadow-[#95B1DB]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#D3DFEF]/50 blur-2xl" />
                         <div className="relative">
-                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#9B7085] uppercase">
+                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
                                 Artist studio
                             </p>
-                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#312532] sm:text-4xl">
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1F2D40] sm:text-4xl">
                                 Recent Work
                             </h1>
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#766976] sm:text-base">
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5B6B82] sm:text-base">
                                 Add and curate the makeup looks clients can
                                 browse on your landing page. Gallery photos stay
                                 separate from service photos.
@@ -87,13 +87,13 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
 
                     <form
                         onSubmit={submit}
-                        className="grid gap-4 rounded-3xl border border-[#EADDE3] bg-white p-5 shadow-lg shadow-[#BDA6B5]/10 sm:p-6"
+                        className="grid gap-4 rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-lg shadow-[#95B1DB]/10 sm:p-6"
                     >
-                        <h2 className="font-serif text-xl font-bold text-[#312532]">
+                        <h2 className="font-serif text-xl font-bold text-[#1F2D40]">
                             Add a gallery photo
                         </h2>
 
-                        <label className="grid cursor-pointer gap-1.5 text-xs font-semibold text-[#766976]">
+                        <label className="grid cursor-pointer gap-1.5 text-xs font-semibold text-[#5B6B82]">
                             Photo (JPG, PNG, or WebP; up to 5 MB)
                             <input
                                 id="gallery-image"
@@ -108,18 +108,18 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
                                 }
                                 className="sr-only"
                             />
-                            <span className="flex flex-wrap items-center gap-3 rounded-xl border border-[#DCCAD4] bg-[#FFFCFD] p-2.5">
-                                <span className="flex h-10 items-center rounded-full bg-[#F7EAF0] px-4 text-sm font-semibold text-[#94677B]">
+                            <span className="flex flex-wrap items-center gap-3 rounded-xl border border-[#B5C8E5] bg-[#FFFCFD] p-2.5">
+                                <span className="flex h-10 items-center rounded-full bg-[#E6EEF8] px-4 text-sm font-semibold text-[#5F83AB]">
                                     Choose a photo
                                 </span>
-                                <span className="min-w-0 flex-1 truncate text-sm font-normal text-[#766976]">
+                                <span className="min-w-0 flex-1 truncate text-sm font-normal text-[#5B6B82]">
                                     {data.image?.name ?? 'No photo selected'}
                                 </span>
                             </span>
                             <InputError message={errors.image} />
                         </label>
 
-                        <label className="grid gap-1.5 text-xs font-semibold text-[#766976]">
+                        <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">
                             Caption (optional)
                             <input
                                 type="text"
@@ -137,7 +137,7 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
                         <button
                             type="submit"
                             disabled={processing || !data.image}
-                            className="flex w-fit items-center gap-2 rounded-full bg-[#A8758B] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#B47B94]/25 transition hover:bg-[#94677B] disabled:opacity-50"
+                            className="flex w-fit items-center gap-2 rounded-full bg-[#5F83AB] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#769AD0]/25 transition hover:bg-[#5F83AB] disabled:opacity-50"
                         >
                             <ImagePlus className="h-4 w-4" />
                             {processing ? 'Uploading…' : 'Add photo'}
@@ -146,16 +146,16 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
 
                     <section className="grid gap-4">
                         <div>
-                            <p className="text-xs font-semibold tracking-[0.16em] text-[#9B7085] uppercase">
+                            <p className="text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
                                 Portfolio
                             </p>
-                            <h2 className="mt-1 font-serif text-2xl font-bold text-[#312532]">
+                            <h2 className="mt-1 font-serif text-2xl font-bold text-[#1F2D40]">
                                 Your gallery ({images.length})
                             </h2>
                         </div>
 
                         {images.length === 0 ? (
-                            <p className="rounded-3xl border border-dashed border-[#DCCAD4] bg-white/80 p-6 text-sm text-[#766976] shadow-sm">
+                            <p className="rounded-3xl border border-dashed border-[#B5C8E5] bg-white/80 p-6 text-sm text-[#5B6B82] shadow-sm">
                                 No photos yet. Add a photo above to show it in
                                 Recent Work.
                             </p>
@@ -164,7 +164,7 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
                                 {images.map((image) => (
                                     <article
                                         key={image.id}
-                                        className="group overflow-hidden rounded-3xl border border-[#EADDE3] bg-white shadow-sm shadow-[#BDA6B5]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#BDA6B5]/15"
+                                        className="group overflow-hidden rounded-3xl border border-[#D3DFEF] bg-white shadow-sm shadow-[#95B1DB]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#95B1DB]/15"
                                     >
                                         <img
                                             src={image.image_url}

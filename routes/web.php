@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\ArtistOfferingController;
 use App\Http\Controllers\ArtistAnalyticsController;
 use App\Http\Controllers\ArtistNotificationController;
@@ -72,12 +73,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/artist/notifications', [ArtistNotificationController::class, 'index'])->name('artist.notifications.index');
     Route::patch('/artist/notifications/{notification}/read', [ArtistNotificationController::class, 'markRead'])->name('artist.notifications.read');
     Route::patch('/artist/notifications/read-all', [ArtistNotificationController::class, 'markAllRead'])->name('artist.notifications.read-all');
+    Route::get('/client/notifications', [ClientNotificationController::class, 'index'])->name('client.notifications.index');
+    Route::patch('/client/notifications/{notification}/read', [ClientNotificationController::class, 'markRead'])->name('client.notifications.read');
+    Route::patch('/client/notifications/read-all', [ClientNotificationController::class, 'markAllRead'])->name('client.notifications.read-all');
 
     Route::get('/book', [BookingController::class, 'create'])->name('bookings.create');
     Route::post('/book', [BookingController::class, 'store'])->name('bookings.store');
     Route::patch('/book/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
     Route::patch('/book/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');
     Route::patch('/book/{booking}/accept', [BookingController::class, 'accept'])->name('bookings.accept');
+    Route::patch('/book/{booking}/transportation-fee', [BookingController::class, 'updateTransportationFee'])->name('bookings.transportation-fee');
     Route::patch('/book/{booking}/decline', [BookingController::class, 'decline'])->name('bookings.decline');
     Route::patch('/book/{booking}/complete', [BookingController::class, 'complete'])->name('bookings.complete');
 

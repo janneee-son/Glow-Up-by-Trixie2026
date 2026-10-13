@@ -20,10 +20,16 @@ type Booking = {
     base_price?: number | string | null;
     base_price_type?: 'fixed' | 'starting_at' | 'quote_required';
     estimated_total?: number | string | null;
-    selected_add_ons?: { id: number; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string }[] | null;
+    selected_add_ons?: { id: number | null; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string; is_system_fee?: boolean }[] | null;
     requires_quote?: boolean;
     booking_date: string;
     booking_time: string;
+    location_type?: string | null;
+    venue_address?: string | null;
+    package?: {
+        description: string | null;
+        inclusions: string[] | null;
+    } | null;
     status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
     cancelled_by: 'client' | 'artist' | null;
     notes: string | null;
@@ -251,7 +257,7 @@ export default function ClientDashboard({ bookings }: Props) {
         <>
             <Head title="My Bookings" />
 
-            <div className="min-h-screen bg-[#F8F5F4]">
+            <div className="min-h-screen bg-[#F2F5F8]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
@@ -296,28 +302,28 @@ export default function ClientDashboard({ bookings }: Props) {
                         </div>
                     )}
 
-                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#EADDE3] bg-gradient-to-br from-[#FFF9F6] via-white to-[#F2EDF7] p-6 shadow-lg shadow-[#BDA6B5]/10 md:p-8">
-                        <div className="pointer-events-none absolute -top-12 -right-10 h-48 w-48 rounded-full bg-[#EADDE3]/50 blur-2xl" />
+                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-[#FAFCFE] via-white to-[#E6EEF8] p-6 shadow-lg shadow-[#95B1DB]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-48 w-48 rounded-full bg-[#D3DFEF]/50 blur-2xl" />
                         <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
                             <div>
-                                <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#EADDE3] bg-white/80 px-3 py-1.5 text-xs font-semibold tracking-[0.16em] text-[#9B7085] uppercase">
+                                <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#D3DFEF] bg-white/80 px-3 py-1.5 text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
                                     <Sparkles className="h-3.5 w-3.5" /> Your
                                     beauty appointments
                                 </span>
-                                <h1 className="font-serif text-3xl font-bold tracking-tight text-[#312532] sm:text-4xl">
+                                <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1F2D40] sm:text-4xl">
                                     Welcome back,{' '}
                                     {auth?.user?.name?.split(' ')[0] ??
                                         'beautiful'}
                                     !
                                 </h1>
-                                <p className="mt-2 max-w-xl text-sm leading-6 text-[#766976] sm:text-base">
+                                <p className="mt-2 max-w-xl text-sm leading-6 text-[#5B6B82] sm:text-base">
                                     Keep up with your sessions and get ready for
                                     your next glow-up.
                                 </p>
                             </div>
                             <Link
                                 href="/book"
-                                className="relative inline-flex items-center justify-center gap-2 self-start rounded-full bg-[#A8758B] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-[#B47B94]/25 transition duration-200 hover:-translate-y-0.5 hover:bg-[#94677B] sm:self-auto"
+                                className="relative inline-flex items-center justify-center gap-2 self-start rounded-full bg-[#5F83AB] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-[#769AD0]/25 transition duration-200 hover:-translate-y-0.5 hover:bg-[#5F83AB] sm:self-auto"
                             >
                                 <CalendarPlus className="h-4 w-4" /> Book a new
                                 session
@@ -329,50 +335,50 @@ export default function ClientDashboard({ bookings }: Props) {
                         aria-label="Booking summary"
                         className="mb-8 grid gap-3 sm:grid-cols-3"
                     >
-                        <div className="rounded-2xl border border-[#EADDE3] bg-white p-4 shadow-sm shadow-[#BDA6B5]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#967D8B] uppercase">
+                        <div className="rounded-2xl border border-[#D3DFEF] bg-white p-4 shadow-sm shadow-[#95B1DB]/10">
+                            <p className="text-xs font-semibold tracking-wider text-[#5B6B82] uppercase">
                                 Coming up
                             </p>
                             <p className="mt-2 font-serif text-3xl font-bold text-[#5F83AB]">
                                 {upcoming.length}
                             </p>
-                            <p className="mt-1 text-xs text-[#827681]">
+                            <p className="mt-1 text-xs text-[#5B6B82]">
                                 Upcoming bookings
                             </p>
                         </div>
-                        <div className="rounded-2xl border border-[#EADDE3] bg-white p-4 shadow-sm shadow-[#BDA6B5]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#967D8B] uppercase">
+                        <div className="rounded-2xl border border-[#D3DFEF] bg-white p-4 shadow-sm shadow-[#95B1DB]/10">
+                            <p className="text-xs font-semibold tracking-wider text-[#5B6B82] uppercase">
                                 Awaiting confirmation
                             </p>
-                            <p className="mt-2 font-serif text-3xl font-bold text-[#A75F78]">
+                            <p className="mt-2 font-serif text-3xl font-bold text-[#5F83AB]">
                                 {pendingCount}
                             </p>
-                            <p className="mt-1 text-xs text-[#827681]">
+                            <p className="mt-1 text-xs text-[#5B6B82]">
                                 Your artist will confirm soon
                             </p>
                         </div>
-                        <div className="rounded-2xl border border-[#EADDE3] bg-white p-4 shadow-sm shadow-[#BDA6B5]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#967D8B] uppercase">
+                        <div className="rounded-2xl border border-[#D3DFEF] bg-white p-4 shadow-sm shadow-[#95B1DB]/10">
+                            <p className="text-xs font-semibold tracking-wider text-[#5B6B82] uppercase">
                                 Favorite moments
                             </p>
                             <p className="mt-2 font-serif text-3xl font-bold text-[#718B72]">
                                 {completedCount}
                             </p>
-                            <p className="mt-1 text-xs text-[#827681]">
+                            <p className="mt-1 text-xs text-[#5B6B82]">
                                 Completed sessions
                             </p>
                         </div>
                     </section>
 
                     {/* upcoming / past toggle */}
-                    <div className="mb-6 inline-flex rounded-full border border-[#EADDE3] bg-white p-1 shadow-sm">
+                    <div className="mb-6 inline-flex rounded-full border border-[#D3DFEF] bg-white p-1 shadow-sm">
                         <button
                             type="button"
                             onClick={() => setTab('upcoming')}
                             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors duration-200 ${
                                 tab === 'upcoming'
-                                    ? 'bg-[#A8758B] text-white shadow-sm'
-                                    : 'text-[#766976] hover:text-[#A75F78]'
+                                    ? 'bg-[#5F83AB] text-white shadow-sm'
+                                    : 'text-[#5B6B82] hover:text-[#5F83AB]'
                             }`}
                         >
                             Upcoming ({upcoming.length})
@@ -382,8 +388,8 @@ export default function ClientDashboard({ bookings }: Props) {
                             onClick={() => setTab('past')}
                             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors duration-200 ${
                                 tab === 'past'
-                                    ? 'bg-[#A8758B] text-white shadow-sm'
-                                    : 'text-[#766976] hover:text-[#A75F78]'
+                                    ? 'bg-[#5F83AB] text-white shadow-sm'
+                                    : 'text-[#5B6B82] hover:text-[#5F83AB]'
                             }`}
                         >
                             Past ({past.length})
@@ -391,11 +397,11 @@ export default function ClientDashboard({ bookings }: Props) {
                     </div>
 
                     {visible.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-[#DCCAD4] bg-white/80 px-6 py-16 text-center shadow-sm">
-                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#F7EAF0] text-[#A8758B]">
+                        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-[#B5C8E5] bg-white/80 px-6 py-16 text-center shadow-sm">
+                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E6EEF8] text-[#5F83AB]">
                                 <Sparkles className="h-7 w-7" />
                             </span>
-                            <p className="font-serif text-lg font-bold text-[#312532]">
+                            <p className="font-serif text-lg font-bold text-[#1F2D40]">
                                 {tab === 'upcoming'
                                     ? 'No upcoming bookings'
                                     : 'No past bookings'}
@@ -411,9 +417,10 @@ export default function ClientDashboard({ bookings }: Props) {
                             {visible.map((booking) => (
                                 <button
                                     key={booking.id}
+                                    id={`booking-${booking.id}`}
                                     type="button"
                                     onClick={() => openDetails(booking)}
-                                    className={`rounded-3xl border bg-white p-5 text-left shadow-sm shadow-[#BDA6B5]/10 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#BDA6B5]/15 sm:p-6 ${
+                                    className={`rounded-3xl border bg-white p-5 text-left shadow-sm shadow-[#95B1DB]/10 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#95B1DB]/15 sm:p-6 ${
                                         isArtistDeclined(booking)
                                             ? 'border-[#A13F3F]/40'
                                             : 'border-[#D3DFEF]'
@@ -424,7 +431,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                             <p className="font-serif text-lg font-bold text-[#1F2D40]">
                                                 {booking.service}
                                             </p>
-                                            {booking.base_price_type && <p className="mt-1 text-sm font-semibold text-[#A75F78]">
+                                            {booking.base_price_type && <p className="mt-1 text-sm font-semibold text-[#5F83AB]">
                                                 {booking.requires_quote ? 'Final price to be confirmed' : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
                                             </p>}
                                             <p className="text-sm text-[#5B6B82]">
@@ -444,7 +451,8 @@ export default function ClientDashboard({ bookings }: Props) {
                                     </div>
 
                                     {!!booking.selected_add_ons?.length && <p className="mb-3 text-xs text-[#5B6B82]">Add-ons: {booking.selected_add_ons.map((item) => `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`).join(', ')}</p>}
-                                    {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#312532]">{booking.requires_quote ? 'Known subtotal' : 'Estimated total'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
+                                    {booking.venue_address && <p className="mb-3 text-sm text-[#5B6B82]">Home service · {booking.location_type === 'nearby_province' ? 'Nearby province' : 'Metro Manila'} · {booking.venue_address}</p>}
+                                    {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#1F2D40]">{booking.requires_quote ? 'Starting estimate · final price to confirm' : 'Estimated total'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
 
                                     <div className="flex flex-wrap gap-4 text-sm text-[#5B6B82]">
                                         <span className="flex items-center gap-1.5">
@@ -559,6 +567,52 @@ export default function ClientDashboard({ bookings }: Props) {
                                         </span>
                                     )}
                                 </div>
+
+                                {(selectedBooking.base_price != null || !!selectedBooking.selected_add_ons?.length || selectedBooking.estimated_total != null) && (
+                                    <section className="mb-4 rounded-xl border border-[#D3DFEF] bg-white p-4">
+                                        <h3 className="mb-3 text-sm font-semibold text-[#1F2D40]">Price breakdown</h3>
+                                        <div className="grid gap-2 text-sm text-[#5B6B82]">
+                                            {selectedBooking.base_price != null && (
+                                                <div className="flex justify-between gap-3">
+                                                    <span>{selectedBooking.service}{selectedBooking.base_price_type === 'starting_at' ? ' (starting price)' : ''}</span>
+                                                    <span className="shrink-0">{selectedBooking.base_price_type === 'quote_required' ? 'Quote' : `₱${Number(selectedBooking.base_price).toLocaleString('en-PH')}`}</span>
+                                                </div>
+                                            )}
+                                            {selectedBooking.selected_add_ons?.map((item, index) => (
+                                                <div key={`${item.name}-${index}`} className="flex justify-between gap-3">
+                                                    <span>{item.name}{item.quantity > 1 ? ` × ${item.quantity}` : ''}</span>
+                                                    <span className="shrink-0">{item.line_total == null ? 'Quote' : `₱${Number(item.line_total).toLocaleString('en-PH')}`}</span>
+                                                </div>
+                                            ))}
+                                            {selectedBooking.estimated_total != null && (
+                                                <div className="flex justify-between gap-3 border-t border-[#D3DFEF] pt-2 font-semibold text-[#1F2D40]">
+                                                    <span>{selectedBooking.requires_quote ? 'Starting estimate · final price to confirm' : 'Estimated total'}</span>
+                                                    <span className="shrink-0">₱{Number(selectedBooking.estimated_total).toLocaleString('en-PH')}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </section>
+                                )}
+
+                                {selectedBooking.package && (
+                                    <section className="mb-4 rounded-xl bg-[#FAFCFE] p-4">
+                                        <h3 className="mb-2 text-sm font-semibold text-[#1F2D40]">Package details</h3>
+                                        {selectedBooking.package.description && <p className="mb-2 text-sm text-[#5B6B82]">{selectedBooking.package.description}</p>}
+                                        {!!selectedBooking.package.inclusions?.length && (
+                                            <ul className="grid gap-1 text-sm text-[#5B6B82]">
+                                                {selectedBooking.package.inclusions.map((inclusion, index) => <li key={`${inclusion}-${index}`}>• {inclusion}</li>)}
+                                            </ul>
+                                        )}
+                                    </section>
+                                )}
+
+                                {selectedBooking.venue_address && (
+                                    <section className="mb-4 rounded-xl bg-[#F2F5F8] p-4 text-sm">
+                                        <h3 className="mb-1 font-semibold text-[#1F2D40]">Home-service location</h3>
+                                        <p className="text-[#5B6B82]">{selectedBooking.location_type === 'nearby_province' ? 'Nearby province' : selectedBooking.location_type === 'metro_manila' ? 'Metro Manila' : 'Home service'}</p>
+                                        <p className="mt-1 whitespace-pre-line text-[#1F2D40]">{selectedBooking.venue_address}</p>
+                                    </section>
+                                )}
 
                                 {selectedNotes.occasion && (
                                     <div className="mb-4">

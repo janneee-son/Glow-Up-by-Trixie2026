@@ -21,15 +21,18 @@ type Props = {
         'dashboard' | 'book' | 'inspo' | 'profile' | 'services' | 'gallery' | 'analytics';
 };
 
-type ArtistNotification = {
+type DashboardNotification = {
     id: string;
     read_at: string | null;
     title: string;
     booking_id: number;
-    client_name: string;
+    client_name?: string;
+    artist_name?: string;
     service: string;
     booking_date: string;
     booking_time: string;
+    artist_message?: string | null;
+    detail?: string | null;
 };
 
 function buildNavItems(userRole: Props['userRole']) {
@@ -97,13 +100,16 @@ export default function DashboardHeader({
 }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
-    const [notifications, setNotifications] = useState<ArtistNotification[]>([]);
+    const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const navItems = buildNavItems(userRole);
 
     const refreshNotifications = useCallback(async () => {
+        if (userRole !== 'artist' && userRole !== 'client') return;
+
         try {
-            const response = await fetch('/artist/notifications', {
+            const endpoint = userRole === 'artist' ? '/artist/notifications' : '/client/notifications';
+            const response = await fetch(endpoint, {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
             });
@@ -114,17 +120,18 @@ export default function DashboardHeader({
         } catch {
             // A notification refresh should not interrupt dashboard navigation.
         }
-    }, []);
+    }, [userRole]);
 
     useEffect(() => {
-        if (userRole !== 'artist') return;
+        if (userRole !== 'artist' && userRole !== 'client') return;
         void refreshNotifications();
         const timer = window.setInterval(() => void refreshNotifications(), 15000);
         return () => window.clearInterval(timer);
     }, [refreshNotifications, userRole]);
 
-    function openBookingNotification(notification: ArtistNotification) {
-        router.patch(`/artist/notifications/${notification.id}/read`, {}, {
+    function openBookingNotification(notification: DashboardNotification) {
+        const endpoint = userRole === 'artist' ? '/artist/notifications' : '/client/notifications';
+        router.patch(`${endpoint}/${notification.id}/read`, {}, {
             preserveScroll: true,
             onSuccess: () => {
                 setNotificationsOpen(false);
@@ -163,7 +170,7 @@ export default function DashboardHeader({
                 </Link>
 
                 <nav className="hidden items-center gap-2 sm:flex">
-                    {navItems.map(({ key, label, href, icon: Icon }) => (
+                    {navItems.filter(({ key }) => key !== 'profile').map(({ key, label, href, icon: Icon }) => (
                         <Link key={key} href={href} className={linkClass(key)}>
                             <Icon className="h-4 w-4" />
                             {label}
@@ -172,24 +179,31 @@ export default function DashboardHeader({
                 </nav>
 
                 <div className="flex items-center gap-3">
-                    {userRole === 'artist' && <div className="relative">
+                    {(userRole === 'artist' || userRole === 'client') && <div className="relative">
                         <button type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label="Notifications" aria-expanded={notificationsOpen} className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[#95B1DB] text-[#5F83AB] transition hover:bg-[#E6EEF8]">
                             <Bell className="h-4 w-4" />
-                            {unreadCount > 0 && <span className="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#A75F78] px-1 text-[10px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+                            {unreadCount > 0 && <span className="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#5F83AB] px-1 text-[10px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
                         </button>
                         {notificationsOpen && <div className="absolute right-0 z-50 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#D3DFEF] bg-white shadow-xl">
-                            <div className="flex items-center justify-between border-b border-[#E8EDF4] px-4 py-3"><div><p className="font-semibold text-[#1F2D40]">Notifications</p><p className="text-xs text-[#6B7890]">{unreadCount} unread</p></div>{unreadCount > 0 && <button type="button" onClick={() => router.patch('/artist/notifications/read-all', {}, { preserveScroll: true, onSuccess: () => void refreshNotifications() })} className="text-xs font-semibold text-[#5F83AB] hover:underline">Mark all read</button>}</div>
+                            <div className="flex items-center justify-between border-b border-[#E8EDF4] px-4 py-3"><div><p className="font-semibold text-[#1F2D40]">Notifications</p><p className="text-xs text-[#6B7890]">{unreadCount} unread</p></div>{unreadCount > 0 && <button type="button" onClick={() => { const endpoint = userRole === 'artist' ? '/artist/notifications' : '/client/notifications'; router.patch(`${endpoint}/read-all`, {}, { preserveScroll: true, onSuccess: () => void refreshNotifications() }); }} className="text-xs font-semibold text-[#5F83AB] hover:underline">Mark all read</button>}</div>
                             <div className="max-h-96 overflow-y-auto">
-                                {notifications.length === 0 ? <p className="p-4 text-sm text-[#6B7890]">No booking notifications yet.</p> : notifications.map((notification) => <button type="button" key={notification.id} onClick={() => openBookingNotification(notification)} className={`block w-full border-b border-[#F0F2F6] px-4 py-3 text-left transition hover:bg-[#F7F9FC] ${notification.read_at ? 'bg-white' : 'bg-[#F2F6FC]'}`}>
-                                    <span className="flex items-center justify-between gap-3"><span className="text-sm font-semibold text-[#1F2D40]">{notification.title}</span>{!notification.read_at && <span className="h-2 w-2 rounded-full bg-[#A75F78]" />}</span>
-                                    <span className="mt-1 block text-sm text-[#52627A]">{notification.client_name} · {notification.service}</span>
+                                {notifications.length === 0 ? <p className="p-4 text-sm text-[#6B7890]">No booking updates yet.</p> : notifications.map((notification) => <button type="button" key={notification.id} onClick={() => openBookingNotification(notification)} className={`block w-full border-b border-[#F0F2F6] px-4 py-3 text-left transition hover:bg-[#F7F9FC] ${notification.read_at ? 'bg-white' : 'bg-[#F2F6FC]'}`}>
+                                    <span className="flex items-center justify-between gap-3"><span className="text-sm font-semibold text-[#1F2D40]">{notification.title}</span>{!notification.read_at && <span className="h-2 w-2 rounded-full bg-[#5F83AB]" />}</span>
+                                    <span className="mt-1 block text-sm text-[#52627A]">{userRole === 'artist' ? notification.client_name : notification.artist_name} · {notification.service}</span>
                                     <span className="mt-1 block text-xs text-[#758299]">{new Date(`${notification.booking_date}T${notification.booking_time}`).toLocaleString()}</span>
+                                    {notification.artist_message && <span className="mt-1 block text-xs text-[#5B6B82]">“{notification.artist_message}”</span>}
+                                    {notification.detail && <span className="mt-1 block text-xs font-medium text-[#5F83AB]">{notification.detail}</span>}
                                 </button>)}</div>
                         </div>}
                     </div>}
-                    <span className="hidden text-sm text-[#5B6B82] md:inline">
-                        Hi, {userName.split(' ')[0]}
-                    </span>
+                    <Link
+                        href="/profile"
+                        className={linkClass('profile')}
+                        aria-current={active === 'profile' ? 'page' : undefined}
+                    >
+                        <UserIcon className="h-4 w-4" />
+                        Profile
+                    </Link>
 
                     <Link
                         href="/logout"

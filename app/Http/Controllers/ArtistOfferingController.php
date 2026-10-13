@@ -22,10 +22,10 @@ class ArtistOfferingController extends Controller
             'inclusions' => $validated['kind'] === 'package'
                 ? ($validated['inclusions'] ?? [])
                 : null,
-            'add_on_min_quantity' => $validated['kind'] === 'add_on'
+            'add_on_min_quantity' => $validated['kind'] === 'add_on' && $this->usesQuantityLimits($validated['name'])
                 ? $validated['add_on_min_quantity']
                 : 1,
-            'add_on_max_quantity' => $validated['kind'] === 'add_on'
+            'add_on_max_quantity' => $validated['kind'] === 'add_on' && $this->usesQuantityLimits($validated['name'])
                 ? $validated['add_on_max_quantity']
                 : 1,
         ]);
@@ -43,11 +43,11 @@ class ArtistOfferingController extends Controller
         $validated['inclusions'] = $offering->kind === 'package'
             ? ($validated['inclusions'] ?? [])
             : null;
-        $validated['add_on_min_quantity'] = $offering->kind === 'add_on'
-            ? $validated['add_on_min_quantity']
+        $validated['add_on_min_quantity'] = $offering->kind === 'add_on' && $this->usesQuantityLimits($validated['name'])
+            ? ($validated['add_on_min_quantity'] ?? 1)
             : 1;
-        $validated['add_on_max_quantity'] = $offering->kind === 'add_on'
-            ? $validated['add_on_max_quantity']
+        $validated['add_on_max_quantity'] = $offering->kind === 'add_on' && $this->usesQuantityLimits($validated['name'])
+            ? ($validated['add_on_max_quantity'] ?? 1)
             : 1;
 
         $offering->update($validated);
@@ -79,6 +79,8 @@ class ArtistOfferingController extends Controller
     private function rules(Request $request, ?ArtistOffering $offering = null): array
     {
         $allowedKinds = $offering ? [$offering->kind] : ['package', 'add_on'];
+        $quantityLimitsApply = $request->input('kind', $offering?->kind) === 'add_on'
+            && $this->usesQuantityLimits((string) $request->input('name', $offering?->name ?? ''));
 
         return [
             'kind' => ['required', Rule::in($allowedKinds)],
@@ -96,9 +98,18 @@ class ArtistOfferingController extends Controller
             'description' => ['nullable', 'string', 'max:500'],
             'inclusions' => ['nullable', 'array', 'max:20'],
             'inclusions.*' => ['required', 'string', 'max:160'],
-            'add_on_min_quantity' => ['required_if:kind,add_on', 'nullable', 'integer', 'min:1', 'max:50', 'lte:add_on_max_quantity'],
-            'add_on_max_quantity' => ['required_if:kind,add_on', 'nullable', 'integer', 'min:1', 'max:50', 'gte:add_on_min_quantity'],
+            'add_on_min_quantity' => $quantityLimitsApply
+                ? ['required', 'integer', 'min:1', 'max:50', 'lte:add_on_max_quantity']
+                : ['nullable'],
+            'add_on_max_quantity' => $quantityLimitsApply
+                ? ['required', 'integer', 'min:1', 'max:50', 'gte:add_on_min_quantity']
+                : ['nullable'],
         ];
+    }
+
+    private function usesQuantityLimits(string $name): bool
+    {
+        return preg_match('/bridesmaid|flower\s+girl/i', $name) === 1;
     }
 
     private function authorizeArtist(Request $request): void
