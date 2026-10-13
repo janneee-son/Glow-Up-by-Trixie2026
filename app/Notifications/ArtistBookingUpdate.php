@@ -30,6 +30,10 @@ class ArtistBookingUpdate extends Notification
             'client_cancelled' => 'Booking cancelled by the client',
             'travel_fee_updated' => 'Travel fee updated',
             'travel_fee_accepted' => 'Client accepted transportation fee',
+            'quote_updated' => 'Final booking quote ready',
+            'quote_accepted' => 'Client accepted the final quote',
+            'deposit_submitted' => 'Client says deposit was sent',
+            'deposit_received' => 'Deposit received',
         ];
 
         $travelFee = collect($this->booking->selected_add_ons ?? [])
@@ -37,6 +41,13 @@ class ArtistBookingUpdate extends Notification
                 && preg_match('/transportation/i', $item['name'] ?? '') === 1);
 
         $detail = match ($this->event) {
+            'quote_updated' => 'Final makeup: ₱'.number_format((float) ($this->booking->final_makeup_price ?? 0))
+                .' · Final total: ₱'.number_format((float) ($this->booking->estimated_total ?? 0))
+                .($this->booking->quote_reason ? ' · '.$this->booking->quote_reason : ''),
+            'quote_accepted' => 'The client accepted the final quote and owes a 50% deposit of ₱'
+                .number_format((float) ($this->booking->estimated_total ?? 0) / 2, 2).'.',
+            'deposit_submitted' => 'Payment reference or note: '.$this->booking->deposit_reference,
+            'deposit_received' => 'Trixie verified your 50% deposit. The booking is ready for confirmation.',
             'travel_fee_updated' => 'Transportation: ₱'.number_format((float) ($travelFee['line_total'] ?? 0))
                 .($this->booking->estimated_total === null
                     ? ''

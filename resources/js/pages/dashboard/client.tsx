@@ -22,6 +22,12 @@ type Booking = {
     base_price_type?: 'fixed' | 'starting_at' | 'quote_required';
     estimated_total?: number | string | null;
     transportation_fee_pending?: boolean;
+    final_makeup_price?: number | string | null;
+    quote_reason?: string | null;
+    quote_pending?: boolean;
+    quote_accepted_at?: string | null;
+    deposit_status?: 'not_due' | 'due' | 'submitted' | 'received';
+    deposit_reference?: string | null;
     selected_add_ons?: { id: number | null; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string; is_system_fee?: boolean }[] | null;
     requires_quote?: boolean;
     booking_date: string;
@@ -154,6 +160,8 @@ export default function ClientDashboard({ bookings }: Props) {
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
     const [cancellingId, setCancellingId] = useState<number | null>(null);
     const [feeDecisionBusyId, setFeeDecisionBusyId] = useState<number | null>(null);
+    const [depositReference, setDepositReference] = useState<Record<number, string>>({});
+    const [depositErrors, setDepositErrors] = useState<Record<number, string>>({});
     const [dismissed, setDismissed] = useState<number[]>(() =>
         typeof window !== 'undefined' ? getDismissedIds() : [],
     );
@@ -218,11 +226,23 @@ export default function ClientDashboard({ bookings }: Props) {
         );
     }
 
-    function handleAcceptTransportationFee(booking: Booking) {
+    function handleAcceptQuote(booking: Booking) {
         setFeeDecisionBusyId(booking.id);
-        router.patch(`/book/${booking.id}/transportation-fee/accept`, {}, {
+        router.patch(`/book/${booking.id}/quote/accept`, {}, {
             preserveScroll: true,
-            onSuccess: () => closeDetails(),
+            onFinish: () => setFeeDecisionBusyId(null),
+        });
+    }
+
+    function handleSubmitDeposit(booking: Booking) {
+        setFeeDecisionBusyId(booking.id);
+        setDepositErrors((current) => ({ ...current, [booking.id]: '' }));
+        router.patch(`/book/${booking.id}/deposit`, { deposit_reference: depositReference[booking.id] ?? '' }, {
+            preserveScroll: true,
+            onError: (errors) => setDepositErrors((current) => ({
+                ...current,
+                [booking.id]: String(errors.deposit_reference ?? 'Could not submit the deposit note.'),
+            })),
             onFinish: () => setFeeDecisionBusyId(null),
         });
     }
@@ -443,9 +463,13 @@ export default function ClientDashboard({ bookings }: Props) {
                                             <p className="font-serif text-lg font-bold text-[#1a1a1a]">
                                                 {booking.service}
                                             </p>
-                                            {booking.base_price_type && <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
-                                                {booking.requires_quote ? 'Final price to be confirmed' : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
-                                            </p>}
+                                            {booking.final_makeup_price != null ? (
+                                                <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">Final makeup quote: ₱{Number(booking.final_makeup_price).toLocaleString('en-PH')}</p>
+                                            ) : booking.base_price_type && (
+                                                <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
+                                                    {booking.requires_quote || booking.base_price_type === 'quote_required' ? 'Artist quote in progress' : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
+                                                </p>
+                                            )}
                                             <p className="text-sm text-[#4a4a4a]">
                                                 with {booking.artist.name}
                                                 {booking.artist.specialty
@@ -464,8 +488,9 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                     {!!booking.selected_add_ons?.length && <p className="mb-3 text-xs text-[#4a4a4a]">Add-ons: {booking.selected_add_ons.map((item) => `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`).join(', ')}</p>}
                                     {booking.venue_address && <p className="mb-3 text-sm text-[#4a4a4a]">Home service · {booking.location_type === 'nearby_province' ? 'Nearby province' : 'Metro Manila'} · {booking.venue_address}</p>}
-                                    {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">{booking.requires_quote ? 'Starting estimate · final price to confirm' : 'Estimated total'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
-                                    {booking.transportation_fee_pending && <p className="mb-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-3 py-2 text-sm font-semibold text-[#8a6a2f]">Transportation fee updated · please review and respond</p>}
+                                    {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">{booking.quote_accepted_at ? 'Final quoted total' : booking.quote_pending || booking.transportation_fee_pending ? 'Quote total for your approval' : 'Starting estimate'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
+                                    {(booking.quote_pending || booking.transportation_fee_pending) && <p className="mb-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-3 py-2 text-sm font-semibold text-[#8a6a2f]">Your itemized final quote is ready to review</p>}
+                                    {booking.deposit_status === 'due' && booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#8a6a2f]">50% deposit to secure: ₱{(Number(booking.estimated_total) / 2).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>}
 
                                     <div className="flex flex-wrap gap-4 text-sm text-[#4a4a4a]">
                                         <span className="flex items-center gap-1.5">
@@ -581,11 +606,16 @@ export default function ClientDashboard({ bookings }: Props) {
                                     )}
                                 </div>
 
-                                {(selectedBooking.base_price != null || !!selectedBooking.selected_add_ons?.length || selectedBooking.estimated_total != null) && (
+                                {(selectedBooking.base_price != null || selectedBooking.final_makeup_price != null || !!selectedBooking.selected_add_ons?.length || selectedBooking.estimated_total != null) && (
                                     <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-white p-4">
                                         <h3 className="mb-3 text-sm font-semibold text-[#1a1a1a]">Price breakdown</h3>
                                         <div className="grid gap-2 text-sm text-[#4a4a4a]">
-                                            {selectedBooking.base_price != null && (
+                                            {selectedBooking.final_makeup_price != null ? (
+                                                <div className="flex justify-between gap-3">
+                                                    <span>Final makeup price</span>
+                                                    <span className="shrink-0">₱{Number(selectedBooking.final_makeup_price).toLocaleString('en-PH')}</span>
+                                                </div>
+                                            ) : selectedBooking.base_price != null && (
                                                 <div className="flex justify-between gap-3">
                                                     <span>{selectedBooking.service}{selectedBooking.base_price_type === 'starting_at' ? ' (starting price)' : ''}</span>
                                                     <span className="shrink-0">{selectedBooking.base_price_type === 'quote_required' ? 'Quote' : `₱${Number(selectedBooking.base_price).toLocaleString('en-PH')}`}</span>
@@ -599,7 +629,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                             ))}
                                             {selectedBooking.estimated_total != null && (
                                                 <div className="flex justify-between gap-3 border-t border-[#e8d7cf] pt-2 font-semibold text-[#1a1a1a]">
-                                                    <span>{selectedBooking.requires_quote ? 'Starting estimate · final price to confirm' : 'Estimated total'}</span>
+                                                    <span>{selectedBooking.quote_accepted_at ? 'Final quoted total' : selectedBooking.quote_pending || selectedBooking.transportation_fee_pending ? 'Total for your approval' : 'Starting estimate'}</span>
                                                     <span className="shrink-0">₱{Number(selectedBooking.estimated_total).toLocaleString('en-PH')}</span>
                                                 </div>
                                             )}
@@ -607,19 +637,58 @@ export default function ClientDashboard({ bookings }: Props) {
                                     </section>
                                 )}
 
-                                {selectedBooking.transportation_fee_pending && (
+                                {selectedBooking.quote_reason && (
+                                    <section className="mb-4 rounded-xl bg-[#faf7f4] p-4">
+                                        <h3 className="text-sm font-semibold text-[#1a1a1a]">Artist&apos;s quote note</h3>
+                                        <p className="mt-1 whitespace-pre-line text-sm text-[#4a4a4a]">{selectedBooking.quote_reason}</p>
+                                    </section>
+                                )}
+
+                                {(selectedBooking.quote_pending || selectedBooking.transportation_fee_pending) && (
                                     <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4">
-                                        <p className="text-sm font-semibold text-[#1a1a1a]">Transportation fee updated</p>
-                                        <p className="mt-1 text-sm text-[#4a4a4a]">Trixie revised the travel estimate for your address. Review the updated price breakdown above, then accept the estimate to continue. You can cancel if it does not work for you.</p>
+                                        <p className="text-sm font-semibold text-[#1a1a1a]">Review your final quote</p>
+                                        <p className="mt-1 text-sm text-[#4a4a4a]">This quote includes the final makeup price and transportation fee. Accept it to continue to the 50% deposit, or cancel the request if the total does not work for you.</p>
                                         <button
                                             type="button"
                                             disabled={feeDecisionBusyId === selectedBooking.id}
-                                            onClick={() => handleAcceptTransportationFee(selectedBooking)}
+                                            onClick={() => handleAcceptQuote(selectedBooking)}
                                             className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
                                         >
                                             <Check className="h-3.5 w-3.5" />
-                                            {feeDecisionBusyId === selectedBooking.id ? 'Saving...' : 'Accept updated estimate'}
+                                            {feeDecisionBusyId === selectedBooking.id ? 'Saving...' : 'Accept quote'}
                                         </button>
+                                    </section>
+                                )}
+
+                                {selectedBooking.deposit_status === 'due' && selectedBooking.estimated_total != null && (
+                                    <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4">
+                                        <p className="text-sm font-semibold text-[#1a1a1a]">50% deposit: ₱{(Number(selectedBooking.estimated_total) / 2).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                                        <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">Arrange payment directly with Trixie using your agreed payment method. After sending it, enter the payment reference or write “Cash”.</p>
+                                        <label htmlFor={`deposit-reference-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Payment reference or note</label>
+                                        <input
+                                            id={`deposit-reference-${selectedBooking.id}`}
+                                            value={depositReference[selectedBooking.id] ?? ''}
+                                            onChange={(event) => setDepositReference((current) => ({ ...current, [selectedBooking.id]: event.target.value }))}
+                                            maxLength={120}
+                                            placeholder="e.g. transfer reference or Cash"
+                                            className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
+                                        />
+                                        {depositErrors[selectedBooking.id] && <p role="alert" className="mt-1 text-xs text-[#A13F3F]">{depositErrors[selectedBooking.id]}</p>}
+                                        <button type="button" disabled={feeDecisionBusyId === selectedBooking.id || !(depositReference[selectedBooking.id] ?? '').trim()} onClick={() => handleSubmitDeposit(selectedBooking)} className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50">
+                                            {feeDecisionBusyId === selectedBooking.id ? 'Submitting…' : 'I sent the deposit'}
+                                        </button>
+                                    </section>
+                                )}
+                                {selectedBooking.deposit_status === 'submitted' && (
+                                    <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4 text-sm">
+                                        <p className="font-semibold text-[#1a1a1a]">Deposit marked as sent</p>
+                                        <p className="mt-1 text-[#4a4a4a]">Trixie will verify the payment. Reference: {selectedBooking.deposit_reference}</p>
+                                    </section>
+                                )}
+                                {selectedBooking.deposit_status === 'received' && (
+                                    <section className="mb-4 rounded-xl border border-[#b7d5bb] bg-[#f1f7f1] p-4 text-sm text-[#426948]">
+                                        <p className="font-semibold">50% deposit received</p>
+                                        <p className="mt-1">Trixie will confirm your booking shortly.</p>
                                     </section>
                                 )}
 
@@ -721,7 +790,7 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                 {canModify(selectedBooking) && (
                                     <div className="flex flex-wrap gap-2 border-t border-[#e8d7cf] pt-4">
-                                        {!selectedBooking.transportation_fee_pending && <button
+                                        {!selectedBooking.transportation_fee_pending && !selectedBooking.quote_pending && <button
                                             type="button"
                                             onClick={() =>
                                                 setRescheduling(true)
