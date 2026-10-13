@@ -26,7 +26,14 @@ Route::get('/', function () {
         ? ArtistService::where('user_id', $artist->id)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'price', 'description'])
+            ->get(['id', 'name', 'price', 'description', 'image'])
+            ->map(fn (ArtistService $service) => [
+                'id' => $service->id,
+                'name' => $service->name,
+                'price' => $service->price,
+                'description' => $service->description,
+                'image_url' => $service->image ? Storage::url($service->image) : null,
+            ])
         : collect();
 
     $offerings = $artist
@@ -39,10 +46,11 @@ Route::get('/', function () {
     $galleryImages = $artist
         ? ArtistGalleryImage::where('user_id', $artist->id)
             ->latest()
-            ->get(['id', 'path', 'caption'])
+            ->get(['id', 'path', 'caption', 'story'])
             ->map(fn (ArtistGalleryImage $image) => [
                 'id' => $image->id,
                 'caption' => $image->caption,
+                'story' => $image->story,
                 'image_url' => Storage::url($image->path),
             ])
         : collect();
@@ -110,6 +118,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('admin.gallery.index');
     Route::post('/admin/gallery', [ArtistGalleryController::class, 'store'])
         ->name('admin.gallery.store');
+    Route::patch('/admin/gallery/{image}', [ArtistGalleryController::class, 'update'])
+        ->name('admin.gallery.update');
     Route::delete('/admin/gallery/{image}', [ArtistGalleryController::class, 'destroy'])
         ->name('admin.gallery.destroy');
 

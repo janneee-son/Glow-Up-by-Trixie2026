@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
-import { BadgeCheck, Brush, CalendarCheck, Clock, Sparkles } from 'lucide-react';
+import { BadgeCheck, Brush, CalendarCheck, Clock, Sparkles, X } from 'lucide-react';
 import BehindTheGlow from '@/components/landing/BehindTheGlow';
 import SocialLinks from '@/components/landing/SocialLinks';
 import { dashboard, login, register } from '@/routes';
@@ -22,6 +22,7 @@ type Service = {
     name: string;
     price: number | string;
     description: string | null;
+    image_url: string | null;
 };
 
 type Package = {
@@ -36,6 +37,7 @@ type Package = {
 type GalleryImage = {
     id: number;
     caption: string | null;
+    story: string | null;
     image_url: string;
 };
 
@@ -110,6 +112,8 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
     const packages = Array.isArray(packagesProp) ? packagesProp : [];
     const galleryImages = Array.isArray(galleryImagesProp) ? galleryImagesProp : [];
     const [activeArtistPhotoIndex, setActiveArtistPhotoIndex] = useState(0);
+    const [selectedGalleryImageId, setSelectedGalleryImageId] = useState<number | null>(null);
+    const selectedGalleryImage = galleryImages.find((image) => image.id === selectedGalleryImageId) ?? null;
 
     const { auth } = usePage<{ auth?: { user?: unknown } }>().props;
     const isLoggedIn = Boolean(auth?.user);
@@ -124,6 +128,17 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
 
         return () => window.clearInterval(slideshowTimer);
     }, []);
+
+    useEffect(() => {
+        if (selectedGalleryImageId === null) return;
+
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === 'Escape') setSelectedGalleryImageId(null);
+        }
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedGalleryImageId]);
 
     const firstName = artist?.name.split(' ')[0] ?? '';
     const initials = artist
@@ -285,10 +300,19 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                 {services.map((service) => (
                                     <div
                                         key={service.id}
-                                        className="grid items-center gap-3 py-6 sm:grid-cols-[2fr_3fr_auto] sm:gap-8"
+                                        className="grid items-center gap-3 py-6 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] sm:gap-8"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <Brush className="h-5 w-5 shrink-0 text-[#8A6A2F]" />
+                                            {service.image_url ? (
+                                                <img
+                                                    src={service.image_url}
+                                                    alt={`${service.name} makeup service`}
+                                                    className="h-20 w-20 shrink-0 rounded-2xl border border-[#C9A66B]/40 object-cover shadow-sm sm:h-24 sm:w-24"
+                                                    loading="lazy"
+                                                />
+                                            ) : (
+                                                <Brush className="h-5 w-5 shrink-0 text-[#8A6A2F]" />
+                                            )}
                                             <div>
                                                 <h4 className="font-display text-2xl font-bold">{service.name}</h4>
                                                 <p className="text-sm font-semibold text-[#8A6A2F]">
@@ -503,8 +527,11 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                             <SectionHeading title="Recent work" />
                             <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4">
                                 {galleryImages.map((image) => (
-                                    <div
+                                    <button
                                         key={image.id}
+                                        type="button"
+                                        onClick={() => setSelectedGalleryImageId(image.id)}
+                                        aria-label={`View ${image.caption || 'makeup look'} and its story`}
                                         className="w-[75%] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#E8B4B8]/60 bg-white sm:w-[40%] lg:w-[24%]"
                                     >
                                         <img
@@ -512,10 +539,11 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                             alt={image.caption || 'Makeup work'}
                                             className="aspect-[4/5] w-full object-cover"
                                         />
-                                        {image.caption && (
-                                            <p className="truncate px-3 py-2 text-sm text-[#4A4A4A]">{image.caption}</p>
-                                        )}
-                                    </div>
+                                        <span className="flex items-center justify-between gap-2 px-3 py-2 text-left text-sm text-[#4A4A4A]">
+                                            <span className="truncate">{image.caption || 'Makeup look'}</span>
+                                            <span className="shrink-0 text-xs font-semibold text-[#8A6A2F]">Read story</span>
+                                        </span>
+                                    </button>
                                 ))}
                             </div>
                         </div>
@@ -546,6 +574,49 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                         <span>© {new Date().getFullYear()} All rights reserved.</span>
                     </div>
                 </footer>
+
+                {selectedGalleryImage && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A1A]/80 p-4 backdrop-blur-sm"
+                        onClick={() => setSelectedGalleryImageId(null)}
+                    >
+                        <section
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="gallery-story-title"
+                            className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-[#C9A66B]/40 bg-[#FAF7F4] shadow-2xl md:grid md:grid-cols-[1.05fr_0.95fr]"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setSelectedGalleryImageId(null)}
+                                aria-label="Close story"
+                                className="absolute top-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[#1A1A1A]/75 text-white transition hover:bg-[#9A7430] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                            <div className="h-[42vh] shrink-0 bg-[#1A1A1A] md:h-[82vh] md:min-h-0">
+                                <img
+                                    src={selectedGalleryImage.image_url}
+                                    alt={selectedGalleryImage.caption || 'Makeup look by Trixie'}
+                                    className="h-full max-h-full w-full object-contain"
+                                />
+                            </div>
+                            <div className="min-h-0 flex-1 overflow-y-auto p-6 sm:p-8 md:self-center md:p-10">
+                                <p className="text-xs font-semibold tracking-[0.18em] text-[#8A6A2F] uppercase">Recent work · behind the look</p>
+                                <h2 id="gallery-story-title" className="mt-3 font-display text-3xl font-bold text-[#1A1A1A] sm:text-4xl">
+                                    {selectedGalleryImage.caption || 'A closer look'}
+                                </h2>
+                                {selectedGalleryImage.story ? (
+                                    <p className="mt-5 whitespace-pre-line text-base leading-7 text-[#4A4A4A]">{selectedGalleryImage.story}</p>
+                                ) : (
+                                    <p className="mt-5 text-sm leading-6 text-[#4A4A4A]">Trixie hasn’t added a story for this look yet.</p>
+                                )}
+                                <p className="mt-8 border-t border-[#C9A66B]/40 pt-5 text-sm font-medium text-[#8A6A2F]">Glow Up by Trixie</p>
+                            </div>
+                        </section>
+                    </div>
+                )}
             </div>
         </>
     );

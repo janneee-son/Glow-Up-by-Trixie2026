@@ -1,12 +1,14 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { ImagePlus, Trash2 } from 'lucide-react';
+import { ImagePlus, Save, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
 import DashboardHeader from '@/components/dashboard-header';
 import InputError from '@/components/input-error';
 
 type GalleryImage = {
     id: number;
     caption: string | null;
+    story: string | null;
     image_url: string;
 };
 
@@ -32,10 +34,15 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
     const { data, setData, post, processing, errors, reset } = useForm<{
         image: File | null;
         caption: string;
+        story: string;
     }>({
         image: null,
         caption: '',
+        story: '',
     });
+    const [captions, setCaptions] = useState<Record<number, string>>({});
+    const [stories, setStories] = useState<Record<number, string>>({});
+    const [savingImageId, setSavingImageId] = useState<number | null>(null);
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -54,6 +61,21 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
         router.delete(`/admin/gallery/${image.id}`, {
             preserveScroll: true,
         });
+    }
+
+    function saveStory(image: GalleryImage) {
+        setSavingImageId(image.id);
+        router.patch(
+            `/admin/gallery/${image.id}`,
+            {
+                caption: captions[image.id] ?? image.caption ?? '',
+                story: stories[image.id] ?? image.story ?? '',
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => setSavingImageId(null),
+            },
+        );
     }
 
     return (
@@ -134,6 +156,21 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
                             <InputError message={errors.caption} />
                         </label>
 
+                        <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
+                            Story behind this look (optional)
+                            <textarea
+                                value={data.story}
+                                maxLength={3000}
+                                rows={4}
+                                onChange={(event) =>
+                                    setData('story', event.target.value)
+                                }
+                                placeholder="Share the occasion, inspiration, or details behind this makeup look."
+                                className={inputClass}
+                            />
+                            <InputError message={errors.story} />
+                        </label>
+
                         <button
                             type="submit"
                             disabled={processing || !data.image}
@@ -172,21 +209,48 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
                                             className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
                                         />
 
-                                        <div className="flex items-center justify-between gap-3 p-3">
-                                            <p className="min-w-0 flex-1 truncate text-sm text-[#4a4a4a]">
-                                                {image.caption || 'Makeup look'}
-                                            </p>
-
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    deleteImage(image)
-                                                }
-                                                className="flex shrink-0 items-center gap-1 rounded-full border border-[#D9A5A5] px-3 py-1.5 text-xs font-semibold text-[#A13F3F] hover:bg-[#FDEDED]"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                                Delete
-                                            </button>
+                                        <div className="grid gap-3 p-3">
+                                            <label className="grid gap-1 text-xs font-semibold text-[#4a4a4a]">
+                                                Short caption
+                                                <input
+                                                    type="text"
+                                                    maxLength={160}
+                                                    value={captions[image.id] ?? image.caption ?? ''}
+                                                    onChange={(event) => setCaptions((current) => ({ ...current, [image.id]: event.target.value }))}
+                                                    placeholder="A short title for this look"
+                                                    className={inputClass}
+                                                />
+                                            </label>
+                                            <label className="grid gap-1 text-xs font-semibold text-[#4a4a4a]">
+                                                Story / description
+                                                <textarea
+                                                    rows={4}
+                                                    maxLength={3000}
+                                                    value={stories[image.id] ?? image.story ?? ''}
+                                                    onChange={(event) => setStories((current) => ({ ...current, [image.id]: event.target.value }))}
+                                                    placeholder="Add the occasion, inspiration, or details behind this look."
+                                                    className={inputClass}
+                                                />
+                                            </label>
+                                            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#e8d7cf] pt-3">
+                                                <button
+                                                    type="button"
+                                                    disabled={savingImageId === image.id}
+                                                    onClick={() => saveStory(image)}
+                                                    className="flex items-center gap-1.5 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
+                                                >
+                                                    <Save className="h-3.5 w-3.5" />
+                                                    {savingImageId === image.id ? 'Saving…' : 'Save story'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => deleteImage(image)}
+                                                    className="flex shrink-0 items-center gap-1 rounded-full border border-[#D9A5A5] px-3 py-1.5 text-xs font-semibold text-[#A13F3F] hover:bg-[#FDEDED]"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </div>
                                     </article>
                                 ))}
