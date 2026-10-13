@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
-
 class ArtistGalleryController extends Controller
 {
     public function index(Request $request): Response
@@ -22,6 +21,7 @@ class ArtistGalleryController extends Controller
             ->map(fn (ArtistGalleryImage $image) => [
                 'id' => $image->id,
                 'caption' => $image->caption,
+                'story' => $image->story,
                 'image_url' => Storage::url($image->path),
             ]);
 
@@ -29,10 +29,11 @@ class ArtistGalleryController extends Controller
             'images' => $images,
         ]);
     }
+
     private function authorizeAdmin(Request $request): void
-{
-    abort_unless($request->user()?->role === 'artist', 403);
-}
+    {
+        abort_unless($request->user()?->role === 'artist', 403);
+    }
 
     public function store(Request $request): RedirectResponse
     {
@@ -41,15 +42,33 @@ class ArtistGalleryController extends Controller
         $validated = $request->validate([
             'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'caption' => ['nullable', 'string', 'max:160'],
+            'story' => ['nullable', 'string', 'max:3000'],
         ]);
 
         ArtistGalleryImage::create([
             'user_id' => $request->user()->id,
             'path' => $request->file('image')->store('artist-gallery', 'public'),
             'caption' => $validated['caption'] ?? null,
+            'story' => $validated['story'] ?? null,
         ]);
 
         return back()->with('success', 'Gallery photo added.');
+    }
+
+    public function update(Request $request, ArtistGalleryImage $image): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+
+        abort_unless($image->user_id === $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'caption' => ['nullable', 'string', 'max:160'],
+            'story' => ['nullable', 'string', 'max:3000'],
+        ]);
+
+        $image->update($validated);
+
+        return back()->with('success', 'Gallery story updated.');
     }
 
     public function destroy(

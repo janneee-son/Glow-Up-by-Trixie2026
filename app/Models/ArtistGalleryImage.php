@@ -11,6 +11,7 @@ class ArtistGalleryImage extends Model
         'user_id',
         'path',
         'caption',
+        'story',
     ];
 
     public function user(): BelongsTo

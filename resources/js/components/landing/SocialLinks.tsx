@@ -31,7 +31,7 @@ export const SOCIALS: {
     phone: string;
 } = {
     facebook: 'https://www.facebook.com/glowupbytrixieph',
-    tiktok: 'https://www.tiktok.com/@GlowUpByTrixie',
+    tiktok: 'https://www.tiktok.com/@glowupbytrixie111',
     instagram: null, // add her Instagram URL here if she has one
     phone: '09241013301',
 };
