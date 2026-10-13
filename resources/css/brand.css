@@ -211,7 +211,7 @@
 }
 
 @media (min-width: 768px) {
-  .gl-slider { --card-w: 340px; --step: 300px; }
+  .gl-slider { --card-w: 340px; --step: 320px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

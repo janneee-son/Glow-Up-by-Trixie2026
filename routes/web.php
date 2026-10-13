@@ -1,22 +1,22 @@
 <?php
 
+use App\Http\Controllers\ArtistAnalyticsController;
+use App\Http\Controllers\ArtistGalleryController;
+use App\Http\Controllers\ArtistNotificationController;
+use App\Http\Controllers\ArtistOfferingController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ClientNotificationController;
-use App\Http\Controllers\ArtistOfferingController;
-use App\Http\Controllers\ArtistAnalyticsController;
-use App\Http\Controllers\ArtistNotificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InspoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ServiceController;
-use App\Models\ArtistService;
+use App\Models\ArtistGalleryImage;
 use App\Models\ArtistOffering;
+use App\Models\ArtistService;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use App\Http\Controllers\ArtistGalleryController;
-use App\Models\ArtistGalleryImage;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 // Home page: shows the artist's public details and active services.
 Route::get('/', function () {
@@ -83,6 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/book/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');
     Route::patch('/book/{booking}/accept', [BookingController::class, 'accept'])->name('bookings.accept');
     Route::patch('/book/{booking}/transportation-fee', [BookingController::class, 'updateTransportationFee'])->name('bookings.transportation-fee');
+    Route::patch('/book/{booking}/transportation-fee/accept', [BookingController::class, 'acceptTransportationFee'])->name('bookings.transportation-fee.accept');
     Route::patch('/book/{booking}/decline', [BookingController::class, 'decline'])->name('bookings.decline');
     Route::patch('/book/{booking}/complete', [BookingController::class, 'complete'])->name('bookings.complete');
 
@@ -106,11 +107,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/artist/offerings/{offering}', [ArtistOfferingController::class, 'destroy'])->name('offerings.destroy');
 
     Route::get('/admin/gallery', [ArtistGalleryController::class, 'index'])
-    ->name('admin.gallery.index');
+        ->name('admin.gallery.index');
     Route::post('/admin/gallery', [ArtistGalleryController::class, 'store'])
-    ->name('admin.gallery.store');
-   Route::delete('/admin/gallery/{image}', [ArtistGalleryController::class, 'destroy'])
-    ->name('admin.gallery.destroy');
+        ->name('admin.gallery.store');
+    Route::delete('/admin/gallery/{image}', [ArtistGalleryController::class, 'destroy'])
+        ->name('admin.gallery.destroy');
 
     Route::inertia('/about', 'about')->name('about');
     Route::inertia('/admission', 'admission')->name('admission');

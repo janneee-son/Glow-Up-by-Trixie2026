@@ -39,7 +39,7 @@ type Props = {
 };
 
 const inputClass =
-    'w-full rounded-xl border border-[#B5C8E5] bg-white px-3 py-2 text-sm text-[#1F2D40] placeholder:text-[#758299] focus-visible:border-[#769AD0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#769AD0]/30';
+    'w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] placeholder:text-[#6b625a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30';
 
 function usesQuantityLimits(name: string): boolean {
     return /bridesmaid|flower\s+girl/i.test(name);
@@ -81,18 +81,18 @@ function ServiceFields({
     return (
         <form
             onSubmit={submit}
-            className="grid gap-4 rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-lg shadow-[#95B1DB]/10 sm:p-6"
+            className="grid gap-4 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-lg shadow-[#c9a66b]/10 sm:p-6"
         >
-            <div className="flex items-center gap-2 font-semibold text-[#1F2D40]">
+            <div className="flex items-center gap-2 font-semibold text-[#1a1a1a]">
                 {service ? (
-                    <Pencil className="h-4 w-4 text-[#5F83AB]" />
+                    <Pencil className="h-4 w-4 text-[#8a6a2f]" />
                 ) : (
-                    <Plus className="h-4 w-4 text-[#5F83AB]" />
+                    <Plus className="h-4 w-4 text-[#8a6a2f]" />
                 )}
                 {service ? 'Edit service' : 'Service details'}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">
+                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
                     Service name
                     <input
                         className={inputClass}
@@ -105,7 +105,7 @@ function ServiceFields({
                     />
                     <InputError message={errors.name} />
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">
+                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
                     Price (₱)
                     <input
                         className={inputClass}
@@ -122,7 +122,7 @@ function ServiceFields({
                     <InputError message={errors.price} />
                 </label>
             </div>
-            <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">
+            <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
                 Description (optional)
                 <textarea
                     className={inputClass}
@@ -135,8 +135,8 @@ function ServiceFields({
                 />
                 <InputError message={errors.description} />
             </label>
-            <div className="grid gap-2 text-xs font-semibold text-[#5B6B82]">
-                <label className="flex w-fit cursor-pointer items-center gap-2 rounded-full border border-[#B5C8E5] bg-white px-4 py-2 text-[#5F83AB] transition hover:bg-[#E6EEF8]">
+            <div className="grid gap-2 text-xs font-semibold text-[#4a4a4a]">
+                <label className="flex w-fit cursor-pointer items-center gap-2 rounded-full border border-[#d7c0a2] bg-white px-4 py-2 text-[#8a6a2f] transition hover:bg-[#f4e9e5]">
                     <ImagePlus className="h-4 w-4" />{' '}
                     {data.image
                         ? data.image.name
@@ -169,7 +169,7 @@ function ServiceFields({
             </div>
             <button
                 disabled={processing}
-                className="w-fit rounded-full bg-[#5F83AB] px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-[#769AD0]/25 transition hover:bg-[#5F83AB] disabled:opacity-50"
+                className="w-fit rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-[#8a6a2f]/25 transition hover:bg-[#8a6a2f] disabled:opacity-50"
             >
                 {processing
                     ? 'Saving…'
@@ -186,38 +186,38 @@ function ServiceCard({ service }: { service: Service }) {
     const { patch, delete: destroy, processing } = useForm();
 
     return (
-        <article className="overflow-hidden rounded-3xl border border-[#D3DFEF] bg-white shadow-sm shadow-[#95B1DB]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#95B1DB]/15">
+        <article className="overflow-hidden rounded-3xl border border-[#e8d7cf] bg-white shadow-sm shadow-[#c9a66b]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#c9a66b]/15">
             <div className="flex gap-4 p-5 sm:p-6">
                 {service.image_url ? (
                     <img
                         src={service.image_url}
                         alt=""
-                        className="h-20 w-20 rounded-2xl object-cover ring-2 ring-[#E6EEF8]"
+                        className="h-20 w-20 rounded-2xl object-cover ring-2 ring-[#f4e9e5]"
                     />
                 ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#E6EEF8]">
-                        <BriefcaseBusiness className="h-6 w-6 text-[#5F83AB]" />
+                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#f4e9e5]">
+                        <BriefcaseBusiness className="h-6 w-6 text-[#8a6a2f]" />
                     </div>
                 )}
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="font-serif text-xl font-bold text-[#1F2D40]">
+                        <h2 className="font-serif text-xl font-bold text-[#1a1a1a]">
                             {service.name}
                         </h2>
                         <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${service.is_active ? 'bg-[#E5F2E7] text-[#4B7851]' : 'bg-[#F2F5F8] text-[#5B6B82]'}`}
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${service.is_active ? 'bg-[#E5F2E7] text-[#4B7851]' : 'bg-[#faf7f4] text-[#4a4a4a]'}`}
                         >
                             {service.is_active ? 'Active' : 'Hidden'}
                         </span>
                     </div>
-                    <p className="mt-1 font-semibold text-[#5F83AB]">
+                    <p className="mt-1 font-semibold text-[#8a6a2f]">
                         ₱
                         {service.price.toLocaleString('en-PH', {
                             minimumFractionDigits: 2,
                         })}
                     </p>
                     {service.description && (
-                        <p className="mt-2 text-sm text-[#5B6B82]">
+                        <p className="mt-2 text-sm text-[#4a4a4a]">
                             {service.description}
                         </p>
                     )}
@@ -230,14 +230,14 @@ function ServiceCard({ service }: { service: Service }) {
                         patch(`/artist/services/${service.id}/toggle`)
                     }
                     disabled={processing}
-                    className="rounded-full border border-[#B5C8E5] px-4 py-1.5 text-xs font-semibold text-[#5F83AB] transition hover:bg-[#E6EEF8] disabled:opacity-50"
+                    className="rounded-full border border-[#d7c0a2] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5] disabled:opacity-50"
                 >
                     {service.is_active ? 'Hide from clients' : 'Make active'}
                 </button>
                 <button
                     type="button"
                     onClick={() => setEditing((value) => !value)}
-                    className="rounded-full border border-[#B5C8E5] px-4 py-1.5 text-xs font-semibold text-[#5F83AB] transition hover:bg-[#E6EEF8]"
+                    className="rounded-full border border-[#d7c0a2] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5]"
                 >
                     {editing ? 'Close editor' : 'Edit'}
                 </button>
@@ -305,19 +305,19 @@ function OfferingForm({
     }
 
     return (
-        <form onSubmit={submit} className="grid gap-4 rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-sm sm:p-6">
-            <h3 className="font-semibold text-[#1F2D40]">{offering ? 'Edit' : 'Add'} {kind === 'package' ? 'package' : 'add-on'}</h3>
+        <form onSubmit={submit} className="grid gap-4 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm sm:p-6">
+            <h3 className="font-semibold text-[#1a1a1a]">{offering ? 'Edit' : 'Add'} {kind === 'package' ? 'package' : 'add-on'}</h3>
             <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">Name
+                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Name
                     <input className={inputClass} maxLength={120} value={data.name} onChange={(e) => setData('name', e.target.value)} required />
                     <InputError message={errors.name} />
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">{kind === 'add_on' ? 'Price per person/item (₱)' : 'Price (₱)'}
+                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">{kind === 'add_on' ? 'Price per person/item (₱)' : 'Price (₱)'}
                     <input className={inputClass} type="number" min="0" step="0.01" value={data.price} onChange={(e) => setData('price', e.target.value)} required={data.pricing_type !== 'quote_required'} disabled={data.pricing_type === 'quote_required'} placeholder={data.pricing_type === 'quote_required' ? 'Artist will provide a quote' : 'e.g. 3500'} />
                     <InputError message={errors.price} />
                 </label>
             </div>
-            <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">Price display
+            <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Price display
                 <select className={inputClass} value={data.pricing_type} onChange={(e) => setData('pricing_type', e.target.value as typeof data.pricing_type)}>
                     <option value="fixed">Fixed price</option>
                     <option value="starting_at">Starting at</option>
@@ -325,25 +325,25 @@ function OfferingForm({
                 </select>
                 <InputError message={errors.pricing_type} />
             </label>
-            <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">Description
+            <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Description
                 <textarea className={inputClass} maxLength={500} rows={2} value={data.description} onChange={(e) => setData('description', e.target.value)} />
                 <InputError message={errors.description} />
             </label>
-            {kind === 'package' && <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">Package inclusions (one per line)
+            {kind === 'package' && <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Package inclusions (one per line)
                 <textarea className={inputClass} rows={4} value={data.inclusions.join('\n')} onChange={(e) => setData('inclusions', e.target.value.split('\n'))} placeholder="Makeup and hair look\nSkin preparation\nPremium lashes" />
                 <InputError message={errors.inclusions} />
             </label>}
             {quantityLimitsApply && <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">Minimum quantity
+                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Minimum quantity
                     <input className={inputClass} type="number" min="1" max="50" step="1" value={data.add_on_min_quantity} onChange={(e) => setData('add_on_min_quantity', Number(e.target.value))} required />
                     <InputError message={errors.add_on_min_quantity} />
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold text-[#5B6B82]">Maximum quantity
+                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Maximum quantity
                     <input className={inputClass} type="number" min={data.add_on_min_quantity} max="50" step="1" value={data.add_on_max_quantity} onChange={(e) => setData('add_on_max_quantity', Number(e.target.value))} required />
                     <InputError message={errors.add_on_max_quantity} />
                 </label>
             </div>}
-            <button disabled={processing} className="w-fit rounded-full bg-[#5F83AB] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{processing ? 'Saving…' : offering ? 'Save changes' : `Add ${kind === 'package' ? 'package' : 'add-on'}`}</button>
+            <button disabled={processing} className="w-fit rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{processing ? 'Saving…' : offering ? 'Save changes' : `Add ${kind === 'package' ? 'package' : 'add-on'}`}</button>
         </form>
     );
 }
@@ -354,11 +354,11 @@ function OfferingCard({ offering }: { offering: Offering }) {
     const priceLabel = offering.pricing_type === 'quote_required'
         ? 'Price confirmed after booking'
         : `${offering.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(offering.price ?? 0).toLocaleString('en-PH')}`;
-    return <article className="rounded-3xl border border-[#D3DFEF] bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-serif text-xl font-bold text-[#1F2D40]">{offering.name}</h3><p className="mt-1 font-semibold text-[#5F83AB]">{priceLabel}{offering.kind === 'add_on' ? ' each' : ''}</p>{offering.kind === 'add_on' && usesQuantityLimits(offering.name) && <p className="mt-1 text-xs text-[#5B6B82]">Client quantity: {offering.add_on_min_quantity}–{offering.add_on_max_quantity}</p>}{offering.description && <p className="mt-2 text-sm text-[#5B6B82]">{offering.description}</p>}{offering.inclusions?.length > 0 && <ul className="mt-3 list-inside list-disc text-sm text-[#5B6B82]">{offering.inclusions.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>}</div><span className="rounded-full bg-[#F2F5F8] px-3 py-1 text-xs font-semibold">{offering.is_active ? 'Active' : 'Hidden'}</span></div>
+    return <article className="rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-serif text-xl font-bold text-[#1a1a1a]">{offering.name}</h3><p className="mt-1 font-semibold text-[#8a6a2f]">{priceLabel}{offering.kind === 'add_on' ? ' each' : ''}</p>{offering.kind === 'add_on' && usesQuantityLimits(offering.name) && <p className="mt-1 text-xs text-[#4a4a4a]">Client quantity: {offering.add_on_min_quantity}–{offering.add_on_max_quantity}</p>}{offering.description && <p className="mt-2 text-sm text-[#4a4a4a]">{offering.description}</p>}{offering.inclusions?.length > 0 && <ul className="mt-3 list-inside list-disc text-sm text-[#4a4a4a]">{offering.inclusions.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>}</div><span className="rounded-full bg-[#faf7f4] px-3 py-1 text-xs font-semibold">{offering.is_active ? 'Active' : 'Hidden'}</span></div>
         <div className="mt-4 flex flex-wrap gap-2 border-t border-[#F0E5EA] pt-4">
-            <button type="button" disabled={processing} onClick={() => patch(`/artist/offerings/${offering.id}/toggle`)} className="rounded-full border border-[#B5C8E5] px-4 py-1.5 text-xs font-semibold text-[#5F83AB]">{offering.is_active ? 'Hide from clients' : 'Make active'}</button>
-            <button type="button" onClick={() => setEditing((v) => !v)} className="rounded-full border border-[#B5C8E5] px-4 py-1.5 text-xs font-semibold text-[#5F83AB]">{editing ? 'Close editor' : 'Edit'}</button>
+            <button type="button" disabled={processing} onClick={() => patch(`/artist/offerings/${offering.id}/toggle`)} className="rounded-full border border-[#d7c0a2] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f]">{offering.is_active ? 'Hide from clients' : 'Make active'}</button>
+            <button type="button" onClick={() => setEditing((v) => !v)} className="rounded-full border border-[#d7c0a2] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f]">{editing ? 'Close editor' : 'Edit'}</button>
             <button type="button" disabled={processing} onClick={() => window.confirm(`Delete ${offering.name}?`) && destroy(`/artist/offerings/${offering.id}`)} className="rounded-full border border-[#D9A5A5] px-4 py-1.5 text-xs font-semibold text-[#A13F3F]">Delete</button>
         </div>
         {editing && <div className="mt-4"><OfferingForm kind={offering.kind} offering={offering} /></div>}
@@ -378,23 +378,23 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
     return (
         <>
             <Head title="Manage Services" />
-            <div className="min-h-screen bg-[#F2F5F8]">
+            <div className="min-h-screen bg-[#faf7f4]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
                     active="services"
                 />
                 <main className="mx-auto grid w-full max-w-5xl gap-6 px-4 py-7 sm:px-6 md:py-10">
-                    <section className="relative overflow-hidden rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-[#FAFCFE] via-white to-[#E6EEF8] p-6 shadow-lg shadow-[#95B1DB]/10 md:p-8">
-                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#D3DFEF]/50 blur-2xl" />
+                    <section className="relative overflow-hidden rounded-[2rem] border border-[#e8d7cf] bg-gradient-to-br from-[#fffcf8] via-white to-[#f4e9e5] p-6 shadow-lg shadow-[#c9a66b]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-40 w-40 rounded-full bg-[#e8d7cf]/50 blur-2xl" />
                         <div className="relative">
-                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
+                            <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
                                 Artist studio
                             </p>
-                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1F2D40] sm:text-4xl">
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1a1a1a] sm:text-4xl">
                                 Manage services
                             </h1>
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5B6B82] sm:text-base">
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#4a4a4a] sm:text-base">
                                 Active services appear on your public page and
                                 can be selected when clients book.
                             </p>
@@ -404,7 +404,7 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
                         type="button"
                         aria-expanded={serviceFormOpen}
                         onClick={() => setServiceFormOpen((open) => !open)}
-                        className="inline-flex w-fit items-center gap-2 rounded-full bg-[#5F83AB] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F729A]"
+                        className="inline-flex w-fit items-center gap-2 rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#735829]"
                     >
                         <Plus className="h-4 w-4" />
                         {serviceFormOpen ? 'Close service form' : 'Add a service'}
@@ -414,10 +414,10 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
                     )}
                     <section className="grid gap-4">
                         <div>
-                            <p className="text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
+                            <p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
                                 Your menu
                             </p>
-                            <h2 className="mt-1 font-serif text-2xl font-bold text-[#1F2D40]">
+                            <h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">
                                 Services ({services.length})
                             </h2>
                         </div>
@@ -425,18 +425,18 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
                             <ServiceCard key={service.id} service={service} />
                         ))}
                         {services.length === 0 && (
-                            <p className="rounded-3xl border border-dashed border-[#B5C8E5] bg-white/80 p-6 text-sm text-[#5B6B82] shadow-sm">
+                            <p className="rounded-3xl border border-dashed border-[#d7c0a2] bg-white/80 p-6 text-sm text-[#4a4a4a] shadow-sm">
                                 You haven&apos;t added any services yet.
                             </p>
                         )}
                     </section>
                     <section className="grid gap-4">
-                        <div><p className="text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">Artist menu</p><h2 className="mt-1 font-serif text-2xl font-bold text-[#1F2D40]">Packages ({packages.length})</h2><p className="mt-1 text-sm text-[#5B6B82]">Use “Starting at” when the final price depends on the requested looks or retouching.</p></div>
+                        <div><p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">Artist menu</p><h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">Packages ({packages.length})</h2><p className="mt-1 text-sm text-[#4a4a4a]">Use “Starting at” when the final price depends on the requested looks or retouching.</p></div>
                         <button
                             type="button"
                             aria-expanded={packageFormOpen}
                             onClick={() => setPackageFormOpen((open) => !open)}
-                            className="inline-flex w-fit items-center gap-2 rounded-full bg-[#5F83AB] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F729A]"
+                            className="inline-flex w-fit items-center gap-2 rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#735829]"
                         >
                             <Plus className="h-4 w-4" />
                             {packageFormOpen ? 'Close package form' : 'Add a package'}
@@ -450,12 +450,12 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
                         {packages.map((offering) => <OfferingCard key={offering.id} offering={offering} />)}
                     </section>
                     <section className="grid gap-4">
-                        <div><p className="text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">Optional extras</p><h2 className="mt-1 font-serif text-2xl font-bold text-[#1F2D40]">Add-ons ({addOns.length})</h2><p className="mt-1 text-sm text-[#5B6B82]">Clients can add these extras to a service or package when booking.</p></div>
+                        <div><p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">Optional extras</p><h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">Add-ons ({addOns.length})</h2><p className="mt-1 text-sm text-[#4a4a4a]">Clients can add these extras to a service or package when booking.</p></div>
                         <button
                             type="button"
                             aria-expanded={addOnFormOpen}
                             onClick={() => setAddOnFormOpen((open) => !open)}
-                            className="inline-flex w-fit items-center gap-2 rounded-full bg-[#5F83AB] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F729A]"
+                            className="inline-flex w-fit items-center gap-2 rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#735829]"
                         >
                             <Plus className="h-4 w-4" />
                             {addOnFormOpen ? 'Close add-on form' : 'Add an add-on'}

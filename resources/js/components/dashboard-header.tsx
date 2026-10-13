@@ -144,27 +144,27 @@ export default function DashboardHeader({
     const linkClass = (key: Props['active']) =>
         `flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200 ${
             active === key
-                ? 'bg-[#E6EEF8] text-[#5F83AB]'
-                : 'text-[#5B6B82] hover:bg-[#E6EEF8]/60 hover:text-[#5F83AB]'
+                ? 'bg-[#f4e9e5] text-[#8a6a2f]'
+                : 'text-[#4a4a4a] hover:bg-[#f4e9e5]/60 hover:text-[#8a6a2f]'
         }`;
 
     const mobileLinkClass = (key: Props['active']) =>
         `flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors duration-200 ${
             active === key
-                ? 'bg-[#E6EEF8] text-[#5F83AB]'
-                : 'text-[#5B6B82] hover:bg-[#E6EEF8]/60 hover:text-[#5F83AB]'
+                ? 'bg-[#f4e9e5] text-[#8a6a2f]'
+                : 'text-[#4a4a4a] hover:bg-[#f4e9e5]/60 hover:text-[#8a6a2f]'
         }`;
 
     return (
-        <header className="sticky top-0 z-20 border-b border-[#D3DFEF] bg-[#F2F5F8]/90 backdrop-blur">
+        <header className="sticky top-0 z-20 border-b border-[#e8d7cf] bg-[#faf7f4]/90 backdrop-blur">
             <div className="flex items-center justify-between px-6 py-4 md:px-12">
                 <Link
                     href="/dashboard"
                     className="flex items-center gap-2"
                     onClick={() => setMenuOpen(false)}
                 >
-                    <Sparkles className="h-5 w-5 text-[#5F83AB]" />
-                    <span className="font-bold text-[#5F83AB]">
+                    <Sparkles className="h-5 w-5 text-[#8a6a2f]" />
+                    <span className="font-bold text-[#8a6a2f]">
                         Glow Up by Trixie
                     </span>
                 </Link>
@@ -180,19 +180,19 @@ export default function DashboardHeader({
 
                 <div className="flex items-center gap-3">
                     {(userRole === 'artist' || userRole === 'client') && <div className="relative">
-                        <button type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label="Notifications" aria-expanded={notificationsOpen} className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[#95B1DB] text-[#5F83AB] transition hover:bg-[#E6EEF8]">
+                        <button type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label="Notifications" aria-expanded={notificationsOpen} className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[#c9a66b] text-[#8a6a2f] transition hover:bg-[#f4e9e5]">
                             <Bell className="h-4 w-4" />
-                            {unreadCount > 0 && <span className="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#5F83AB] px-1 text-[10px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+                            {unreadCount > 0 && <span className="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#8a6a2f] px-1 text-[10px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
                         </button>
-                        {notificationsOpen && <div className="absolute right-0 z-50 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#D3DFEF] bg-white shadow-xl">
-                            <div className="flex items-center justify-between border-b border-[#E8EDF4] px-4 py-3"><div><p className="font-semibold text-[#1F2D40]">Notifications</p><p className="text-xs text-[#6B7890]">{unreadCount} unread</p></div>{unreadCount > 0 && <button type="button" onClick={() => { const endpoint = userRole === 'artist' ? '/artist/notifications' : '/client/notifications'; router.patch(`${endpoint}/read-all`, {}, { preserveScroll: true, onSuccess: () => void refreshNotifications() }); }} className="text-xs font-semibold text-[#5F83AB] hover:underline">Mark all read</button>}</div>
+                        {notificationsOpen && <div className="absolute right-0 z-50 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#e8d7cf] bg-white shadow-xl">
+                            <div className="flex items-center justify-between border-b border-[#e8d7cf] px-4 py-3"><div><p className="font-semibold text-[#1a1a1a]">Notifications</p><p className="text-xs text-[#6b625a]">{unreadCount} unread</p></div>{unreadCount > 0 && <button type="button" onClick={() => { const endpoint = userRole === 'artist' ? '/artist/notifications' : '/client/notifications'; router.patch(`${endpoint}/read-all`, {}, { preserveScroll: true, onSuccess: () => void refreshNotifications() }); }} className="text-xs font-semibold text-[#8a6a2f] hover:underline">Mark all read</button>}</div>
                             <div className="max-h-96 overflow-y-auto">
-                                {notifications.length === 0 ? <p className="p-4 text-sm text-[#6B7890]">No booking updates yet.</p> : notifications.map((notification) => <button type="button" key={notification.id} onClick={() => openBookingNotification(notification)} className={`block w-full border-b border-[#F0F2F6] px-4 py-3 text-left transition hover:bg-[#F7F9FC] ${notification.read_at ? 'bg-white' : 'bg-[#F2F6FC]'}`}>
-                                    <span className="flex items-center justify-between gap-3"><span className="text-sm font-semibold text-[#1F2D40]">{notification.title}</span>{!notification.read_at && <span className="h-2 w-2 rounded-full bg-[#5F83AB]" />}</span>
-                                    <span className="mt-1 block text-sm text-[#52627A]">{userRole === 'artist' ? notification.client_name : notification.artist_name} · {notification.service}</span>
-                                    <span className="mt-1 block text-xs text-[#758299]">{new Date(`${notification.booking_date}T${notification.booking_time}`).toLocaleString()}</span>
-                                    {notification.artist_message && <span className="mt-1 block text-xs text-[#5B6B82]">“{notification.artist_message}”</span>}
-                                    {notification.detail && <span className="mt-1 block text-xs font-medium text-[#5F83AB]">{notification.detail}</span>}
+                                {notifications.length === 0 ? <p className="p-4 text-sm text-[#6b625a]">No booking updates yet.</p> : notifications.map((notification) => <button type="button" key={notification.id} onClick={() => openBookingNotification(notification)} className={`block w-full border-b border-[#f3eee9] px-4 py-3 text-left transition hover:bg-[#fdf8f4] ${notification.read_at ? 'bg-white' : 'bg-[#f7ece8]'}`}>
+                                    <span className="flex items-center justify-between gap-3"><span className="text-sm font-semibold text-[#1a1a1a]">{notification.title}</span>{!notification.read_at && <span className="h-2 w-2 rounded-full bg-[#8a6a2f]" />}</span>
+                                    <span className="mt-1 block text-sm text-[#4a4a4a]">{userRole === 'artist' ? notification.client_name : notification.artist_name} · {notification.service}</span>
+                                    <span className="mt-1 block text-xs text-[#6b625a]">{new Date(`${notification.booking_date}T${notification.booking_time}`).toLocaleString()}</span>
+                                    {notification.artist_message && <span className="mt-1 block text-xs text-[#4a4a4a]">“{notification.artist_message}”</span>}
+                                    {notification.detail && <span className="mt-1 block text-xs font-medium text-[#8a6a2f]">{notification.detail}</span>}
                                 </button>)}</div>
                         </div>}
                     </div>}
@@ -209,7 +209,7 @@ export default function DashboardHeader({
                         href="/logout"
                         method="post"
                         as="button"
-                        className="hidden items-center gap-1.5 rounded-full border border-[#95B1DB] px-4 py-1.5 text-sm font-semibold text-[#5F83AB] transition-colors duration-200 hover:bg-[#E6EEF8] sm:flex"
+                        className="hidden items-center gap-1.5 rounded-full border border-[#c9a66b] px-4 py-1.5 text-sm font-semibold text-[#8a6a2f] transition-colors duration-200 hover:bg-[#f4e9e5] sm:flex"
                     >
                         <LogOut className="h-3.5 w-3.5" />
                         Log out
@@ -220,7 +220,7 @@ export default function DashboardHeader({
                         onClick={() => setMenuOpen((open) => !open)}
                         aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                         aria-expanded={menuOpen}
-                        className="flex h-9 w-9 items-center justify-center rounded-full border border-[#95B1DB] text-[#5F83AB] sm:hidden"
+                        className="flex h-9 w-9 items-center justify-center rounded-full border border-[#c9a66b] text-[#8a6a2f] sm:hidden"
                     >
                         {menuOpen ? (
                             <X className="h-4 w-4" />
@@ -232,7 +232,7 @@ export default function DashboardHeader({
             </div>
 
             {menuOpen && (
-                <nav className="flex flex-col gap-1 border-t border-[#D3DFEF] bg-[#F2F5F8] px-4 py-3 sm:hidden">
+                <nav className="flex flex-col gap-1 border-t border-[#e8d7cf] bg-[#faf7f4] px-4 py-3 sm:hidden">
                     {navItems.map(({ key, label, href, icon: Icon }) => (
                         <Link
                             key={key}
@@ -249,7 +249,7 @@ export default function DashboardHeader({
                         href="/logout"
                         method="post"
                         as="button"
-                        className="flex items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-medium text-[#5F83AB] hover:bg-[#E6EEF8]/60"
+                        className="flex items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-medium text-[#8a6a2f] hover:bg-[#f4e9e5]/60"
                     >
                         <LogOut className="h-4 w-4" />
                         Log out

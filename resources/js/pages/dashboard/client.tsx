@@ -3,6 +3,7 @@ import {
     AlertCircle,
     CalendarPlus,
     CalendarDays,
+    Check,
     Clock,
     ImageIcon,
     MapPin,
@@ -20,6 +21,7 @@ type Booking = {
     base_price?: number | string | null;
     base_price_type?: 'fixed' | 'starting_at' | 'quote_required';
     estimated_total?: number | string | null;
+    transportation_fee_pending?: boolean;
     selected_add_ons?: { id: number | null; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string; is_system_fee?: boolean }[] | null;
     requires_quote?: boolean;
     booking_date: string;
@@ -48,9 +50,9 @@ type Props = {
 };
 
 const STATUS_STYLES: Record<Booking['status'], string> = {
-    pending: 'bg-[#E6EEF8] text-[#4A6A93]',
+    pending: 'bg-[#f4e9e5] text-[#8a6a2f]',
     confirmed: 'bg-[#DFF5E1] text-[#2E7D46]',
-    completed: 'bg-[#E6E6FA] text-[#5B4B9C]',
+    completed: 'bg-[#f4e9e5] text-[#8a6a2f]',
     cancelled: 'bg-[#F5E0E0] text-[#A13F3F]',
 };
 
@@ -151,6 +153,7 @@ export default function ClientDashboard({ bookings }: Props) {
     const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
     const [cancellingId, setCancellingId] = useState<number | null>(null);
+    const [feeDecisionBusyId, setFeeDecisionBusyId] = useState<number | null>(null);
     const [dismissed, setDismissed] = useState<number[]>(() =>
         typeof window !== 'undefined' ? getDismissedIds() : [],
     );
@@ -215,6 +218,15 @@ export default function ClientDashboard({ bookings }: Props) {
         );
     }
 
+    function handleAcceptTransportationFee(booking: Booking) {
+        setFeeDecisionBusyId(booking.id);
+        router.patch(`/book/${booking.id}/transportation-fee/accept`, {}, {
+            preserveScroll: true,
+            onSuccess: () => closeDetails(),
+            onFinish: () => setFeeDecisionBusyId(null),
+        });
+    }
+
     function handleDismiss(id: number) {
         dismissId(id);
         setDismissed((prev) => [...prev, id]);
@@ -257,7 +269,7 @@ export default function ClientDashboard({ bookings }: Props) {
         <>
             <Head title="My Bookings" />
 
-            <div className="min-h-screen bg-[#F2F5F8]">
+            <div className="min-h-screen bg-[#faf7f4]">
                 <DashboardHeader
                     userName={auth?.user?.name ?? 'there'}
                     userRole={auth?.user?.role}
@@ -282,7 +294,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                             {formatDate(booking.booking_date)}
                                         </p>
                                         {booking.artist_message && (
-                                            <p className="mt-1 text-sm text-[#5B6B82]">
+                                            <p className="mt-1 text-sm text-[#4a4a4a]">
                                                 "{booking.artist_message}"
                                             </p>
                                         )}
@@ -302,28 +314,28 @@ export default function ClientDashboard({ bookings }: Props) {
                         </div>
                     )}
 
-                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#D3DFEF] bg-gradient-to-br from-[#FAFCFE] via-white to-[#E6EEF8] p-6 shadow-lg shadow-[#95B1DB]/10 md:p-8">
-                        <div className="pointer-events-none absolute -top-12 -right-10 h-48 w-48 rounded-full bg-[#D3DFEF]/50 blur-2xl" />
+                    <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-[#e8d7cf] bg-gradient-to-br from-[#fffcf8] via-white to-[#f4e9e5] p-6 shadow-lg shadow-[#c9a66b]/10 md:p-8">
+                        <div className="pointer-events-none absolute -top-12 -right-10 h-48 w-48 rounded-full bg-[#e8d7cf]/50 blur-2xl" />
                         <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
                             <div>
-                                <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#D3DFEF] bg-white/80 px-3 py-1.5 text-xs font-semibold tracking-[0.16em] text-[#5F83AB] uppercase">
+                                <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#e8d7cf] bg-white/80 px-3 py-1.5 text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
                                     <Sparkles className="h-3.5 w-3.5" /> Your
                                     beauty appointments
                                 </span>
-                                <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1F2D40] sm:text-4xl">
+                                <h1 className="font-serif text-3xl font-bold tracking-tight text-[#1a1a1a] sm:text-4xl">
                                     Welcome back,{' '}
                                     {auth?.user?.name?.split(' ')[0] ??
                                         'beautiful'}
                                     !
                                 </h1>
-                                <p className="mt-2 max-w-xl text-sm leading-6 text-[#5B6B82] sm:text-base">
+                                <p className="mt-2 max-w-xl text-sm leading-6 text-[#4a4a4a] sm:text-base">
                                     Keep up with your sessions and get ready for
                                     your next glow-up.
                                 </p>
                             </div>
                             <Link
                                 href="/book"
-                                className="relative inline-flex items-center justify-center gap-2 self-start rounded-full bg-[#5F83AB] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-[#769AD0]/25 transition duration-200 hover:-translate-y-0.5 hover:bg-[#5F83AB] sm:self-auto"
+                                className="relative inline-flex items-center justify-center gap-2 self-start rounded-full bg-[#8a6a2f] px-5 py-3 text-sm font-semibold text-white shadow-md shadow-[#8a6a2f]/25 transition duration-200 hover:-translate-y-0.5 hover:bg-[#8a6a2f] sm:self-auto"
                             >
                                 <CalendarPlus className="h-4 w-4" /> Book a new
                                 session
@@ -335,50 +347,50 @@ export default function ClientDashboard({ bookings }: Props) {
                         aria-label="Booking summary"
                         className="mb-8 grid gap-3 sm:grid-cols-3"
                     >
-                        <div className="rounded-2xl border border-[#D3DFEF] bg-white p-4 shadow-sm shadow-[#95B1DB]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#5B6B82] uppercase">
+                        <div className="rounded-2xl border border-[#e8d7cf] bg-white p-4 shadow-sm shadow-[#c9a66b]/10">
+                            <p className="text-xs font-semibold tracking-wider text-[#4a4a4a] uppercase">
                                 Coming up
                             </p>
-                            <p className="mt-2 font-serif text-3xl font-bold text-[#5F83AB]">
+                            <p className="mt-2 font-serif text-3xl font-bold text-[#8a6a2f]">
                                 {upcoming.length}
                             </p>
-                            <p className="mt-1 text-xs text-[#5B6B82]">
+                            <p className="mt-1 text-xs text-[#4a4a4a]">
                                 Upcoming bookings
                             </p>
                         </div>
-                        <div className="rounded-2xl border border-[#D3DFEF] bg-white p-4 shadow-sm shadow-[#95B1DB]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#5B6B82] uppercase">
+                        <div className="rounded-2xl border border-[#e8d7cf] bg-white p-4 shadow-sm shadow-[#c9a66b]/10">
+                            <p className="text-xs font-semibold tracking-wider text-[#4a4a4a] uppercase">
                                 Awaiting confirmation
                             </p>
-                            <p className="mt-2 font-serif text-3xl font-bold text-[#5F83AB]">
+                            <p className="mt-2 font-serif text-3xl font-bold text-[#8a6a2f]">
                                 {pendingCount}
                             </p>
-                            <p className="mt-1 text-xs text-[#5B6B82]">
+                            <p className="mt-1 text-xs text-[#4a4a4a]">
                                 Your artist will confirm soon
                             </p>
                         </div>
-                        <div className="rounded-2xl border border-[#D3DFEF] bg-white p-4 shadow-sm shadow-[#95B1DB]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#5B6B82] uppercase">
+                        <div className="rounded-2xl border border-[#e8d7cf] bg-white p-4 shadow-sm shadow-[#c9a66b]/10">
+                            <p className="text-xs font-semibold tracking-wider text-[#4a4a4a] uppercase">
                                 Favorite moments
                             </p>
                             <p className="mt-2 font-serif text-3xl font-bold text-[#718B72]">
                                 {completedCount}
                             </p>
-                            <p className="mt-1 text-xs text-[#5B6B82]">
+                            <p className="mt-1 text-xs text-[#4a4a4a]">
                                 Completed sessions
                             </p>
                         </div>
                     </section>
 
                     {/* upcoming / past toggle */}
-                    <div className="mb-6 inline-flex rounded-full border border-[#D3DFEF] bg-white p-1 shadow-sm">
+                    <div className="mb-6 inline-flex rounded-full border border-[#e8d7cf] bg-white p-1 shadow-sm">
                         <button
                             type="button"
                             onClick={() => setTab('upcoming')}
                             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors duration-200 ${
                                 tab === 'upcoming'
-                                    ? 'bg-[#5F83AB] text-white shadow-sm'
-                                    : 'text-[#5B6B82] hover:text-[#5F83AB]'
+                                    ? 'bg-[#8a6a2f] text-white shadow-sm'
+                                    : 'text-[#4a4a4a] hover:text-[#8a6a2f]'
                             }`}
                         >
                             Upcoming ({upcoming.length})
@@ -388,8 +400,8 @@ export default function ClientDashboard({ bookings }: Props) {
                             onClick={() => setTab('past')}
                             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors duration-200 ${
                                 tab === 'past'
-                                    ? 'bg-[#5F83AB] text-white shadow-sm'
-                                    : 'text-[#5B6B82] hover:text-[#5F83AB]'
+                                    ? 'bg-[#8a6a2f] text-white shadow-sm'
+                                    : 'text-[#4a4a4a] hover:text-[#8a6a2f]'
                             }`}
                         >
                             Past ({past.length})
@@ -397,16 +409,16 @@ export default function ClientDashboard({ bookings }: Props) {
                     </div>
 
                     {visible.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-[#B5C8E5] bg-white/80 px-6 py-16 text-center shadow-sm">
-                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E6EEF8] text-[#5F83AB]">
+                        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-[#d7c0a2] bg-white/80 px-6 py-16 text-center shadow-sm">
+                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f4e9e5] text-[#8a6a2f]">
                                 <Sparkles className="h-7 w-7" />
                             </span>
-                            <p className="font-serif text-lg font-bold text-[#1F2D40]">
+                            <p className="font-serif text-lg font-bold text-[#1a1a1a]">
                                 {tab === 'upcoming'
                                     ? 'No upcoming bookings'
                                     : 'No past bookings'}
                             </p>
-                            <p className="max-w-xs text-sm text-[#5B6B82]">
+                            <p className="max-w-xs text-sm text-[#4a4a4a]">
                                 {tab === 'upcoming'
                                     ? 'When you book a session with one of our artists, it will show up here.'
                                     : 'Completed or cancelled sessions will appear here.'}
@@ -420,21 +432,21 @@ export default function ClientDashboard({ bookings }: Props) {
                                     id={`booking-${booking.id}`}
                                     type="button"
                                     onClick={() => openDetails(booking)}
-                                    className={`rounded-3xl border bg-white p-5 text-left shadow-sm shadow-[#95B1DB]/10 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#95B1DB]/15 sm:p-6 ${
+                                    className={`rounded-3xl border bg-white p-5 text-left shadow-sm shadow-[#c9a66b]/10 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#c9a66b]/15 sm:p-6 ${
                                         isArtistDeclined(booking)
                                             ? 'border-[#A13F3F]/40'
-                                            : 'border-[#D3DFEF]'
+                                            : 'border-[#e8d7cf]'
                                     }`}
                                 >
                                     <div className="mb-3 flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="font-serif text-lg font-bold text-[#1F2D40]">
+                                            <p className="font-serif text-lg font-bold text-[#1a1a1a]">
                                                 {booking.service}
                                             </p>
-                                            {booking.base_price_type && <p className="mt-1 text-sm font-semibold text-[#5F83AB]">
+                                            {booking.base_price_type && <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
                                                 {booking.requires_quote ? 'Final price to be confirmed' : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
                                             </p>}
-                                            <p className="text-sm text-[#5B6B82]">
+                                            <p className="text-sm text-[#4a4a4a]">
                                                 with {booking.artist.name}
                                                 {booking.artist.specialty
                                                     ? ` · ${booking.artist.specialty}`
@@ -450,17 +462,18 @@ export default function ClientDashboard({ bookings }: Props) {
                                         </span>
                                     </div>
 
-                                    {!!booking.selected_add_ons?.length && <p className="mb-3 text-xs text-[#5B6B82]">Add-ons: {booking.selected_add_ons.map((item) => `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`).join(', ')}</p>}
-                                    {booking.venue_address && <p className="mb-3 text-sm text-[#5B6B82]">Home service · {booking.location_type === 'nearby_province' ? 'Nearby province' : 'Metro Manila'} · {booking.venue_address}</p>}
-                                    {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#1F2D40]">{booking.requires_quote ? 'Starting estimate · final price to confirm' : 'Estimated total'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
+                                    {!!booking.selected_add_ons?.length && <p className="mb-3 text-xs text-[#4a4a4a]">Add-ons: {booking.selected_add_ons.map((item) => `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`).join(', ')}</p>}
+                                    {booking.venue_address && <p className="mb-3 text-sm text-[#4a4a4a]">Home service · {booking.location_type === 'nearby_province' ? 'Nearby province' : 'Metro Manila'} · {booking.venue_address}</p>}
+                                    {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">{booking.requires_quote ? 'Starting estimate · final price to confirm' : 'Estimated total'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
+                                    {booking.transportation_fee_pending && <p className="mb-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-3 py-2 text-sm font-semibold text-[#8a6a2f]">Transportation fee updated · please review and respond</p>}
 
-                                    <div className="flex flex-wrap gap-4 text-sm text-[#5B6B82]">
+                                    <div className="flex flex-wrap gap-4 text-sm text-[#4a4a4a]">
                                         <span className="flex items-center gap-1.5">
-                                            <MapPin className="h-4 w-4 text-[#5F83AB]" />{' '}
+                                            <MapPin className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                             {formatDate(booking.booking_date)}
                                         </span>
                                         <span className="flex items-center gap-1.5">
-                                            <Clock className="h-4 w-4 text-[#5F83AB]" />{' '}
+                                            <Clock className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                             {formatTime(booking.booking_time)}
                                         </span>
                                     </div>
@@ -470,7 +483,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                             className={`mt-3 flex items-start gap-1.5 rounded-lg px-3 py-2 text-sm ${
                                                 isArtistDeclined(booking)
                                                     ? 'bg-[#FDEDED] text-[#A13F3F]'
-                                                    : 'bg-[#E6E6FA] text-[#5B4B9C]'
+                                                    : 'bg-[#f4e9e5] text-[#8a6a2f]'
                                             }`}
                                         >
                                             {isArtistDeclined(booking) ? (
@@ -487,7 +500,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                         </p>
                                     )}
 
-                                    <p className="mt-3 text-xs font-semibold text-[#5F83AB]">
+                                    <p className="mt-3 text-xs font-semibold text-[#8a6a2f]">
                                         Tap for details →
                                     </p>
                                 </button>
@@ -509,10 +522,10 @@ export default function ClientDashboard({ bookings }: Props) {
                     >
                         <div className="mb-4 flex items-start justify-between gap-3">
                             <div>
-                                <p className="mb-0.5 text-xs tracking-widest text-[#5F83AB] uppercase">
+                                <p className="mb-0.5 text-xs tracking-widest text-[#8a6a2f] uppercase">
                                     Booking Details
                                 </p>
-                                <h2 className="font-serif text-xl font-bold text-[#1F2D40]">
+                                <h2 className="font-serif text-xl font-bold text-[#1a1a1a]">
                                     {selectedBooking.service}
                                 </h2>
                             </div>
@@ -520,16 +533,16 @@ export default function ClientDashboard({ bookings }: Props) {
                                 type="button"
                                 onClick={closeDetails}
                                 aria-label="Close"
-                                className="rounded-full p-1.5 text-[#5B6B82] transition hover:bg-[#E6EEF8] hover:text-[#5F83AB]"
+                                className="rounded-full p-1.5 text-[#4a4a4a] transition hover:bg-[#f4e9e5] hover:text-[#8a6a2f]"
                             >
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
 
                         <div className="mb-4 flex items-center justify-between">
-                            <p className="text-sm text-[#5B6B82]">
+                            <p className="text-sm text-[#4a4a4a]">
                                 with{' '}
-                                <span className="font-semibold text-[#1F2D40]">
+                                <span className="font-semibold text-[#1a1a1a]">
                                     {selectedBooking.artist.name}
                                 </span>
                                 {selectedBooking.artist.specialty
@@ -545,33 +558,33 @@ export default function ClientDashboard({ bookings }: Props) {
                             </span>
                         </div>
 
-                        {!rescheduling ? (
-                            <>
-                                <div className="mb-4 grid gap-2 rounded-xl bg-[#F2F5F8] p-4 text-sm text-[#1F2D40]">
+                                {!rescheduling ? (
+                                    <>
+                                <div className="mb-4 grid gap-2 rounded-xl bg-[#faf7f4] p-4 text-sm text-[#1a1a1a]">
                                     <span className="flex items-center gap-2">
-                                        <MapPin className="h-4 w-4 text-[#5F83AB]" />{' '}
+                                        <MapPin className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                         {formatDate(
                                             selectedBooking.booking_date,
                                         )}
                                     </span>
                                     <span className="flex items-center gap-2">
-                                        <Clock className="h-4 w-4 text-[#5F83AB]" />{' '}
+                                        <Clock className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                         {formatTime(
                                             selectedBooking.booking_time,
                                         )}
                                     </span>
                                     {selectedBooking.artist.phone && (
                                         <span className="flex items-center gap-2">
-                                            <Phone className="h-4 w-4 text-[#5F83AB]" />{' '}
+                                            <Phone className="h-4 w-4 text-[#8a6a2f]" />{' '}
                                             {selectedBooking.artist.phone}
                                         </span>
                                     )}
                                 </div>
 
                                 {(selectedBooking.base_price != null || !!selectedBooking.selected_add_ons?.length || selectedBooking.estimated_total != null) && (
-                                    <section className="mb-4 rounded-xl border border-[#D3DFEF] bg-white p-4">
-                                        <h3 className="mb-3 text-sm font-semibold text-[#1F2D40]">Price breakdown</h3>
-                                        <div className="grid gap-2 text-sm text-[#5B6B82]">
+                                    <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-white p-4">
+                                        <h3 className="mb-3 text-sm font-semibold text-[#1a1a1a]">Price breakdown</h3>
+                                        <div className="grid gap-2 text-sm text-[#4a4a4a]">
                                             {selectedBooking.base_price != null && (
                                                 <div className="flex justify-between gap-3">
                                                     <span>{selectedBooking.service}{selectedBooking.base_price_type === 'starting_at' ? ' (starting price)' : ''}</span>
@@ -585,7 +598,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 </div>
                                             ))}
                                             {selectedBooking.estimated_total != null && (
-                                                <div className="flex justify-between gap-3 border-t border-[#D3DFEF] pt-2 font-semibold text-[#1F2D40]">
+                                                <div className="flex justify-between gap-3 border-t border-[#e8d7cf] pt-2 font-semibold text-[#1a1a1a]">
                                                     <span>{selectedBooking.requires_quote ? 'Starting estimate · final price to confirm' : 'Estimated total'}</span>
                                                     <span className="shrink-0">₱{Number(selectedBooking.estimated_total).toLocaleString('en-PH')}</span>
                                                 </div>
@@ -594,12 +607,28 @@ export default function ClientDashboard({ bookings }: Props) {
                                     </section>
                                 )}
 
+                                {selectedBooking.transportation_fee_pending && (
+                                    <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4">
+                                        <p className="text-sm font-semibold text-[#1a1a1a]">Transportation fee updated</p>
+                                        <p className="mt-1 text-sm text-[#4a4a4a]">Trixie revised the travel estimate for your address. Review the updated price breakdown above, then accept the estimate to continue. You can cancel if it does not work for you.</p>
+                                        <button
+                                            type="button"
+                                            disabled={feeDecisionBusyId === selectedBooking.id}
+                                            onClick={() => handleAcceptTransportationFee(selectedBooking)}
+                                            className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
+                                        >
+                                            <Check className="h-3.5 w-3.5" />
+                                            {feeDecisionBusyId === selectedBooking.id ? 'Saving...' : 'Accept updated estimate'}
+                                        </button>
+                                    </section>
+                                )}
+
                                 {selectedBooking.package && (
-                                    <section className="mb-4 rounded-xl bg-[#FAFCFE] p-4">
-                                        <h3 className="mb-2 text-sm font-semibold text-[#1F2D40]">Package details</h3>
-                                        {selectedBooking.package.description && <p className="mb-2 text-sm text-[#5B6B82]">{selectedBooking.package.description}</p>}
+                                    <section className="mb-4 rounded-xl bg-[#fffcf8] p-4">
+                                        <h3 className="mb-2 text-sm font-semibold text-[#1a1a1a]">Package details</h3>
+                                        {selectedBooking.package.description && <p className="mb-2 text-sm text-[#4a4a4a]">{selectedBooking.package.description}</p>}
                                         {!!selectedBooking.package.inclusions?.length && (
-                                            <ul className="grid gap-1 text-sm text-[#5B6B82]">
+                                            <ul className="grid gap-1 text-sm text-[#4a4a4a]">
                                                 {selectedBooking.package.inclusions.map((inclusion, index) => <li key={`${inclusion}-${index}`}>• {inclusion}</li>)}
                                             </ul>
                                         )}
@@ -607,19 +636,19 @@ export default function ClientDashboard({ bookings }: Props) {
                                 )}
 
                                 {selectedBooking.venue_address && (
-                                    <section className="mb-4 rounded-xl bg-[#F2F5F8] p-4 text-sm">
-                                        <h3 className="mb-1 font-semibold text-[#1F2D40]">Home-service location</h3>
-                                        <p className="text-[#5B6B82]">{selectedBooking.location_type === 'nearby_province' ? 'Nearby province' : selectedBooking.location_type === 'metro_manila' ? 'Metro Manila' : 'Home service'}</p>
-                                        <p className="mt-1 whitespace-pre-line text-[#1F2D40]">{selectedBooking.venue_address}</p>
+                                    <section className="mb-4 rounded-xl bg-[#faf7f4] p-4 text-sm">
+                                        <h3 className="mb-1 font-semibold text-[#1a1a1a]">Home-service location</h3>
+                                        <p className="text-[#4a4a4a]">{selectedBooking.location_type === 'nearby_province' ? 'Nearby province' : selectedBooking.location_type === 'metro_manila' ? 'Metro Manila' : 'Home service'}</p>
+                                        <p className="mt-1 whitespace-pre-line text-[#1a1a1a]">{selectedBooking.venue_address}</p>
                                     </section>
                                 )}
 
                                 {selectedNotes.occasion && (
                                     <div className="mb-4">
-                                        <p className="mb-1 text-xs font-semibold text-[#5B6B82]">
+                                        <p className="mb-1 text-xs font-semibold text-[#4a4a4a]">
                                             Occasion
                                         </p>
-                                        <span className="inline-block rounded-full bg-[#E6EEF8] px-3 py-1 text-xs font-semibold text-[#5F83AB]">
+                                        <span className="inline-block rounded-full bg-[#f4e9e5] px-3 py-1 text-xs font-semibold text-[#8a6a2f]">
                                             {selectedNotes.occasion}
                                         </span>
                                     </div>
@@ -627,10 +656,10 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                 {selectedNotes.text && (
                                     <div className="mb-4">
-                                        <p className="mb-1 text-xs font-semibold text-[#5B6B82]">
+                                        <p className="mb-1 text-xs font-semibold text-[#4a4a4a]">
                                             Your notes
                                         </p>
-                                        <p className="rounded-lg bg-[#F2F5F8] px-3 py-2 text-sm whitespace-pre-line text-[#1F2D40]">
+                                        <p className="rounded-lg bg-[#faf7f4] px-3 py-2 text-sm whitespace-pre-line text-[#1a1a1a]">
                                             {selectedNotes.text}
                                         </p>
                                     </div>
@@ -638,7 +667,7 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                 {selectedBooking.artist_message && (
                                     <div className="mb-4">
-                                        <p className="mb-1 text-xs font-semibold text-[#5B6B82]">
+                                        <p className="mb-1 text-xs font-semibold text-[#4a4a4a]">
                                             Message from{' '}
                                             {selectedBooking.artist.name}
                                         </p>
@@ -648,7 +677,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                                     selectedBooking,
                                                 )
                                                     ? 'bg-[#FDEDED] text-[#A13F3F]'
-                                                    : 'bg-[#E6E6FA] text-[#5B4B9C]'
+                                                    : 'bg-[#f4e9e5] text-[#8a6a2f]'
                                             }`}
                                         >
                                             {isArtistDeclined(
@@ -665,7 +694,7 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                 {selectedBooking.inspo_url && (
                                     <div className="mb-4">
-                                        <p className="mb-1 text-xs font-semibold text-[#5B6B82]">
+                                        <p className="mb-1 text-xs font-semibold text-[#4a4a4a]">
                                             Makeup inspo
                                         </p>
                                         <button
@@ -675,14 +704,14 @@ export default function ClientDashboard({ bookings }: Props) {
                                                     selectedBooking.inspo_url,
                                                 )
                                             }
-                                            className="flex items-center gap-2 rounded-lg border border-[#95B1DB] bg-[#FAFCFE] p-2 transition hover:bg-[#E6EEF8]"
+                                            className="flex items-center gap-2 rounded-lg border border-[#c9a66b] bg-[#fffcf8] p-2 transition hover:bg-[#f4e9e5]"
                                         >
                                             <img
                                                 src={selectedBooking.inspo_url}
                                                 alt="Inspo"
                                                 className="h-12 w-12 rounded-md object-cover"
                                             />
-                                            <span className="flex items-center gap-1 text-xs font-semibold text-[#5F83AB]">
+                                            <span className="flex items-center gap-1 text-xs font-semibold text-[#8a6a2f]">
                                                 <ImageIcon className="h-3.5 w-3.5" />{' '}
                                                 View full image
                                             </span>
@@ -691,17 +720,17 @@ export default function ClientDashboard({ bookings }: Props) {
                                 )}
 
                                 {canModify(selectedBooking) && (
-                                    <div className="flex flex-wrap gap-2 border-t border-[#D3DFEF] pt-4">
-                                        <button
+                                    <div className="flex flex-wrap gap-2 border-t border-[#e8d7cf] pt-4">
+                                        {!selectedBooking.transportation_fee_pending && <button
                                             type="button"
                                             onClick={() =>
                                                 setRescheduling(true)
                                             }
-                                            className="flex items-center gap-1.5 rounded-full border border-[#5F83AB] px-4 py-1.5 text-xs font-semibold text-[#5F83AB] transition hover:bg-[#E6EEF8]"
+                                            className="flex items-center gap-1.5 rounded-full border border-[#8a6a2f] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5]"
                                         >
                                             <CalendarDays className="h-3.5 w-3.5" />{' '}
                                             Reschedule
-                                        </button>
+                                        </button>}
 
                                         {confirmingId === selectedBooking.id ? (
                                             <div className="flex w-full flex-wrap items-center gap-2 pt-2">
@@ -731,7 +760,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                                     onClick={() =>
                                                         setConfirmingId(null)
                                                     }
-                                                    className="rounded-full border border-[#95B1DB] px-4 py-1.5 text-xs font-semibold text-[#5B6B82] transition hover:bg-[#E6EEF8]"
+                                                    className="rounded-full border border-[#c9a66b] px-4 py-1.5 text-xs font-semibold text-[#4a4a4a] transition hover:bg-[#f4e9e5]"
                                                 >
                                                     Never mind
                                                 </button>
@@ -754,8 +783,8 @@ export default function ClientDashboard({ bookings }: Props) {
                                 )}
 
                                 {needsContactToCancel(selectedBooking) && (
-                                    <div className="border-t border-[#D3DFEF] pt-4">
-                                        <p className="text-xs text-[#5B6B82]">
+                                    <div className="border-t border-[#e8d7cf] pt-4">
+                                        <p className="text-xs text-[#4a4a4a]">
                                             This session is less than{' '}
                                             {CANCEL_CUTOFF_HOURS}h away and can
                                             no longer be changed here.
@@ -768,14 +797,14 @@ export default function ClientDashboard({ bookings }: Props) {
                             </>
                         ) : (
                             <div className="grid gap-4">
-                                <p className="text-sm text-[#5B6B82]">
+                                <p className="text-sm text-[#4a4a4a]">
                                     Pick a new date and time. Your artist will
                                     need to approve the new slot.
                                 </p>
 
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <div className="grid gap-1.5">
-                                        <label className="text-xs font-semibold text-[#1F2D40]">
+                                        <label className="text-xs font-semibold text-[#1a1a1a]">
                                             New date
                                         </label>
                                         <input
@@ -785,11 +814,11 @@ export default function ClientDashboard({ bookings }: Props) {
                                             onChange={(e) =>
                                                 setNewDate(e.target.value)
                                             }
-                                            className="rounded-xl border border-[#95B1DB] bg-[#FAFCFE] px-3 py-2 text-sm text-[#1F2D40] focus-visible:border-[#769AD0] focus-visible:outline-none"
+                                            className="rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none"
                                         />
                                     </div>
                                     <div className="grid gap-1.5">
-                                        <label className="text-xs font-semibold text-[#1F2D40]">
+                                        <label className="text-xs font-semibold text-[#1a1a1a]">
                                             New time
                                         </label>
                                         <input
@@ -798,7 +827,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                             onChange={(e) =>
                                                 setNewTime(e.target.value)
                                             }
-                                            className="rounded-xl border border-[#95B1DB] bg-[#FAFCFE] px-3 py-2 text-sm text-[#1F2D40] focus-visible:border-[#769AD0] focus-visible:outline-none"
+                                            className="rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -809,7 +838,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                             type="button"
                                             disabled={!rescheduleChanged}
                                             onClick={handleProceed}
-                                            className="rounded-full bg-[#5F83AB] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#4E7099] disabled:opacity-40"
+                                            className="rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#735829] disabled:opacity-40"
                                         >
                                             Proceed
                                         </button>
@@ -818,14 +847,14 @@ export default function ClientDashboard({ bookings }: Props) {
                                             onClick={() =>
                                                 setRescheduling(false)
                                             }
-                                            className="rounded-full border border-[#95B1DB] px-5 py-2 text-sm font-semibold text-[#5B6B82] transition hover:bg-[#E6EEF8]"
+                                            className="rounded-full border border-[#c9a66b] px-5 py-2 text-sm font-semibold text-[#4a4a4a] transition hover:bg-[#f4e9e5]"
                                         >
                                             Back
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="rounded-xl border border-[#95B1DB] bg-[#F2F5F8] p-4">
-                                        <p className="mb-3 text-sm text-[#1F2D40]">
+                                    <div className="rounded-xl border border-[#c9a66b] bg-[#faf7f4] p-4">
+                                        <p className="mb-3 text-sm text-[#1a1a1a]">
                                             Reschedule to{' '}
                                             <span className="font-semibold">
                                                 {formatDate(newDate)}
@@ -844,7 +873,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 onClick={
                                                     handleConfirmReschedule
                                                 }
-                                                className="rounded-full bg-[#5F83AB] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#4E7099] disabled:opacity-50"
+                                                className="rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#735829] disabled:opacity-50"
                                             >
                                                 {rescheduleBusy
                                                     ? 'Submitting...'
@@ -857,7 +886,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                                         false,
                                                     )
                                                 }
-                                                className="rounded-full border border-[#95B1DB] px-5 py-2 text-sm font-semibold text-[#5B6B82] transition hover:bg-[#E6EEF8]"
+                                                className="rounded-full border border-[#c9a66b] px-5 py-2 text-sm font-semibold text-[#4a4a4a] transition hover:bg-[#f4e9e5]"
                                             >
                                                 Cancel
                                             </button>

@@ -1,4 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import { BadgeCheck, Brush, CalendarCheck, Clock, Sparkles } from 'lucide-react';
 import BehindTheGlow from '@/components/landing/BehindTheGlow';
 import SocialLinks from '@/components/landing/SocialLinks';
@@ -72,7 +73,23 @@ const STEPS = [
     { title: 'Shine', desc: 'Walk out confident and camera-ready.' },
 ];
 
-const ARTIST_PHOTO: string | null = '/images/gallery/artist.png';
+const ARTIST_PHOTOS = [
+    {
+        src: '/images/gallery/artist.png',
+        alt: 'Trixie smiling in her makeup artist portrait',
+        position: 'object-left',
+    },
+    {
+        src: '/images/gallery/artist-lakeside.png',
+        alt: 'Trixie smiling outdoors by the water',
+        position: 'object-center',
+    },
+    {
+        src: '/images/gallery/artist-evening.png',
+        alt: 'Trixie posing in a red top at night',
+        position: 'object-center',
+    },
+];
 
 function SectionHeading({ title, sub }: { title: string; sub?: string }) {
     return (
@@ -92,12 +109,21 @@ const secondaryBtn =
 export default function Welcome({ artist, services, packages: packagesProp, galleryImages: galleryImagesProp }: Props) {
     const packages = Array.isArray(packagesProp) ? packagesProp : [];
     const galleryImages = Array.isArray(galleryImagesProp) ? galleryImagesProp : [];
+    const [activeArtistPhotoIndex, setActiveArtistPhotoIndex] = useState(0);
 
     const { auth } = usePage<{ auth?: { user?: unknown } }>().props;
     const isLoggedIn = Boolean(auth?.user);
     const bookHref = isLoggedIn ? dashboard() : register();
 
     const navLinks = NAV_LINKS.filter((link) => link.href !== '#artist' || artist);
+
+    useEffect(() => {
+        const slideshowTimer = window.setInterval(() => {
+            setActiveArtistPhotoIndex((currentIndex) => (currentIndex + 1) % ARTIST_PHOTOS.length);
+        }, 5000);
+
+        return () => window.clearInterval(slideshowTimer);
+    }, []);
 
     const firstName = artist?.name.split(' ')[0] ?? '';
     const initials = artist
@@ -368,12 +394,22 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                 <div className="relative mx-auto w-full max-w-sm">
                                     <div className="absolute -right-5 -top-5 h-56 w-56 rounded-full bg-[#C9A66B]/30" />
                                     <div className="relative z-10 aspect-[3/4] overflow-hidden rounded-t-full rounded-b-3xl border-4 border-white bg-[#E8B4B8]/40 shadow-xl shadow-[#C9A66B]/30">
-                                        {ARTIST_PHOTO ? (
-                                            <img
-                                                src={ARTIST_PHOTO}
-                                                alt={artist.name}
-                                                className="h-full w-full object-cover object-left"
-                                            />
+                                        {ARTIST_PHOTOS.length > 0 ? (
+                                            ARTIST_PHOTOS.map((photo, index) => {
+                                                const isActive = index === activeArtistPhotoIndex;
+
+                                                return (
+                                                    <img
+                                                        key={photo.src}
+                                                        src={photo.src}
+                                                        alt={isActive ? photo.alt : ''}
+                                                        aria-hidden={!isActive}
+                                                        className={`absolute inset-0 h-full w-full object-cover ${photo.position} transition-[opacity,transform] duration-1000 ease-in-out motion-reduce:transition-none ${
+                                                            isActive ? 'scale-[1.06] opacity-100' : 'scale-100 opacity-0'
+                                                        }`}
+                                                    />
+                                                );
+                                            })
                                         ) : (
                                             <div className="flex h-full w-full items-center justify-center">
                                                 <span className="font-display text-7xl font-bold text-[#8A6A2F]">

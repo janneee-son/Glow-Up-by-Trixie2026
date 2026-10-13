@@ -29,18 +29,21 @@ class ArtistBookingUpdate extends Notification
             'cancelled' => 'Booking cancelled by the artist',
             'client_cancelled' => 'Booking cancelled by the client',
             'travel_fee_updated' => 'Travel fee updated',
+            'travel_fee_accepted' => 'Client accepted transportation fee',
         ];
 
         $travelFee = collect($this->booking->selected_add_ons ?? [])
             ->first(fn (array $item) => ($item['is_system_fee'] ?? false)
                 && preg_match('/transportation/i', $item['name'] ?? '') === 1);
 
-        $detail = $this->event === 'travel_fee_updated'
-            ? 'Transportation: ₱' . number_format((float) ($travelFee['line_total'] ?? 0))
-                . ($this->booking->estimated_total === null
+        $detail = match ($this->event) {
+            'travel_fee_updated' => 'Transportation: ₱'.number_format((float) ($travelFee['line_total'] ?? 0))
+                .($this->booking->estimated_total === null
                     ? ''
-                    : ' · New estimate: ₱' . number_format((float) $this->booking->estimated_total))
-            : null;
+                    : ' · New estimate: ₱'.number_format((float) $this->booking->estimated_total)),
+            'travel_fee_accepted' => 'The client accepted the revised estimate. You can now review and confirm the booking.',
+            default => null,
+        };
 
         return [
             'event' => $this->event,

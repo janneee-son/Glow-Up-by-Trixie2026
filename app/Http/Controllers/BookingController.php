@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Booking;
 use App\Models\ArtistOffering;
 use App\Models\ArtistService;
+use App\Models\Booking;
 use App\Models\InspoImage;
 use App\Models\User;
-use App\Notifications\NewBookingRequest;
 use App\Notifications\ArtistBookingUpdate;
+use App\Notifications\NewBookingRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -21,16 +21,23 @@ class BookingController extends Controller
     private const CHANGE_CUTOFF_HOURS = 24;
 
     private const MAX_DAILY_BOOKINGS = 2;
+
     private const RUSH_BOOKING_DAYS = 7;
+
     private const RUSH_BOOKING_FEE = 500;
+
     private const EARLY_CALL_TIME_FEE = 500;
+
     private const DEFAULT_METRO_MANILA_TRAVEL_FEE = 500;
+
     private const DEFAULT_OUT_OF_TOWN_TRAVEL_FEE = 1000;
+
     private const METRO_MANILA_CITIES = [
         'Caloocan', 'Las Piñas', 'Makati', 'Malabon', 'Mandaluyong', 'Manila',
         'Marikina', 'Muntinlupa', 'Navotas', 'Parañaque', 'Pasay', 'Pasig',
         'Quezon City', 'San Juan', 'Taguig', 'Valenzuela', 'Pateros',
     ];
+
     private const NEARBY_PROVINCE_DESTINATIONS = ['Cavite', 'Tagaytay', 'Bulacan'];
 
     /** The one artist (and admin) of the studio. */
@@ -49,8 +56,7 @@ class BookingController extends Controller
         string $time,
         string $serviceName,
         ?int $ignoreBookingId = null,
-    ): bool
-    {
+    ): bool {
         $start = Carbon::parse("{$date} {$time}");
         $end = $start->copy()->addMinutes($this->sessionDurationMinutes($serviceName));
 
@@ -103,7 +109,7 @@ class BookingController extends Controller
             ->get()
             ->map(fn ($img) => [
                 'id' => $img->id,
-                'url' => asset('storage/' . $img->path),
+                'url' => asset('storage/'.$img->path),
                 'caption' => $img->caption,
             ]);
 
@@ -261,12 +267,12 @@ class BookingController extends Controller
                 $unitPrice = $addOn->price === null ? null : (float) $addOn->price;
 
                 return [
-                'id' => $addOn->id,
-                'name' => $addOn->name,
-                'price' => $unitPrice,
-                'quantity' => $quantity,
-                'line_total' => $unitPrice === null ? null : $unitPrice * $quantity,
-                'pricing_type' => $addOn->pricing_type,
+                    'id' => $addOn->id,
+                    'name' => $addOn->name,
+                    'price' => $unitPrice,
+                    'quantity' => $quantity,
+                    'line_total' => $unitPrice === null ? null : $unitPrice * $quantity,
+                    'pricing_type' => $addOn->pricing_type,
                 ];
             })
             ->values()
@@ -336,7 +342,7 @@ class BookingController extends Controller
             'booking_date' => $validated['booking_date'],
             'booking_time' => $validated['booking_time'],
             'location_type' => $this->travelAreaForCity($validated['service_city']),
-            'venue_address' => $validated['service_city'] . ' — ' . $validated['venue_address'],
+            'venue_address' => $validated['service_city'].' — '.$validated['venue_address'],
             'notes' => $validated['notes'] ?? null,
             'inspo_image_id' => $inspoId,
             'status' => 'pending',
@@ -355,6 +361,12 @@ class BookingController extends Controller
             $booking->status === 'pending',
             422,
             'This booking is no longer pending.'
+        );
+
+        abort_unless(
+            ! $booking->transportation_fee_pending,
+            422,
+            'The client must accept the updated transportation fee first.'
         );
 
         $validated = $request->validate([
@@ -422,6 +434,7 @@ class BookingController extends Controller
         $booking->update([
             'selected_add_ons' => $addOns,
             'estimated_total' => $estimatedTotal,
+            'transportation_fee_pending' => true,
         ]);
 
         $booking->loadMissing('client', 'artist');
@@ -432,6 +445,24 @@ class BookingController extends Controller
         $booking->client?->notify(new ArtistBookingUpdate($booking, 'travel_fee_updated'));
 
         return back()->with('success', 'Updated transportation estimate sent to the client.');
+    }
+
+    public function acceptTransportationFee(Request $request, Booking $booking)
+    {
+        abort_unless($booking->client_id === $request->user()->id, 403);
+        abort_unless($booking->status === 'pending', 422, 'This booking is no longer pending.');
+        abort_unless($booking->transportation_fee_pending, 422, 'There is no updated transportation fee to accept.');
+
+        $booking->update(['transportation_fee_pending' => false]);
+
+        $booking->loadMissing('client', 'artist');
+        $booking->client?->notifications()
+            ->where('data->booking_id', $booking->id)
+            ->where('data->event', 'travel_fee_updated')
+            ->delete();
+        $booking->artist?->notify(new ArtistBookingUpdate($booking, 'travel_fee_accepted'));
+
+        return back()->with('success', 'Transportation estimate accepted. Trixie can now confirm your booking.');
     }
 
     public function decline(Request $request, Booking $booking)
@@ -603,14 +634,14 @@ class BookingController extends Controller
         string $travelArea,
         int $metroManilaTravelFee,
         int $outOfTownTravelFee,
-    ): array
-    {
+    ): array {
         $existingSystemFees = 0.0;
         $regularAddOns = [];
 
         foreach ($selectedAddOns as $addOn) {
             if ($addOn['is_system_fee'] ?? false) {
                 $existingSystemFees += (float) ($addOn['line_total'] ?? 0);
+
                 continue;
             }
 

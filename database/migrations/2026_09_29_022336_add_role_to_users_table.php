@@ -1,35 +1,22 @@
 <?php
 
-namespace App\Actions\Fortify;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use App\Concerns\PasswordValidationRules;
-use App\Concerns\ProfileValidationRules;
-use App\Models\User;
-use Illuminate\Support\Facades\Validator;
-use Laravel\Fortify\Contracts\CreatesNewUsers;
-
-class CreateNewUser implements CreatesNewUsers
+return new class extends Migration
 {
-    use PasswordValidationRules, ProfileValidationRules;
-
-    /**
-     * Validate and create a newly registered user.
-     *
-     * @param  array<string, string>  $input
-     */
-    public function create(array $input): User
+    public function up(): void
     {
-        Validator::make($input, [
-            ...$this->profileRules(),
-            'role' => ['required', 'in:client,artist'],
-            'password' => $this->passwordRules(),
-        ])->validate();
-
-        return User::create([
-            'name' => $input['name'],
-            'email' => $input['email'],
-            'role' => $input['role'],
-            'password' => $input['password'],
-        ]);
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('role')->default('client');
+        });
     }
-}
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('role');
+        });
+    }
+};
