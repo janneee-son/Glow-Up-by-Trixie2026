@@ -30,7 +30,7 @@ class InspoController extends Controller
 
         $created = [];
         foreach ($request->file('images') as $file) {
-            $path = $file->store('inspo', 'public');
+            $path = $file->store('inspo');
             $created[] = InspoImage::create([
                 'user_id' => $request->user()->id,
                 'path' => $path,
@@ -45,16 +45,28 @@ class InspoController extends Controller
     {
         abort_unless($image->user_id === $request->user()->id, 403);
 
+        Storage::disk('local')->delete($image->path);
         Storage::disk('public')->delete($image->path);
         $image->delete();
 
         return back();
     }
 
-    /**
-     * Let an artist view a client's inspiration history —
-     * only if they share at least one booking together.
-     */
+    public function show(Request $request, InspoImage $image)
+    {
+        $isOwner = $image->user_id === $request->user()->id;
+        $isAssignedArtist = $request->user()->role === 'artist'
+            && Booking::where('artist_id', $request->user()->id)
+                ->where('client_id', $image->user_id)
+                ->exists();
+
+        abort_unless($isOwner || $isAssignedArtist, 403);
+
+        abort_unless(Storage::disk('local')->exists($image->path), 404);
+
+        return Storage::disk('local')->response($image->path, null, ['Cache-Control' => 'private, no-store']);
+    }
+
     public function showForClient(Request $request, User $client)
     {
         abort_unless($request->user()->role === 'artist', 403);
@@ -77,7 +89,7 @@ class InspoController extends Controller
     {
         return $images->map(fn ($img) => [
             'id' => $img->id,
-            'url' => Storage::url($img->path),
+            'url' => route('inspo.show', $img),
             'caption' => $img->caption,
         ]);
     }

@@ -31,8 +31,13 @@ class Booking extends Model
         'quote_pending',
         'quote_accepted_at',
         'deposit_status',
+        'deposit_method',
         'deposit_reference',
+        'deposit_proof_path',
         'deposit_received_at',
+        'terms_version',
+        'terms_text',
+        'terms_accepted_at',
     ];
 
     protected function casts(): array
@@ -47,6 +52,7 @@ class Booking extends Model
             'quote_pending' => 'boolean',
             'quote_accepted_at' => 'datetime',
             'deposit_received_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
         ];
     }
 

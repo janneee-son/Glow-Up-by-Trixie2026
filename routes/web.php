@@ -93,6 +93,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/book/{booking}/quote', [BookingController::class, 'sendQuote'])->name('bookings.quote');
     Route::patch('/book/{booking}/quote/accept', [BookingController::class, 'acceptQuote'])->name('bookings.quote.accept');
     Route::patch('/book/{booking}/deposit', [BookingController::class, 'submitDeposit'])->name('bookings.deposit.submit');
+    Route::get('/book/{booking}/deposit/proof', [BookingController::class, 'showDepositProof'])->name('bookings.deposit.proof');
     Route::patch('/book/{booking}/deposit/received', [BookingController::class, 'markDepositReceived'])->name('bookings.deposit.received');
     Route::patch('/book/{booking}/transportation-fee', [BookingController::class, 'updateTransportationFee'])->name('bookings.transportation-fee');
     Route::patch('/book/{booking}/transportation-fee/accept', [BookingController::class, 'acceptTransportationFee'])->name('bookings.transportation-fee.accept');
@@ -104,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/inspo', [InspoController::class, 'index'])->name('inspo.index');
     Route::post('/inspo', [InspoController::class, 'store'])->name('inspo.store');
+    Route::get('/inspo/{image}', [InspoController::class, 'show'])->name('inspo.show');
     Route::delete('/inspo/{image}', [InspoController::class, 'destroy'])->name('inspo.destroy');
     Route::get('/artist/clients/{client}/inspo', [InspoController::class, 'showForClient'])->name('inspo.client-view');
 

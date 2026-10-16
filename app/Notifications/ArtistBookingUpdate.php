@@ -46,7 +46,9 @@ class ArtistBookingUpdate extends Notification
                 .($this->booking->quote_reason ? ' · '.$this->booking->quote_reason : ''),
             'quote_accepted' => 'The client accepted the final quote and owes a 50% deposit of ₱'
                 .number_format((float) ($this->booking->estimated_total ?? 0) / 2, 2).'.',
-            'deposit_submitted' => 'Payment reference or note: '.$this->booking->deposit_reference,
+            'deposit_submitted' => 'Payment method: '.str_replace('_', ' ', ucfirst($this->booking->deposit_method ?? 'unspecified'))
+                .($this->booking->deposit_reference ? ' · Reference: '.$this->booking->deposit_reference : '')
+                .($this->booking->deposit_proof_path ? ' · Proof image uploaded for verification.' : ''),
             'deposit_received' => 'Trixie verified your 50% deposit. The booking is ready for confirmation.',
             'travel_fee_updated' => 'Transportation: ₱'.number_format((float) ($travelFee['line_total'] ?? 0))
                 .($this->booking->estimated_total === null

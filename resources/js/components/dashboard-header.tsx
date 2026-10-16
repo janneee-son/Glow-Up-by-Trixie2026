@@ -98,6 +98,9 @@ export default function DashboardHeader({
     userRole = 'client',
     active = 'dashboard',
 }: Props) {
+    const { auth } = usePage<{
+        auth?: { user?: { avatar_url?: string | null } | null };
+    }>().props;
     const [menuOpen, setMenuOpen] = useState(false);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
@@ -201,7 +204,11 @@ export default function DashboardHeader({
                         className={linkClass('profile')}
                         aria-current={active === 'profile' ? 'page' : undefined}
                     >
-                        <UserIcon className="h-4 w-4" />
+                        {auth?.user?.avatar_url ? (
+                            <img src={auth.user.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover ring-1 ring-[#c9a66b]" />
+                        ) : (
+                            <UserIcon className="h-4 w-4" />
+                        )}
                         Profile
                     </Link>
 
@@ -240,7 +247,11 @@ export default function DashboardHeader({
                             className={mobileLinkClass(key)}
                             onClick={() => setMenuOpen(false)}
                         >
-                            <Icon className="h-4 w-4" />
+                            {key === 'profile' && auth?.user?.avatar_url ? (
+                                <img src={auth.user.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover ring-1 ring-[#c9a66b]" />
+                            ) : (
+                                <Icon className="h-4 w-4" />
+                            )}
                             {label}
                         </Link>
                     ))}

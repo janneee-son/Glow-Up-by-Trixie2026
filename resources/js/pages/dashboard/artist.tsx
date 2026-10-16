@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Check,
     Clock,
@@ -23,8 +23,12 @@ type Booking = {
     quote_reason?: string | null;
     quote_pending?: boolean;
     quote_accepted_at?: string | null;
+    terms_accepted_at?: string | null;
+    terms_version?: string | null;
     deposit_status?: 'not_due' | 'due' | 'submitted' | 'received';
+    deposit_method?: 'gcash' | 'bank_transfer' | 'cash' | null;
     deposit_reference?: string | null;
+    deposit_proof_url?: string | null;
     selected_add_ons?: { id: number | null; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string; is_system_fee?: boolean }[] | null;
     requires_quote?: boolean;
     booking_date: string;
@@ -363,7 +367,8 @@ export default function ArtistDashboard({ bookings }: Props) {
                                         {booking.deposit_status === 'submitted' && (
                                             <div className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4 text-sm">
                                                 <p className="font-semibold text-[#1a1a1a]">Client marked the deposit as sent</p>
-                                                <p className="mt-1 text-[#4a4a4a]">Reference or note: {booking.deposit_reference}</p>
+                                                <p className="mt-1 text-[#4a4a4a]">Payment method: {booking.deposit_method?.replace('_', ' ') ?? 'Not specified'}{booking.deposit_reference ? ` · Reference: ${booking.deposit_reference}` : ''}</p>
+                                                {booking.deposit_proof_url && <img src={booking.deposit_proof_url} alt="Client's uploaded deposit payment proof" className="mt-3 max-h-72 rounded-xl border border-[#e8d7cf] object-contain" />}
                                                 <button type="button" disabled={busyId === booking.id} onClick={() => markDepositReceived(booking)} className="mt-3 rounded-full bg-[#2E7D46] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50">{busyId === booking.id ? 'Saving…' : 'Mark deposit received'}</button>
                                             </div>
                                         )}
@@ -557,6 +562,7 @@ function BookingHeader({
                     <p className="text-sm text-[#4a4a4a]">
                         with {booking.client.name}
                     </p>
+                    {booking.terms_accepted_at && <p className="mt-1 text-xs text-[#4a4a4a]">Booking terms accepted on {new Date(booking.terms_accepted_at).toLocaleString('en-PH')}.</p>}
                 </div>
                 <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[booking.status]}`}
@@ -632,6 +638,12 @@ function BookingHeader({
                     </span>
                 </button>
             )}
+            <Link
+                href={`/artist/clients/${booking.client.id}/inspo`}
+                className="mt-3 inline-flex rounded-full border border-[#c9a66b] px-4 py-2 text-xs font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5]"
+            >
+                View client inspiration history
+            </Link>
         </>
     );
 }

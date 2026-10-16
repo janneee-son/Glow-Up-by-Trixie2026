@@ -26,8 +26,12 @@ type Booking = {
     quote_reason?: string | null;
     quote_pending?: boolean;
     quote_accepted_at?: string | null;
+    terms_accepted_at?: string | null;
+    terms_version?: string | null;
     deposit_status?: 'not_due' | 'due' | 'submitted' | 'received';
+    deposit_method?: 'gcash' | 'bank_transfer' | 'cash' | null;
     deposit_reference?: string | null;
+    deposit_proof_url?: string | null;
     selected_add_ons?: { id: number | null; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string; is_system_fee?: boolean }[] | null;
     requires_quote?: boolean;
     booking_date: string;
@@ -161,6 +165,8 @@ export default function ClientDashboard({ bookings }: Props) {
     const [cancellingId, setCancellingId] = useState<number | null>(null);
     const [feeDecisionBusyId, setFeeDecisionBusyId] = useState<number | null>(null);
     const [depositReference, setDepositReference] = useState<Record<number, string>>({});
+    const [depositMethod, setDepositMethod] = useState<Record<number, string>>({});
+    const [depositProof, setDepositProof] = useState<Record<number, File | null>>({});
     const [depositErrors, setDepositErrors] = useState<Record<number, string>>({});
     const [dismissed, setDismissed] = useState<number[]>(() =>
         typeof window !== 'undefined' ? getDismissedIds() : [],
@@ -237,11 +243,17 @@ export default function ClientDashboard({ bookings }: Props) {
     function handleSubmitDeposit(booking: Booking) {
         setFeeDecisionBusyId(booking.id);
         setDepositErrors((current) => ({ ...current, [booking.id]: '' }));
-        router.patch(`/book/${booking.id}/deposit`, { deposit_reference: depositReference[booking.id] ?? '' }, {
+        const method = depositMethod[booking.id] ?? '';
+        router.patch(`/book/${booking.id}/deposit`, {
+            deposit_method: method,
+            deposit_reference: depositReference[booking.id] ?? '',
+            deposit_proof: method === 'cash' ? null : depositProof[booking.id] ?? null,
+        }, {
+            forceFormData: true,
             preserveScroll: true,
             onError: (errors) => setDepositErrors((current) => ({
                 ...current,
-                [booking.id]: String(errors.deposit_reference ?? 'Could not submit the deposit note.'),
+                [booking.id]: String(errors.deposit_method ?? errors.deposit_proof ?? errors.deposit_reference ?? 'Could not submit the deposit details.'),
             })),
             onFinish: () => setFeeDecisionBusyId(null),
         });
@@ -583,6 +595,8 @@ export default function ClientDashboard({ bookings }: Props) {
                             </span>
                         </div>
 
+                        {selectedBooking.terms_accepted_at && <p className="mt-2 text-xs text-[#4a4a4a]">Booking terms accepted on {new Date(selectedBooking.terms_accepted_at).toLocaleString('en-PH')}.</p>}
+
                                 {!rescheduling ? (
                                     <>
                                 <div className="mb-4 grid gap-2 rounded-xl bg-[#faf7f4] p-4 text-sm text-[#1a1a1a]">
@@ -663,18 +677,44 @@ export default function ClientDashboard({ bookings }: Props) {
                                 {selectedBooking.deposit_status === 'due' && selectedBooking.estimated_total != null && (
                                     <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4">
                                         <p className="text-sm font-semibold text-[#1a1a1a]">50% deposit: ₱{(Number(selectedBooking.estimated_total) / 2).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
-                                        <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">Arrange payment directly with Trixie using your agreed payment method. After sending it, enter the payment reference or write “Cash”.</p>
+                                        <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">Choose how you paid. Upload a screenshot or photo of the successful transaction for GCash or bank transfer so Trixie can verify the deposit.</p>
+                                        <label htmlFor={`deposit-method-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Payment method</label>
+                                        <select
+                                            id={`deposit-method-${selectedBooking.id}`}
+                                            value={depositMethod[selectedBooking.id] ?? ''}
+                                            onChange={(event) => {
+                                                const method = event.target.value;
+                                                setDepositMethod((current) => ({ ...current, [selectedBooking.id]: method }));
+                                                if (method === 'cash') setDepositProof((current) => ({ ...current, [selectedBooking.id]: null }));
+                                            }}
+                                            className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
+                                        >
+                                            <option value="">Choose a payment method</option>
+                                            <option value="gcash">GCash</option>
+                                            <option value="bank_transfer">Bank transfer</option>
+                                            <option value="cash">Cash</option>
+                                        </select>
                                         <label htmlFor={`deposit-reference-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Payment reference or note</label>
                                         <input
                                             id={`deposit-reference-${selectedBooking.id}`}
                                             value={depositReference[selectedBooking.id] ?? ''}
                                             onChange={(event) => setDepositReference((current) => ({ ...current, [selectedBooking.id]: event.target.value }))}
                                             maxLength={120}
-                                            placeholder="e.g. transfer reference or Cash"
+                                            placeholder="Optional transaction reference"
                                             className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
                                         />
+                                        {(depositMethod[selectedBooking.id] === 'gcash' || depositMethod[selectedBooking.id] === 'bank_transfer') && <>
+                                            <label htmlFor={`deposit-proof-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Upload payment proof (JPG, PNG, or WebP; up to 5 MB)</label>
+                                            <input
+                                                id={`deposit-proof-${selectedBooking.id}`}
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp"
+                                                onChange={(event) => setDepositProof((current) => ({ ...current, [selectedBooking.id]: event.target.files?.[0] ?? null }))}
+                                                className="mt-1 w-full text-sm text-[#4a4a4a] file:mr-3 file:rounded-full file:border-0 file:bg-[#f4e9e5] file:px-4 file:py-2 file:text-xs file:font-semibold file:text-[#8a6a2f]"
+                                            />
+                                        </>}
                                         {depositErrors[selectedBooking.id] && <p role="alert" className="mt-1 text-xs text-[#A13F3F]">{depositErrors[selectedBooking.id]}</p>}
-                                        <button type="button" disabled={feeDecisionBusyId === selectedBooking.id || !(depositReference[selectedBooking.id] ?? '').trim()} onClick={() => handleSubmitDeposit(selectedBooking)} className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50">
+                                        <button type="button" disabled={feeDecisionBusyId === selectedBooking.id || !depositMethod[selectedBooking.id] || (depositMethod[selectedBooking.id] !== 'cash' && !depositProof[selectedBooking.id])} onClick={() => handleSubmitDeposit(selectedBooking)} className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50">
                                             {feeDecisionBusyId === selectedBooking.id ? 'Submitting…' : 'I sent the deposit'}
                                         </button>
                                     </section>
@@ -682,7 +722,8 @@ export default function ClientDashboard({ bookings }: Props) {
                                 {selectedBooking.deposit_status === 'submitted' && (
                                     <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4 text-sm">
                                         <p className="font-semibold text-[#1a1a1a]">Deposit marked as sent</p>
-                                        <p className="mt-1 text-[#4a4a4a]">Trixie will verify the payment. Reference: {selectedBooking.deposit_reference}</p>
+                                        <p className="mt-1 text-[#4a4a4a]">Trixie will verify your {selectedBooking.deposit_method?.replace('_', ' ')} payment{selectedBooking.deposit_reference ? ` · Reference: ${selectedBooking.deposit_reference}` : ''}.</p>
+                                        {selectedBooking.deposit_proof_url && <img src={selectedBooking.deposit_proof_url} alt="Uploaded deposit payment proof" className="mt-3 max-h-64 rounded-xl border border-[#e8d7cf] object-contain" />}
                                     </section>
                                 )}
                                 {selectedBooking.deposit_status === 'received' && (
