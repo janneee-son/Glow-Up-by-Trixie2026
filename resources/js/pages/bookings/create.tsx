@@ -49,6 +49,13 @@ type Offering = {
 
 type Props = {
     artist: Artist | null;
+    savedAddress?: {
+        street_address?: string | null;
+        barangay?: string | null;
+        city?: string | null;
+        province?: string | null;
+        postal_code?: string | null;
+    } | null;
     inspoImages?: InspoImage[] | null;
     services?: Service[] | null;
     packages?: Offering[] | null;
@@ -60,6 +67,7 @@ type Props = {
     metroManilaTravelFee?: number;
     outOfTownTravelFee?: number;
     serviceCities?: { metroManila: string[]; nearbyProvince: string[] };
+    bookingTerms: { version: string; text: string };
 };
 
 const fieldClass =
@@ -75,6 +83,7 @@ function usesQuantityLimits(name: string): boolean {
 
 export default function CreateBooking({
     artist,
+    savedAddress,
     inspoImages: inspoImagesProp,
     services: servicesProp,
     packages: packagesProp,
@@ -86,12 +95,26 @@ export default function CreateBooking({
     metroManilaTravelFee = 500,
     outOfTownTravelFee = 1000,
     serviceCities = { metroManila: [], nearbyProvince: [] },
+    bookingTerms,
 }: Props) {
     const inspoImages = Array.isArray(inspoImagesProp) ? inspoImagesProp : [];
 
     const services = Array.isArray(servicesProp) ? servicesProp : [];
     const packages = Array.isArray(packagesProp) ? packagesProp : [];
     const addOns = Array.isArray(addOnsProp) ? addOnsProp : [];
+    const savedAddressText = [
+        savedAddress?.street_address,
+        savedAddress?.barangay,
+        savedAddress?.city,
+        savedAddress?.province,
+        savedAddress?.postal_code,
+    ].filter(Boolean).join(', ');
+    const savedCity = savedAddress?.city?.trim() ?? '';
+    const savedProvince = savedAddress?.province?.trim() ?? '';
+    const defaultServiceCity = serviceCities.metroManila.find((city) => city.toLowerCase() === savedCity.toLowerCase())
+        ?? serviceCities.nearbyProvince.find((city) => city.toLowerCase() === savedCity.toLowerCase())
+        ?? serviceCities.nearbyProvince.find((city) => city.toLowerCase() === savedProvince.toLowerCase())
+        ?? '';
 
     const { auth } = usePage<{
         auth?: {
@@ -116,17 +139,21 @@ export default function CreateBooking({
         notes: string;
         inspo_image_id: number | null;
         new_inspo_image: File | null;
+        terms_accepted: boolean;
+        terms_version: string;
     }>({
         service: '',
         package_id: null,
         add_on_quantities: {},
         booking_date: '',
         booking_time: '',
-        service_city: '',
-        venue_address: '',
+        service_city: defaultServiceCity,
+        venue_address: savedAddressText,
         notes: '',
         inspo_image_id: null,
         new_inspo_image: null,
+        terms_accepted: false,
+        terms_version: bookingTerms.version,
     });
 
     const selectedService = services.find((service) => service.name === data.service);
@@ -297,19 +324,34 @@ export default function CreateBooking({
                         className="grid gap-6 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-lg shadow-[#c9a66b]/10 sm:p-7"
                     >
                         <div className="grid gap-2">
-                            <Label htmlFor="service" className="flex items-center gap-1.5 text-[#1a1a1a]">
-                                <Brush className="h-4 w-4 text-[#8a6a2f]" /> Choose one service or package
+                            <Label htmlFor="offering" className="flex items-center gap-1.5 text-[#1a1a1a]">
+                                <Brush className="h-4 w-4 text-[#8a6a2f]" /> Category
                             </Label>
-                            <select id="service" value={data.service} onChange={(event) => handleServiceChange(event.target.value)} className={fieldClass}>
-                                <option value="">Select a service (optional)</option>
-                                {services.map((service) => <option key={service.id} value={service.name}>{service.name} — ₱{Number(service.price).toLocaleString('en-PH')}</option>)}
-                            </select>
-                            <InputError message={errors.service} />
-                            <select aria-label="Package" value={data.package_id ?? ''} onChange={(event) => handlePackageChange(event.target.value ? Number(event.target.value) : null)} className={fieldClass}>
-                                <option value="">Or select a package (optional)</option>
-                                {packages.map((pkg) => <option key={pkg.id} value={pkg.id}>{pkg.name} — {pkg.pricing_type === 'quote_required' ? 'Price confirmed after booking' : `${pkg.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(pkg.price ?? 0).toLocaleString('en-PH')}`}</option>)}
+                            <select
+                                id="offering"
+                                value={data.service ? `service:${encodeURIComponent(data.service)}` : data.package_id != null ? `package:${data.package_id}` : ''}
+                                onChange={(event) => {
+                                    const [kind, value] = event.target.value.split(':', 2);
+                                    if (kind === 'service') {
+                                        handleServiceChange(value ? decodeURIComponent(value) : '');
+                                    } else if (kind === 'package') {
+                                        handlePackageChange(Number(value));
+                                    } else {
+                                        handleServiceChange('');
+                                    }
+                                }}
+                                className={fieldClass}
+                            >
+                                <option value="">Select a category</option>
+                                <optgroup label="Services">
+                                    {services.map((service) => <option key={service.id} value={`service:${encodeURIComponent(service.name)}`}>{service.name} — ₱{Number(service.price).toLocaleString('en-PH')}</option>)}
+                                </optgroup>
+                                <optgroup label="Packages">
+                                    {packages.map((pkg) => <option key={pkg.id} value={`package:${pkg.id}`}>{pkg.name} — {pkg.pricing_type === 'quote_required' ? 'Price confirmed after booking' : `${pkg.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(pkg.price ?? 0).toLocaleString('en-PH')}`}</option>)}
+                                </optgroup>
                             </select>
                             <p className="text-xs text-[#4a4a4a]">Choose only one. Add-ons below are optional.</p>
+                            <InputError message={errors.service} />
                             <InputError message={errors.package_id} />
                         </div>
 
@@ -364,8 +406,9 @@ export default function CreateBooking({
                                 htmlFor="venue_address"
                                 className="text-[#1a1a1a]"
                             >
-                                Street and barangay address
+                                Venue address
                             </Label>
+                            <p className="text-xs text-[#4a4a4a]">Prefilled from your profile address. Edit it here and choose a different city above if this appointment is at another venue.</p>
                             <textarea
                                 id="venue_address"
                                 value={data.venue_address}
@@ -375,7 +418,7 @@ export default function CreateBooking({
                                 required
                                 maxLength={1000}
                                 rows={3}
-                                placeholder="Enter the street, building, barangay, and other address details"
+                                placeholder="Enter the house, street, barangay, and full venue details"
                                 className={`${fieldClass} resize-y`}
                             />
                             <InputError message={errors.venue_address} />
@@ -461,7 +504,7 @@ export default function CreateBooking({
                             <p className="text-xs text-[#4a4a4a]">
                                 Pick from your Inspiration History or upload a
                                 new photo — it&apos;s saved to your profile and
-                                your artist will see it.
+                                it is saved to your account and your artist can view it for your booking.
                             </p>
 
                             {inspoImages.length > 0 && (
@@ -582,10 +625,27 @@ export default function CreateBooking({
                             <InputError message={errors.notes} />
                         </div>
 
+                        <section className="grid gap-3 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4" aria-labelledby="booking-terms-heading">
+                            <h2 id="booking-terms-heading" className="font-semibold text-[#1a1a1a]">Booking terms and conditions</h2>
+                            <p className="whitespace-pre-line text-sm leading-6 text-[#4a4a4a]">{bookingTerms.text}</p>
+                            <p className="text-xs leading-5 text-[#4a4a4a]">Bank transfer is also accepted. Contact the artist for bank account details.</p>
+                            <label htmlFor="terms_accepted" className="flex cursor-pointer items-start gap-2 text-sm leading-5 text-[#1a1a1a]">
+                                <input
+                                    id="terms_accepted"
+                                    type="checkbox"
+                                    checked={data.terms_accepted}
+                                    onChange={(event) => setData('terms_accepted', event.target.checked)}
+                                    className="mt-1 accent-[#8a6a2f]"
+                                />
+                                <span>I have read and agree to the booking terms and conditions.</span>
+                            </label>
+                            <InputError message={errors.terms_accepted} />
+                        </section>
+
                         <Button
                             type="submit"
                             disabled={
-                                !artist || (services.length === 0 && packages.length === 0) || (!data.service && !data.package_id) || processing
+                                !artist || (services.length === 0 && packages.length === 0) || (!data.service && !data.package_id) || !data.terms_accepted || processing
                             }
                             className="w-full rounded-full bg-[#8a6a2f] text-white shadow-md shadow-[#8a6a2f]/25 transition duration-200 hover:bg-[#8a6a2f] hover:shadow-lg disabled:opacity-50"
                         >

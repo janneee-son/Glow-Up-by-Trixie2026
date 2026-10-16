@@ -59,8 +59,14 @@ export default function EditProfile({ user }: Props) {
 
     const isArtist = user.role === 'artist';
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const cropDragRef = useRef<{ pointerX: number; pointerY: number; offsetX: number; offsetY: number } | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [viewingAvatar, setViewingAvatar] = useState(false);
+    const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
+    const [cropImageSize, setCropImageSize] = useState<{ width: number; height: number } | null>(null);
+    const [cropZoom, setCropZoom] = useState(1);
+    const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+    const [cropError, setCropError] = useState<string | null>(null);
 
     const { data, setData, patch, processing, errors, isDirty } = useForm({
         name: user.name,
@@ -82,12 +88,84 @@ export default function EditProfile({ user }: Props) {
 
     function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0] ?? null;
-        setData('avatar', file);
-        setData('remove_avatar', false);
-        setAvatarPreview(file ? URL.createObjectURL(file) : null);
+        if (!file) return;
+        if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+        setCropImageUrl(URL.createObjectURL(file));
+        setCropImageSize(null);
+        setCropZoom(1);
+        setCropOffset({ x: 0, y: 0 });
+        setCropError(null);
+    }
+
+    function closeCropEditor() {
+        if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+        setCropImageUrl(null);
+        setCropImageSize(null);
+        setCropError(null);
+        cropDragRef.current = null;
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+
+    function cropDimensions(zoom = cropZoom) {
+        if (!cropImageSize) return null;
+        const scale = Math.max(288 / cropImageSize.width, 288 / cropImageSize.height) * zoom;
+        return {
+            scale,
+            width: cropImageSize.width * scale,
+            height: cropImageSize.height * scale,
+        };
+    }
+
+    function handleCropPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+        const drag = cropDragRef.current;
+        const dimensions = cropDimensions();
+        if (!drag || !dimensions) return;
+        const maxX = Math.max(0, (dimensions.width - 288) / 2);
+        const maxY = Math.max(0, (dimensions.height - 288) / 2);
+        setCropOffset({
+            x: Math.max(-maxX, Math.min(maxX, drag.offsetX + event.clientX - drag.pointerX)),
+            y: Math.max(-maxY, Math.min(maxY, drag.offsetY + event.clientY - drag.pointerY)),
+        });
+    }
+
+    async function applyAvatarCrop() {
+        if (!cropImageUrl || !cropImageSize) return;
+
+        try {
+            const image = new Image();
+            image.src = cropImageUrl;
+            await image.decode();
+
+            const dimensions = cropDimensions();
+            if (!dimensions) return;
+            const left = (288 - dimensions.width) / 2 + cropOffset.x;
+            const top = (288 - dimensions.height) / 2 + cropOffset.y;
+            const sourceX = Math.max(0, Math.min(cropImageSize.width - 288 / dimensions.scale, -left / dimensions.scale));
+            const sourceY = Math.max(0, Math.min(cropImageSize.height - 288 / dimensions.scale, -top / dimensions.scale));
+            const sourceSize = 288 / dimensions.scale;
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error('Canvas is unavailable');
+            context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 512, 512);
+
+            const blob = await new Promise<Blob>((resolve, reject) => {
+                canvas.toBlob((result) => result ? resolve(result) : reject(new Error('Could not crop the image')), 'image/jpeg', 0.9);
+            });
+            const croppedFile = new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' });
+            setData('avatar', croppedFile);
+            setData('remove_avatar', false);
+            if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+            setAvatarPreview(URL.createObjectURL(croppedFile));
+            closeCropEditor();
+        } catch {
+            setCropError('Could not adjust this image. Please choose another photo and try again.');
+        }
     }
 
     function handleRemoveAvatar() {
+        if (avatarPreview) URL.revokeObjectURL(avatarPreview);
         setData('avatar', null);
         setData('remove_avatar', true);
         setAvatarPreview(null);
@@ -101,6 +179,7 @@ export default function EditProfile({ user }: Props) {
             forceFormData: true,
             onSuccess: () => {
                 setData('remove_avatar', false);
+                if (avatarPreview) URL.revokeObjectURL(avatarPreview);
                 setAvatarPreview(null);
             },
         });
@@ -110,13 +189,19 @@ export default function EditProfile({ user }: Props) {
         avatarPreview ?? (!data.remove_avatar ? user.avatar_url : null);
 
     useEffect(() => {
-        if (!viewingAvatar) return;
+        if (!viewingAvatar && !cropImageUrl) return;
         function onKeyDown(e: KeyboardEvent) {
-            if (e.key === 'Escape') setViewingAvatar(false);
+            if (e.key === 'Escape') {
+                setViewingAvatar(false);
+                if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+                setCropImageUrl(null);
+                setCropImageSize(null);
+                cropDragRef.current = null;
+            }
         }
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [viewingAvatar]);
+    }, [viewingAvatar, cropImageUrl]);
 
     return (
         <>
@@ -588,6 +673,93 @@ export default function EditProfile({ user }: Props) {
                     </div>
                 </main>
             </div>
+
+            {cropImageUrl && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+                    onClick={closeCropEditor}
+                >
+                    <section
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="avatar-crop-title"
+                        className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl sm:p-6"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <h2 id="avatar-crop-title" className="text-lg font-semibold text-[#1a1a1a]">Adjust profile picture</h2>
+                                <p className="mt-1 text-xs text-[#4a4a4a]">Drag to move the photo. Use the slider to zoom.</p>
+                            </div>
+                            <button type="button" onClick={closeCropEditor} aria-label="Cancel photo adjustment" className="rounded-full p-2 text-[#4a4a4a] hover:bg-[#f4e9e5]">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div
+                            className="relative mx-auto mt-5 h-72 w-72 touch-none overflow-hidden rounded-full bg-[#f4e9e5] ring-4 ring-[#e8d7cf]"
+                            onPointerDown={(event) => {
+                                event.currentTarget.setPointerCapture(event.pointerId);
+                                cropDragRef.current = {
+                                    pointerX: event.clientX,
+                                    pointerY: event.clientY,
+                                    offsetX: cropOffset.x,
+                                    offsetY: cropOffset.y,
+                                };
+                            }}
+                            onPointerMove={handleCropPointerMove}
+                            onPointerUp={() => { cropDragRef.current = null; }}
+                            onPointerCancel={() => { cropDragRef.current = null; }}
+                            aria-label="Drag the photo to adjust its position"
+                        >
+                            <img
+                                src={cropImageUrl}
+                                alt="Photo crop preview"
+                                draggable={false}
+                                onLoad={(event) => setCropImageSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
+                                className="pointer-events-none absolute top-1/2 left-1/2 max-w-none select-none"
+                                style={cropDimensions() ? {
+                                    width: cropDimensions()!.width,
+                                    height: cropDimensions()!.height,
+                                    transform: `translate(calc(-50% + ${cropOffset.x}px), calc(-50% + ${cropOffset.y}px))`,
+                                } : { visibility: 'hidden' }}
+                            />
+                        </div>
+
+                        <div className="mt-5 grid gap-2">
+                            <label htmlFor="avatar-zoom" className="text-sm font-medium text-[#1a1a1a]">Zoom</label>
+                            <input
+                                id="avatar-zoom"
+                                type="range"
+                                min="1"
+                                max="3"
+                                step="0.01"
+                                value={cropZoom}
+                                onChange={(event) => {
+                                    const zoom = Number(event.target.value);
+                                    const dimensions = cropDimensions(zoom);
+                                    setCropZoom(zoom);
+                                    if (dimensions) {
+                                        const maxX = Math.max(0, (dimensions.width - 288) / 2);
+                                        const maxY = Math.max(0, (dimensions.height - 288) / 2);
+                                        setCropOffset((offset) => ({
+                                            x: Math.max(-maxX, Math.min(maxX, offset.x)),
+                                            y: Math.max(-maxY, Math.min(maxY, offset.y)),
+                                        }));
+                                    }
+                                }}
+                                className="w-full accent-[#8a6a2f]"
+                            />
+                        </div>
+                        {cropError && <p role="alert" className="mt-3 text-sm text-[#A13F3F]">{cropError}</p>}
+
+                        <div className="mt-5 flex justify-end gap-2">
+                            <button type="button" onClick={closeCropEditor} className="rounded-full border border-[#c9a66b] px-4 py-2 text-sm font-semibold text-[#8a6a2f] hover:bg-[#f4e9e5]">Cancel</button>
+                            <button type="button" onClick={() => void applyAvatarCrop()} disabled={!cropImageSize} className="rounded-full bg-[#8a6a2f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#735829] disabled:opacity-50">Use photo</button>
+                        </div>
+                    </section>
+                </div>
+            )}
 
             {viewingAvatar && displayedAvatar && (
                 <div

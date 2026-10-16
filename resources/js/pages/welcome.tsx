@@ -50,11 +50,11 @@ type Props = {
 
 /*
  * Brand palette (4 colors + 1 supporting neutral)
- *   ink        #1A1A1A  text, dark sections
+ *   ink        #0e0d0d  text, dark sections
  *   ivory      #FAF7F4  page background
  *   blush      #E8B4B8  soft accents, borders, hover
  *   champagne  #C9A66B  buttons, highlights
- *   muted text #4A4A4A  secondary copy
+ *   muted text #0f0e0e  secondary copy
  * Darker accents for small text on light backgrounds (the bright ones are too faint to read):
  *   champagne-deep #8A6A2F, blush-deep #B9656D
  */
@@ -112,6 +112,8 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
     const packages = Array.isArray(packagesProp) ? packagesProp : [];
     const galleryImages = Array.isArray(galleryImagesProp) ? galleryImagesProp : [];
     const [activeArtistPhotoIndex, setActiveArtistPhotoIndex] = useState(0);
+    const [activeNavHref, setActiveNavHref] = useState<string | null>(null);
+    const [selectedServiceImage, setSelectedServiceImage] = useState<{ src: string; alt: string; name: string } | null>(null);
     const [selectedGalleryImageId, setSelectedGalleryImageId] = useState<number | null>(null);
     const selectedGalleryImage = galleryImages.find((image) => image.id === selectedGalleryImageId) ?? null;
 
@@ -122,6 +124,46 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
     const navLinks = NAV_LINKS.filter((link) => link.href !== '#artist' || artist);
 
     useEffect(() => {
+        const availableHrefs = new Set(navLinks.map((link) => link.href));
+        const updateFromHash = () => {
+            const currentHref = window.location.hash;
+            setActiveNavHref(availableHrefs.has(currentHref) ? currentHref : null);
+        };
+
+        updateFromHash();
+        window.addEventListener('hashchange', updateFromHash);
+
+        const sections = navLinks
+            .map((link) => document.querySelector<HTMLElement>(link.href))
+            .filter((section): section is HTMLElement => section !== null);
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const visibleSections = entries
+                    .filter((entry) => entry.isIntersecting)
+                    .sort(
+                        (first, second) =>
+                            Math.abs(first.boundingClientRect.top - window.innerHeight * 0.2) -
+                            Math.abs(second.boundingClientRect.top - window.innerHeight * 0.2),
+                    );
+                const visibleSection = visibleSections[0]?.target;
+
+                if (visibleSection instanceof HTMLElement) {
+                    setActiveNavHref(`#${visibleSection.id}`);
+                }
+            },
+            { rootMargin: '-20% 0px -65% 0px' },
+        );
+
+        sections.forEach((section) => observer.observe(section));
+
+        return () => {
+            window.removeEventListener('hashchange', updateFromHash);
+            observer.disconnect();
+        };
+    }, [artist]);
+
+    useEffect(() => {
         const slideshowTimer = window.setInterval(() => {
             setActiveArtistPhotoIndex((currentIndex) => (currentIndex + 1) % ARTIST_PHOTOS.length);
         }, 5000);
@@ -130,15 +172,18 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
     }, []);
 
     useEffect(() => {
-        if (selectedGalleryImageId === null) return;
+        if (selectedGalleryImageId === null && selectedServiceImage === null) return;
 
         function handleKeyDown(event: KeyboardEvent) {
-            if (event.key === 'Escape') setSelectedGalleryImageId(null);
+            if (event.key === 'Escape') {
+                setSelectedGalleryImageId(null);
+                setSelectedServiceImage(null);
+            }
         }
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedGalleryImageId]);
+    }, [selectedGalleryImageId, selectedServiceImage]);
 
     const firstName = artist?.name.split(' ')[0] ?? '';
     const initials = artist
@@ -166,7 +211,11 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                             <a
                                 key={link.href}
                                 href={link.href}
-                                className="transition-colors duration-200 hover:text-[#8A6A2F]"
+                                aria-current={activeNavHref === link.href ? 'location' : undefined}
+                                onClick={() => setActiveNavHref(link.href)}
+                                className={`transition-colors duration-200 hover:text-[#8A6A2F] ${
+                                    activeNavHref === link.href ? 'font-medium text-[#8A6A2F]' : ''
+                                }`}
                             >
                                 {link.label}
                             </a>
@@ -304,12 +353,25 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                     >
                                         <div className="flex items-center gap-3">
                                             {service.image_url ? (
-                                                <img
-                                                    src={service.image_url}
-                                                    alt={`${service.name} makeup service`}
-                                                    className="h-20 w-20 shrink-0 rounded-2xl border border-[#C9A66B]/40 object-cover shadow-sm sm:h-24 sm:w-24"
-                                                    loading="lazy"
-                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setSelectedServiceImage({
+                                                            src: service.image_url!,
+                                                            alt: `${service.name} makeup service`,
+                                                            name: service.name,
+                                                        })
+                                                    }
+                                                    aria-label={`View ${service.name} image`}
+                                                    className="shrink-0 cursor-zoom-in rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8A6A2F]"
+                                                >
+                                                    <img
+                                                        src={service.image_url}
+                                                        alt={`${service.name} makeup service`}
+                                                        className="h-20 w-20 rounded-2xl border border-[#C9A66B]/40 object-cover shadow-sm sm:h-24 sm:w-24"
+                                                        loading="lazy"
+                                                    />
+                                                </button>
                                             ) : (
                                                 <Brush className="h-5 w-5 shrink-0 text-[#8A6A2F]" />
                                             )}
@@ -574,6 +636,35 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                         <span>© {new Date().getFullYear()} All rights reserved.</span>
                     </div>
                 </footer>
+
+                {selectedServiceImage && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A1A]/90 p-4 backdrop-blur-sm"
+                        onClick={() => setSelectedServiceImage(null)}
+                    >
+                        <section
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label={selectedServiceImage.name}
+                            className="relative flex h-[92vh] w-full max-w-6xl items-center justify-center overflow-hidden rounded-2xl border border-[#C9A66B]/40 bg-[#1A1A1A] shadow-2xl"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setSelectedServiceImage(null)}
+                                aria-label="Close image"
+                                className="absolute top-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-[#9A7430] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                            <img
+                                src={selectedServiceImage.src}
+                                alt={selectedServiceImage.alt}
+                                className="h-full w-full object-contain"
+                            />
+                        </section>
+                    </div>
+                )}
 
                 {selectedGalleryImage && (
                     <div

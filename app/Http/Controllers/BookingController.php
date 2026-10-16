@@ -11,6 +11,7 @@ use App\Notifications\ArtistBookingUpdate;
 use App\Notifications\NewBookingRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -31,6 +32,25 @@ class BookingController extends Controller
     private const DEFAULT_METRO_MANILA_TRAVEL_FEE = 500;
 
     private const DEFAULT_OUT_OF_TOWN_TRAVEL_FEE = 1000;
+
+    private const BOOKING_TERMS_VERSION = '2026-10-15-v1';
+
+    private const BOOKING_TERMS = <<<'TERMS'
+To secure your booking, a 50% downpayment of the total package price is required before your scheduled appointment. The downpayment confirms and reserves your preferred date and time.
+
+Mode of payment: GCash
+09241013301 T***E N** D** C**
+
+Please note:
+• The downpayment is non-refundable once the booking is confirmed.
+• If the downpayment is not settled before the required time, the schedule may be released and offered to other clients.
+• The remaining balance must be paid on the day of the service.
+
+Once the downpayment is received, your appointment will be officially secured.
+
+Thank you and we look forward to glamming you!
+HMUA: GlowUpByTrixie
+TERMS;
 
     private const METRO_MANILA_CITIES = [
         'Caloocan', 'Las Piñas', 'Makati', 'Malabon', 'Mandaluyong', 'Manila',
@@ -109,7 +129,7 @@ class BookingController extends Controller
             ->get()
             ->map(fn ($img) => [
                 'id' => $img->id,
-                'url' => asset('storage/'.$img->path),
+                'url' => route('inspo.show', $img),
                 'caption' => $img->caption,
             ]);
 
@@ -148,6 +168,13 @@ class BookingController extends Controller
             'artist' => $artist
                 ? $artist->only('id', 'name', 'specialty', 'years_experience', 'bio')
                 : null,
+            'savedAddress' => $request->user()->only(
+                'street_address',
+                'barangay',
+                'city',
+                'province',
+                'postal_code',
+            ),
             'inspoImages' => $inspoImages,
             'services' => $services,
             'packages' => $offerings->where('kind', 'package')->values(),
@@ -162,6 +189,10 @@ class BookingController extends Controller
                 'metroManila' => self::METRO_MANILA_CITIES,
                 'nearbyProvince' => self::NEARBY_PROVINCE_DESTINATIONS,
             ],
+            'bookingTerms' => [
+                'version' => self::BOOKING_TERMS_VERSION,
+                'text' => self::BOOKING_TERMS,
+            ],
         ]);
     }
 
@@ -172,6 +203,8 @@ class BookingController extends Controller
         abort_unless($artist, 422, 'Bookings are not open yet.');
 
         $validated = $request->validate([
+            'terms_accepted' => ['required', 'accepted'],
+            'terms_version' => ['required', 'string', Rule::in([self::BOOKING_TERMS_VERSION])],
             'service' => [
                 'nullable',
                 'string',
@@ -319,7 +352,7 @@ class BookingController extends Controller
         $inspoId = $validated['inspo_image_id'] ?? null;
 
         if ($request->hasFile('new_inspo_image')) {
-            $path = $request->file('new_inspo_image')->store('inspo', 'public');
+            $path = $request->file('new_inspo_image')->store('inspo');
 
             $inspo = InspoImage::create([
                 'user_id' => $request->user()->id,
@@ -346,11 +379,16 @@ class BookingController extends Controller
             'notes' => $validated['notes'] ?? null,
             'inspo_image_id' => $inspoId,
             'status' => 'pending',
+            'terms_version' => self::BOOKING_TERMS_VERSION,
+            'terms_text' => self::BOOKING_TERMS,
+            'terms_accepted_at' => now(),
         ]);
 
         $artist->notify(new NewBookingRequest($booking));
 
-        return redirect('/dashboard')->with('success', 'Booking requested!');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Saved!']);
+
+        return redirect('/dashboard');
     }
 
     public function accept(Request $request, Booking $booking)
@@ -472,7 +510,9 @@ class BookingController extends Controller
             'quote_pending' => true,
             'quote_accepted_at' => null,
             'deposit_status' => 'not_due',
+            'deposit_method' => null,
             'deposit_reference' => null,
+            'deposit_proof_path' => null,
             'deposit_received_at' => null,
             'transportation_fee_pending' => true,
         ]);
@@ -484,7 +524,9 @@ class BookingController extends Controller
             ->delete();
         $booking->client?->notify(new ArtistBookingUpdate($booking, 'quote_updated'));
 
-        return back()->with('success', 'The itemized makeup and transportation quote was sent to the client.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Saved!']);
+
+        return back();
     }
 
     public function acceptTransportationFee(Request $request, Booking $booking)
@@ -512,7 +554,9 @@ class BookingController extends Controller
             ->delete();
         $booking->artist?->notify(new ArtistBookingUpdate($booking, 'quote_accepted'));
 
-        return back()->with('success', 'Quote accepted. Send the 50% deposit to secure your booking.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Saved!']);
+
+        return back();
     }
 
     public function submitDeposit(Request $request, Booking $booking)
@@ -522,18 +566,40 @@ class BookingController extends Controller
         abort_unless($booking->deposit_status === 'due', 422, 'There is no deposit awaiting submission.');
 
         $validated = $request->validate([
-            'deposit_reference' => ['required', 'string', 'max:120'],
+            'deposit_method' => ['required', Rule::in(['gcash', 'bank_transfer', 'cash'])],
+            'deposit_reference' => ['nullable', 'string', 'max:120'],
+            'deposit_proof' => ['required_if:deposit_method,gcash,bank_transfer', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
+
+        $proofPath = isset($validated['deposit_proof'])
+            ? $validated['deposit_proof']->store('deposit-proofs')
+            : null;
 
         $booking->update([
             'deposit_status' => 'submitted',
-            'deposit_reference' => $validated['deposit_reference'],
+            'deposit_method' => $validated['deposit_method'],
+            'deposit_reference' => $validated['deposit_reference'] ?? null,
+            'deposit_proof_path' => $proofPath,
         ]);
 
         $booking->loadMissing('client', 'artist');
         $booking->artist?->notify(new ArtistBookingUpdate($booking, 'deposit_submitted'));
 
-        return back()->with('success', 'Deposit marked as sent. Trixie will verify it and confirm your booking.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Saved!']);
+
+        return back();
+    }
+
+    public function showDepositProof(Request $request, Booking $booking)
+    {
+        abort_unless(in_array($request->user()->id, [$booking->client_id, $booking->artist_id], true), 403);
+        abort_unless($booking->deposit_proof_path && Storage::disk('local')->exists($booking->deposit_proof_path), 404);
+
+        return Storage::disk('local')->response(
+            $booking->deposit_proof_path,
+            null,
+            ['Cache-Control' => 'private, no-store'],
+        );
     }
 
     public function markDepositReceived(Request $request, Booking $booking)
@@ -550,7 +616,9 @@ class BookingController extends Controller
         $booking->loadMissing('client', 'artist');
         $booking->client?->notify(new ArtistBookingUpdate($booking, 'deposit_received'));
 
-        return back()->with('success', 'Deposit marked as received. You can now confirm the booking.');
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Saved!']);
+
+        return back();
     }
 
     public function decline(Request $request, Booking $booking)
