@@ -9,10 +9,12 @@ use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InspoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ServiceController;
 use App\Models\ArtistGalleryImage;
 use App\Models\ArtistOffering;
 use App\Models\ArtistService;
+use App\Models\Review;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -72,6 +74,12 @@ Route::get('/', function () {
         'services' => $services,
         'packages' => $offerings->where('kind', 'package')->values(),
         'galleryImages' => $galleryImages,
+        'reviews' => Review::where('artist_id', $artist?->id)
+            ->where('is_approved', true)
+            ->with('client:id,name', 'booking:id,service')
+            ->latest()
+            ->limit(12)
+            ->get(['id', 'booking_id', 'client_id', 'rating', 'comment', 'created_at']),
     ]);
 })->name('home');
 
@@ -99,6 +107,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/book/{booking}/transportation-fee/accept', [BookingController::class, 'acceptTransportationFee'])->name('bookings.transportation-fee.accept');
     Route::patch('/book/{booking}/decline', [BookingController::class, 'decline'])->name('bookings.decline');
     Route::patch('/book/{booking}/complete', [BookingController::class, 'complete'])->name('bookings.complete');
+    Route::post('/book/{booking}/review', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::patch('/artist/reviews/{review}', [ReviewController::class, 'updateApproval'])->name('reviews.approval');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('account.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('account.update');

@@ -46,6 +46,7 @@ type Props = {
     services: Service[];
     packages?: Package[] | null;
     galleryImages?: GalleryImage[] | null;
+    reviews?: { id: number; rating: number; comment: string; client: { name: string }; booking: { service: string } }[] | null;
 };
 
 /*
@@ -67,6 +68,7 @@ const NAV_LINKS = [
     { label: 'Your artist', href: '#artist' },
     { label: 'Behind the glam', href: '#behind-the-glam' },
     { label: 'Gallery', href: '#gallery' },
+    { label: 'Reviews', href: '#reviews' },
 ];
 
 const STEPS = [
@@ -109,9 +111,10 @@ const primaryBtn =
 const secondaryBtn =
     'inline-flex items-center justify-center rounded-full border border-[#1A1A1A]/40 px-7 py-3 text-sm font-semibold text-[#1A1A1A] transition-colors duration-200 hover:bg-[#E8B4B8]/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A1A1A]';
 
-export default function Welcome({ artist, services, packages: packagesProp, galleryImages: galleryImagesProp }: Props) {
+export default function Welcome({ artist, services, packages: packagesProp, galleryImages: galleryImagesProp, reviews: reviewsProp }: Props) {
     const packages = Array.isArray(packagesProp) ? packagesProp : [];
     const galleryImages = Array.isArray(galleryImagesProp) ? galleryImagesProp : [];
+    const reviews = Array.isArray(reviewsProp) ? reviewsProp : [];
     const [activeArtistPhotoIndex, setActiveArtistPhotoIndex] = useState(0);
     const [activeNavHref, setActiveNavHref] = useState<string | null>(null);
     const [selectedServiceImage, setSelectedServiceImage] = useState<{ src: string; alt: string; name: string } | null>(null);
@@ -122,7 +125,7 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
     const isLoggedIn = Boolean(auth?.user);
     const bookHref = isLoggedIn ? dashboard() : register();
 
-    const navLinks = NAV_LINKS.filter((link) => link.href !== '#artist' || artist);
+    const navLinks = NAV_LINKS.filter((link) => (link.href !== '#artist' || artist) && (link.href !== '#reviews' || reviews.length > 0));
 
     useEffect(() => {
         const availableHrefs = new Set(navLinks.map((link) => link.href));
@@ -162,7 +165,7 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
             window.removeEventListener('hashchange', updateFromHash);
             observer.disconnect();
         };
-    }, [artist]);
+    }, [artist, reviews.length]);
 
     useEffect(() => {
         const slideshowTimer = window.setInterval(() => {
@@ -647,6 +650,24 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                             </div>
                         </div>
                     </section>
+
+                    {reviews.length > 0 && (
+                        <section id="reviews" className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16">
+                            <div className="mx-auto max-w-6xl">
+                                <SectionHeading title="Kind words from clients" sub="Shared by clients after their completed glam sessions." />
+                                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                                    {reviews.map((review) => (
+                                        <article key={review.id} className="rounded-3xl border border-[#E8B4B8]/60 bg-white p-6 shadow-sm">
+                                            <p className="text-lg tracking-widest text-[#8A6A2F]" aria-label={`${review.rating} out of 5 stars`}>{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</p>
+                                            <blockquote className="mt-3 whitespace-pre-line text-sm leading-6 text-[#4A4A4A]">“{review.comment}”</blockquote>
+                                            <p className="mt-5 border-t border-[#E8B4B8]/40 pt-4 text-sm font-semibold text-[#1A1A1A]">{review.client.name}</p>
+                                            <p className="mt-1 text-xs text-[#6b625a]">Verified client · {review.booking.service}</p>
+                                        </article>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+                    )}
 
                     <section className="bg-[#1A1A1A] px-8 py-14 text-[#FAF7F4]">
                         <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">

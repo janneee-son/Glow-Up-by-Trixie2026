@@ -75,4 +75,9 @@ class Booking extends Model
     {
         return $this->belongsTo(ArtistOffering::class, 'package_id');
     }
+
+    public function review()
+    {
+        return $this->hasOne(Review::class);
+    }
 }
