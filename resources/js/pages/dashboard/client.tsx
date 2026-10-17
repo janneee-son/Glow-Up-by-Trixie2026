@@ -47,6 +47,7 @@ type Booking = {
     notes: string | null;
     artist_message: string | null;
     inspo_url: string | null;
+    review?: { rating: number; comment: string; is_approved: boolean } | null;
     artist: {
         id: number;
         name: string;
@@ -183,6 +184,10 @@ export default function ClientDashboard({ bookings }: Props) {
     const [confirmingReschedule, setConfirmingReschedule] = useState(false);
     const [rescheduleBusy, setRescheduleBusy] = useState(false);
     const [viewingInspoUrl, setViewingInspoUrl] = useState<string | null>(null);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewError, setReviewError] = useState('');
+    const [reviewBusy, setReviewBusy] = useState(false);
 
     const declinedNotifications = useMemo(
         () =>
@@ -237,6 +242,17 @@ export default function ClientDashboard({ bookings }: Props) {
         router.patch(`/book/${booking.id}/quote/accept`, {}, {
             preserveScroll: true,
             onFinish: () => setFeeDecisionBusyId(null),
+        });
+    }
+
+    function submitReview(booking: Booking) {
+        setReviewBusy(true);
+        setReviewError('');
+        router.post(`/book/${booking.id}/review`, { rating: reviewRating, comment: reviewComment }, {
+            preserveScroll: true,
+            onError: (errors) => setReviewError(String(errors.comment ?? errors.rating ?? 'Could not submit your review.')),
+            onSuccess: () => setReviewComment(''),
+            onFinish: () => setReviewBusy(false),
         });
     }
 
@@ -596,6 +612,31 @@ export default function ClientDashboard({ bookings }: Props) {
                         </div>
 
                         {selectedBooking.terms_accepted_at && <p className="mt-2 text-xs text-[#4a4a4a]">Booking terms accepted on {new Date(selectedBooking.terms_accepted_at).toLocaleString('en-PH')}.</p>}
+
+                        {selectedBooking.status === 'completed' && (selectedBooking.review ? (
+                            <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
+                                <p className="font-semibold text-[#1a1a1a]">Your review · {'★'.repeat(selectedBooking.review.rating)}</p>
+                                <p className="mt-1 text-sm text-[#4a4a4a]">{selectedBooking.review.comment}</p>
+                                <p className="mt-2 text-xs text-[#8a6a2f]">{selectedBooking.review.is_approved ? 'Published on the homepage' : 'Waiting for Trixie’s approval'}</p>
+                            </section>
+                        ) : (
+                            <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
+                                <h3 className="text-sm font-semibold text-[#1a1a1a]">How was your glam session?</h3>
+                                <label htmlFor={`review-rating-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Your rating</label>
+                                <select id={`review-rating-${selectedBooking.id}`} value={reviewRating} onChange={(event) => setReviewRating(Number(event.target.value))} className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6a2f]">
+                                    <option value={5}>★★★★★ — Loved it</option>
+                                    <option value={4}>★★★★☆ — Great</option>
+                                    <option value={3}>★★★☆☆ — Good</option>
+                                    <option value={2}>★★☆☆☆ — Could be better</option>
+                                    <option value={1}>★☆☆☆☆ — Not for me</option>
+                                </select>
+                                <label htmlFor={`review-comment-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Your review</label>
+                                <textarea id={`review-comment-${selectedBooking.id}`} value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} minLength={10} maxLength={1200} rows={3} placeholder="Share a little about your experience (10–1,200 characters)" className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] opacity-100 placeholder:text-[#6b625a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6a2f]" />
+                                <p className="mt-1 text-xs text-[#6b625a]">Trixie reviews each submission before it appears publicly.</p>
+                                {reviewError && <p role="alert" className="mt-1 text-xs text-[#A13F3F]">{reviewError}</p>}
+                                <button type="button" disabled={reviewBusy || reviewComment.trim().length < 10} onClick={() => submitReview(selectedBooking)} className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{reviewBusy ? 'Submitting…' : 'Submit review'}</button>
+                            </section>
+                        ))}
 
                                 {!rescheduling ? (
                                     <>

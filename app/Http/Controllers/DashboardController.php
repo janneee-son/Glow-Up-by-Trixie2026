@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -32,7 +33,7 @@ class DashboardController extends Controller
 
         if ($user->role === 'client') {
             $bookings = Booking::where('client_id', $user->id)
-                ->with('artist:id,name,phone,specialty', 'package:id,description,inclusions', 'inspoImage:id,user_id,path')
+                ->with('artist:id,name,phone,specialty', 'package:id,description,inclusions', 'inspoImage:id,user_id,path', 'review:id,booking_id,rating,comment,is_approved')
                 ->orderBy('booking_date')
                 ->orderBy('booking_time')
                 ->get()
@@ -51,8 +52,16 @@ class DashboardController extends Controller
                 ->get()
                 ->map($withInspoUrl);
 
+            $reviews = $user->role === 'artist'
+                ? Review::where('artist_id', $user->id)
+                    ->with('client:id,name', 'booking:id,service,booking_date')
+                    ->latest()
+                    ->get(['id', 'booking_id', 'client_id', 'artist_id', 'rating', 'comment', 'is_approved', 'created_at'])
+                : collect();
+
             return Inertia::render('dashboard/artist', [
                 'bookings' => $bookings,
+                'reviews' => $reviews,
             ]);
         }
 

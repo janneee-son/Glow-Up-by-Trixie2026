@@ -48,6 +48,14 @@ type Booking = {
 
 type Props = {
     bookings: Booking[];
+    reviews: {
+        id: number;
+        rating: number;
+        comment: string;
+        is_approved: boolean;
+        client: { name: string };
+        booking: { service: string; booking_date: string };
+    }[];
 };
 
 const STATUS_STYLES: Record<Booking['status'], string> = {
@@ -101,7 +109,7 @@ function isPastBooking(booking: Booking) {
     );
 }
 
-export default function ArtistDashboard({ bookings }: Props) {
+export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
     const { auth } = usePage<{
         auth?: {
             user?: { name?: string; role?: 'client' | 'artist' | 'admin' };
@@ -115,6 +123,7 @@ export default function ArtistDashboard({ bookings }: Props) {
     const [transportationFees, setTransportationFees] = useState<Record<number, string>>({});
     const [quoteReasons, setQuoteReasons] = useState<Record<number, string>>({});
     const [quoteErrors, setQuoteErrors] = useState<Record<number, string>>({});
+    const [reviewBusyId, setReviewBusyId] = useState<number | null>(null);
 
     const pending = useMemo(
         () => bookings.filter((b) => b.status === 'pending'),
@@ -189,6 +198,14 @@ export default function ArtistDashboard({ bookings }: Props) {
         });
     }
 
+    function setReviewApproval(id: number, is_approved: boolean) {
+        setReviewBusyId(id);
+        router.patch(`/artist/reviews/${id}`, { is_approved }, {
+            preserveScroll: true,
+            onFinish: () => setReviewBusyId(null),
+        });
+    }
+
     useEffect(() => {
         if (!viewingUrl) return;
         function onKeyDown(e: KeyboardEvent) {
@@ -235,6 +252,36 @@ export default function ArtistDashboard({ bookings }: Props) {
                                 />
                             </div>
                         </div>
+                    </section>
+
+                    <section className="mb-8 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm sm:p-6">
+                        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                                <p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">Client feedback</p>
+                                <h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">Reviews</h2>
+                            </div>
+                            <span className="rounded-full bg-[#f4e9e5] px-3 py-1 text-sm font-semibold text-[#8a6a2f]">{reviews.filter((review) => !review.is_approved).length} awaiting approval</span>
+                        </div>
+                        {reviews.length === 0 ? (
+                            <p className="text-sm text-[#4a4a4a]">Reviews from completed sessions will appear here.</p>
+                        ) : (
+                            <div className="grid gap-3">
+                                {reviews.map((review) => (
+                                    <article key={review.id} className="rounded-2xl border border-[#f0e2dd] bg-[#fffcf8] p-4">
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div>
+                                                <p className="font-semibold text-[#1a1a1a]">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)} <span className="ml-1 text-sm font-medium text-[#4a4a4a]">{review.client.name} · {review.booking.service}</span></p>
+                                                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#4a4a4a]">{review.comment}</p>
+                                                <p className="mt-2 text-xs text-[#6b625a]">Session on {formatDate(review.booking.booking_date)}</p>
+                                            </div>
+                                            <button type="button" disabled={reviewBusyId === review.id} onClick={() => setReviewApproval(review.id, !review.is_approved)} className="shrink-0 rounded-full border border-[#c9a66b] px-4 py-2 text-xs font-semibold text-[#8a6a2f] disabled:opacity-50">
+                                                {reviewBusyId === review.id ? 'Saving…' : review.is_approved ? 'Hide from homepage' : 'Approve & publish'}
+                                            </button>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
                     </section>
 
                     <section
