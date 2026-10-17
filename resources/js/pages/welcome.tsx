@@ -63,6 +63,7 @@ const NAV_LINKS = [
     { label: 'Services', href: '#services' },
     { label: 'Packages', href: '#packages' },
     { label: 'How it works', href: '#how-it-works' },
+    { label: 'Before you book', href: '#booking-details' },
     { label: 'Your artist', href: '#artist' },
     { label: 'Behind the glam', href: '#behind-the-glam' },
     { label: 'Gallery', href: '#gallery' },
@@ -471,6 +472,42 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    </section>
+
+                    <section id="booking-details" className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16">
+                        <div className="mx-auto max-w-5xl">
+                            <SectionHeading
+                                title="Know what to expect before you book"
+                                sub="A quick guide to deposits, payment, and final pricing. The full booking terms are shown in the request form before you submit."
+                            />
+                            <div className="grid gap-5 md:grid-cols-3">
+                                <article className="rounded-2xl border border-[#E8B4B8]/60 bg-white p-5">
+                                    <h4 className="font-display text-xl font-bold">Deposit & balance</h4>
+                                    <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">
+                                        A 50% down payment is required to reserve your preferred date and time. The remaining balance is due on your service day. The deposit is non-refundable once your booking is confirmed.
+                                    </p>
+                                </article>
+                                <article className="rounded-2xl border border-[#E8B4B8]/60 bg-white p-5">
+                                    <h4 className="font-display text-xl font-bold">Payment & confirmation</h4>
+                                    <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">
+                                        Pay by GCash or bank transfer. Your booking is confirmed after Trixie verifies the deposit; a preferred time may be released if the deposit is not settled by the required time.
+                                    </p>
+                                </article>
+                                <article className="rounded-2xl border border-[#E8B4B8]/60 bg-white p-5">
+                                    <h4 className="font-display text-xl font-bold">Final price & travel</h4>
+                                    <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">
+                                        Some packages and add-ons need a custom quote. Travel fees are estimates until Trixie confirms them using your full venue address. Review the final quote before accepting it.
+                                    </p>
+                                </article>
+                            </div>
+                            <p className="mt-5 text-sm text-[#4A4A4A]">
+                                Have a question first?{' '}
+                                <a href="tel:09241013301" className="font-semibold text-[#8A6A2F] underline underline-offset-4">
+                                    Call or text Trixie at 0924 101 3301
+                                </a>
+                                .
+                            </p>
                         </div>
                     </section>
 
