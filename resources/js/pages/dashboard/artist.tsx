@@ -10,6 +10,7 @@ import {
     X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import BookingPaymentBreakdown from '@/components/booking-payment-breakdown';
 import DashboardHeader from '@/components/dashboard-header';
 import RequiredAsterisk from '@/components/required-asterisk';
 
@@ -31,6 +32,9 @@ type Booking = {
     deposit_method?: 'gcash' | 'bank_transfer' | 'cash' | null;
     deposit_reference?: string | null;
     deposit_proof_url?: string | null;
+    total_paid_amount?: number | string | null;
+    remaining_balance?: number | string | null;
+    balance_payments?: BalancePayment[];
     selected_add_ons?:
         | {
               id: number | null;
@@ -56,6 +60,14 @@ type Booking = {
         name: string;
         phone: string | null;
     };
+};
+
+type BalancePayment = {
+    id: number;
+    amount: number | string;
+    method: 'gcash' | 'bank_transfer' | 'cash' | 'other';
+    reference: string | null;
+    paid_at: string;
 };
 
 type Props = {
@@ -95,6 +107,13 @@ function formatTime(timeStr: string) {
         hour: 'numeric',
         minute: '2-digit',
     });
+}
+
+function dateInputToday() {
+    const today = new Date();
+    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+
+    return today.toISOString().slice(0, 10);
 }
 
 /** Splits saved notes into the "Occasion: X" first line and the client's own text. */
@@ -148,6 +167,11 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
         {},
     );
     const [quoteErrors, setQuoteErrors] = useState<Record<number, string>>({});
+    const [balanceAmounts, setBalanceAmounts] = useState<Record<number, string>>({});
+    const [balanceMethods, setBalanceMethods] = useState<Record<number, string>>({});
+    const [balanceReferences, setBalanceReferences] = useState<Record<number, string>>({});
+    const [balanceDates, setBalanceDates] = useState<Record<number, string>>({});
+    const [balanceErrors, setBalanceErrors] = useState<Record<number, string>>({});
     const [reviewBusyId, setReviewBusyId] = useState<number | null>(null);
 
     const pending = useMemo(
@@ -242,6 +266,33 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
             {},
             {
                 preserveScroll: true,
+                onFinish: () => setBusyId(null),
+            },
+        );
+    }
+
+    function recordBalancePayment(booking: Booking) {
+        setBusyId(booking.id);
+        setBalanceErrors((current) => ({ ...current, [booking.id]: '' }));
+        router.post(
+            `/book/${booking.id}/balance-payments`,
+            {
+                amount: balanceAmounts[booking.id] ?? '',
+                method: balanceMethods[booking.id] ?? 'cash',
+                reference: balanceReferences[booking.id] ?? '',
+                paid_at: balanceDates[booking.id] ?? dateInputToday(),
+            },
+            {
+                preserveScroll: true,
+                onError: (errors) =>
+                    setBalanceErrors((current) => ({
+                        ...current,
+                        [booking.id]: String(errors.amount ?? errors.method ?? errors.paid_at ?? 'Could not record the payment.'),
+                    })),
+                onSuccess: () => {
+                    setBalanceAmounts((current) => ({ ...current, [booking.id]: '' }));
+                    setBalanceReferences((current) => ({ ...current, [booking.id]: '' }));
+                },
                 onFinish: () => setBusyId(null),
             },
         );
@@ -700,39 +751,70 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                         )}
                                         {booking.deposit_status ===
                                             'received' && (
-                                            <p className="mt-3 rounded-xl border border-[#b7d5bb] bg-[#f1f7f1] px-4 py-3 text-sm font-medium text-[#426948]">
-                                                50% deposit received. You can
-                                                now confirm the booking. Amount
-                                                recorded: ₱
-                                                {Number(
-                                                    booking.deposit_amount ??
-                                                        Number(
-                                                            booking.estimated_total ??
-                                                                0,
-                                                        ) / 2,
-                                                ).toLocaleString('en-PH', {
-                                                    minimumFractionDigits: 2,
-                                                })}
-                                                . Remaining balance: ₱
-                                                {Math.max(
-                                                    0,
-                                                    Number(
-                                                        booking.estimated_total ??
-                                                            0,
-                                                    ) -
-                                                        Number(
-                                                            booking.deposit_amount ??
-                                                                Number(
-                                                                    booking.estimated_total ??
-                                                                        0,
-                                                                ) / 2,
-                                                        ),
-                                                ).toLocaleString('en-PH', {
-                                                    minimumFractionDigits: 2,
-                                                })}
-                                                .
-                                            </p>
+                                            <div className="mt-3 rounded-xl border border-[#b7d5bb] bg-[#f1f7f1] px-4 py-3 text-sm text-[#426948]">
+                                                <p className="font-medium">
+                                                    50% deposit received: ₱
+                                                    {Number(
+                                                        booking.deposit_amount ??
+                                                            Number(booking.estimated_total ?? 0) / 2,
+                                                    ).toLocaleString('en-PH', { minimumFractionDigits: 2 })}.
+                                                </p>
+                                                <p className="mt-2 font-medium">
+                                                    Remaining balance: ₱{Number(booking.remaining_balance ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                                    {Number(booking.remaining_balance ?? 0) > 0 ? ' due.' : ' · Paid in full.'}
+                                                </p>
+                                                {!!booking.balance_payments?.length && (
+                                                    <div className="mt-3 border-t border-[#b7d5bb] pt-3">
+                                                        <p className="font-semibold">Recorded balance payments</p>
+                                                        <ul className="mt-1 grid gap-1">
+                                                            {booking.balance_payments.map((payment) => (
+                                                                <li key={payment.id}>
+                                                                    ₱{Number(payment.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })} · {payment.method.replace('_', ' ')} · {formatDate(payment.paid_at)}
+                                                                    {payment.reference ? ` · Ref: ${payment.reference}` : ''}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
+                                        {booking.deposit_status === 'received' &&
+                                            ['confirmed', 'completed'].includes(booking.status) &&
+                                            Number(booking.remaining_balance ?? 0) > 0 && (
+                                                <div className="mt-3 rounded-xl border border-[#e8d7cf] bg-white p-4">
+                                                    <h3 className="font-semibold text-[#1a1a1a]">Record a balance payment</h3>
+                                                    <p className="mt-1 text-xs text-[#6b625e]">
+                                                        Up to ₱{Number(booking.remaining_balance).toLocaleString('en-PH', { minimumFractionDigits: 2 })} remaining.
+                                                    </p>
+                                                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                                        <label className="grid gap-1 text-xs font-medium text-[#4a4a4a]">
+                                                            Amount (₱)<RequiredAsterisk />
+                                                            <input type="number" min="0.01" max={Number(booking.remaining_balance)} step="0.01" value={balanceAmounts[booking.id] ?? ''} onChange={(event) => setBalanceAmounts((current) => ({ ...current, [booking.id]: event.target.value }))} className="rounded-lg border border-[#d8c8c1] px-3 py-2 text-sm" />
+                                                        </label>
+                                                        <label className="grid gap-1 text-xs font-medium text-[#4a4a4a]">
+                                                            Payment method<RequiredAsterisk />
+                                                            <select value={balanceMethods[booking.id] ?? 'cash'} onChange={(event) => setBalanceMethods((current) => ({ ...current, [booking.id]: event.target.value }))} className="rounded-lg border border-[#d8c8c1] px-3 py-2 text-sm">
+                                                                <option value="cash">Cash</option>
+                                                                <option value="gcash">GCash</option>
+                                                                <option value="bank_transfer">Bank transfer</option>
+                                                                <option value="other">Other</option>
+                                                            </select>
+                                                        </label>
+                                                        <label className="grid gap-1 text-xs font-medium text-[#4a4a4a]">
+                                                            Date paid<RequiredAsterisk />
+                                                            <input type="date" max={dateInputToday()} value={balanceDates[booking.id] ?? dateInputToday()} onChange={(event) => setBalanceDates((current) => ({ ...current, [booking.id]: event.target.value }))} className="rounded-lg border border-[#d8c8c1] px-3 py-2 text-sm" />
+                                                        </label>
+                                                        <label className="grid gap-1 text-xs font-medium text-[#4a4a4a]">
+                                                            Reference <span className="font-normal">(optional)</span>
+                                                            <input type="text" maxLength={120} value={balanceReferences[booking.id] ?? ''} onChange={(event) => setBalanceReferences((current) => ({ ...current, [booking.id]: event.target.value }))} className="rounded-lg border border-[#d8c8c1] px-3 py-2 text-sm" />
+                                                        </label>
+                                                    </div>
+                                                    {balanceErrors[booking.id] && <p role="alert" className="mt-2 text-sm text-red-700">{balanceErrors[booking.id]}</p>}
+                                                    <button type="button" disabled={busyId === booking.id || !balanceAmounts[booking.id]} onClick={() => recordBalancePayment(booking)} className="mt-3 rounded-full bg-[#2E7D46] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50">
+                                                        {busyId === booking.id ? 'Saving…' : 'Record payment and notify client'}
+                                                    </button>
+                                                </div>
+                                            )}
 
                                         {/* optional message to client */}
                                         <div className="mt-4 grid gap-1.5">
@@ -981,16 +1063,24 @@ function BookingHeader({
                     · {booking.venue_address}
                 </p>
             )}
-            {booking.estimated_total != null && (
+            {booking.estimated_total != null && booking.quote_accepted_at ? (
+                <BookingPaymentBreakdown
+                    total={booking.estimated_total}
+                    depositStatus={booking.deposit_status}
+                    depositAmount={booking.deposit_amount}
+                    remainingBalance={booking.remaining_balance}
+                />
+            ) : booking.estimated_total != null ? (
                 <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">
-                    {booking.quote_accepted_at
-                        ? 'Final quoted total'
-                        : booking.quote_pending
-                          ? 'Quote sent for client approval'
-                          : 'Starting estimate'}
-                    : ₱{Number(booking.estimated_total).toLocaleString('en-PH')}
+                    {booking.quote_pending
+                        ? 'Quote sent for client approval'
+                        : 'Starting estimate'}
+                    : ₱
+                    {Number(
+                        booking.estimated_total,
+                    ).toLocaleString('en-PH')}
                 </p>
-            )}
+            ) : null}
             {booking.quote_reason && (
                 <p className="mb-3 text-sm text-[#4a4a4a]">
                     Quote note: {booking.quote_reason}

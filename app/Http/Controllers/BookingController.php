@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\ArtistOffering;
 use App\Models\ArtistService;
 use App\Models\Booking;
+use App\Models\BookingBalancePayment;
 use App\Models\InspoImage;
 use App\Models\User;
 use App\Notifications\ArtistBookingUpdate;
 use App\Notifications\NewBookingRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -622,6 +624,65 @@ TERMS;
         $booking->client?->notify(new ArtistBookingUpdate($booking, 'deposit_received'));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Saved!']);
+
+        return back();
+    }
+
+    public function recordBalancePayment(Request $request, Booking $booking)
+    {
+        abort_unless($booking->artist_id === $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
+            'method' => ['required', Rule::in(['gcash', 'bank_transfer', 'cash', 'other'])],
+            'reference' => ['nullable', 'string', 'max:120'],
+            'paid_at' => ['required', 'date', 'before_or_equal:today'],
+        ]);
+
+        [$payment, $remainingBalance] = DB::transaction(function () use ($booking, $request, $validated): array {
+            $lockedBooking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+
+            abort_unless(
+                in_array($lockedBooking->status, ['confirmed', 'completed'], true)
+                    && $lockedBooking->deposit_status === 'received'
+                    && $lockedBooking->quote_accepted_at !== null
+                    && $lockedBooking->estimated_total !== null,
+                422,
+                'A confirmed deposit and accepted booking total are required before recording balance payments.',
+            );
+
+            $totalCents = (int) round((float) $lockedBooking->estimated_total * 100);
+            $depositCents = (int) round((float) ($lockedBooking->deposit_amount ?? 0) * 100);
+            $balancePaymentsCents = (int) round((float) BookingBalancePayment::where('booking_id', $lockedBooking->id)->sum('amount') * 100);
+            $remainingCents = max(0, $totalCents - $depositCents - $balancePaymentsCents);
+            $paymentCents = (int) round((float) $validated['amount'] * 100);
+
+            if ($paymentCents > $remainingCents) {
+                throw ValidationException::withMessages([
+                    'amount' => 'The payment cannot be greater than the remaining balance of ₱'.number_format($remainingCents / 100, 2).'.',
+                ]);
+            }
+
+            $payment = $lockedBooking->balancePayments()->create([
+                'recorded_by' => $request->user()->id,
+                'amount' => number_format($paymentCents / 100, 2, '.', ''),
+                'method' => $validated['method'],
+                'reference' => $validated['reference'] ?? null,
+                'paid_at' => $validated['paid_at'],
+            ]);
+
+            return [$payment, $remainingCents - $paymentCents];
+        });
+
+        $booking->loadMissing('client', 'artist');
+        $booking->client?->notify(new ArtistBookingUpdate(
+            $booking,
+            'balance_payment_recorded',
+            $payment,
+            $remainingBalance,
+        ));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Balance payment recorded.']);
 
         return back();
     }

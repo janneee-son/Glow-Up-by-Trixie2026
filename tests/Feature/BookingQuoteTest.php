@@ -117,3 +117,76 @@ test('artist cannot confirm a booking before the client quote and deposit are co
 
     expect($booking->fresh()->status)->toBe('pending');
 });
+
+test('artist can record partial and full balance payments and client sees the updated balance', function () {
+    Notification::fake();
+    [$client, $artist, $booking] = makeQuotedBooking();
+    $booking->update([
+        'estimated_total' => 4800,
+        'quote_accepted_at' => now(),
+        'deposit_status' => 'received',
+        'deposit_amount' => 2400,
+        'status' => 'confirmed',
+    ]);
+
+    $this->actingAs($artist)
+        ->post(route('bookings.balance-payments.store', $booking), [
+            'amount' => '1000.00',
+            'method' => 'gcash',
+            'reference' => 'GC-123',
+            'paid_at' => now()->toDateString(),
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect((float) $booking->balancePayments()->sum('amount'))->toBe(1000.0);
+
+    Notification::assertSentTo($client, ArtistBookingUpdate::class, function (ArtistBookingUpdate $notification) use ($booking) {
+        $data = $notification->toArray($booking->client);
+
+        return $data['event'] === 'balance_payment_recorded'
+            && str_contains($data['detail'], 'Remaining balance: ₱1,400.00');
+    });
+
+    $this->actingAs($artist)
+        ->post(route('bookings.balance-payments.store', $booking), [
+            'amount' => '1400.00',
+            'method' => 'cash',
+            'paid_at' => now()->toDateString(),
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect((float) $booking->balancePayments()->sum('amount'))->toBe(2400.0);
+
+    $this->actingAs($client)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('dashboard/client')
+            ->where('bookings.0.total_paid_amount', fn ($amount) => (float) $amount === 4800.0)
+            ->where('bookings.0.remaining_balance', 0)
+            ->has('bookings.0.balance_payments', 2));
+});
+
+test('artist cannot record a balance payment above the remaining amount', function () {
+    [, $artist, $booking] = makeQuotedBooking();
+    $booking->update([
+        'estimated_total' => 4800,
+        'quote_accepted_at' => now(),
+        'deposit_status' => 'received',
+        'deposit_amount' => 2400,
+        'status' => 'confirmed',
+    ]);
+
+    $this->actingAs($artist)
+        ->from(route('dashboard'))
+        ->post(route('bookings.balance-payments.store', $booking), [
+            'amount' => '2400.01',
+            'method' => 'cash',
+            'paid_at' => now()->toDateString(),
+        ])
+        ->assertSessionHasErrors('amount');
+
+    expect($booking->balancePayments()->count())->toBe(0);
+});

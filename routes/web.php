@@ -103,6 +103,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/book/{booking}/deposit', [BookingController::class, 'submitDeposit'])->name('bookings.deposit.submit');
     Route::get('/book/{booking}/deposit/proof', [BookingController::class, 'showDepositProof'])->name('bookings.deposit.proof');
     Route::patch('/book/{booking}/deposit/received', [BookingController::class, 'markDepositReceived'])->name('bookings.deposit.received');
+    Route::post('/book/{booking}/balance-payments', [BookingController::class, 'recordBalancePayment'])->name('bookings.balance-payments.store');
     Route::patch('/book/{booking}/transportation-fee', [BookingController::class, 'updateTransportationFee'])->name('bookings.transportation-fee');
     Route::patch('/book/{booking}/transportation-fee/accept', [BookingController::class, 'acceptTransportationFee'])->name('bookings.transportation-fee.accept');
     Route::patch('/book/{booking}/decline', [BookingController::class, 'decline'])->name('bookings.decline');

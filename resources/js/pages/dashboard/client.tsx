@@ -13,6 +13,7 @@ import {
     X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BookingPaymentBreakdown from '@/components/booking-payment-breakdown';
 import DashboardHeader from '@/components/dashboard-header';
 import RequiredAsterisk from '@/components/required-asterisk';
 
@@ -34,6 +35,15 @@ type Booking = {
     deposit_method?: 'gcash' | 'bank_transfer' | 'cash' | null;
     deposit_reference?: string | null;
     deposit_proof_url?: string | null;
+    total_paid_amount?: number | string | null;
+    remaining_balance?: number | string | null;
+    balance_payments?: {
+        id: number;
+        amount: number | string;
+        method: 'gcash' | 'bank_transfer' | 'cash' | 'other';
+        reference: string | null;
+        paid_at: string;
+    }[];
     selected_add_ons?:
         | {
               id: number | null;
@@ -616,20 +626,25 @@ export default function ClientDashboard({ bookings }: Props) {
                                             · {booking.venue_address}
                                         </p>
                                     )}
-                                    {booking.estimated_total != null && (
+                                    {booking.estimated_total != null && booking.quote_accepted_at ? (
+                                        <BookingPaymentBreakdown
+                                            total={booking.estimated_total}
+                                            depositStatus={booking.deposit_status}
+                                            depositAmount={booking.deposit_amount}
+                                            remainingBalance={booking.remaining_balance}
+                                        />
+                                    ) : booking.estimated_total != null ? (
                                         <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">
-                                            {booking.quote_accepted_at
-                                                ? 'Final quoted total'
-                                                : booking.quote_pending ||
-                                                    booking.transportation_fee_pending
-                                                  ? 'Quote total for your approval'
-                                                  : 'Starting estimate'}
+                                            {booking.quote_pending ||
+                                            booking.transportation_fee_pending
+                                                ? 'Quote total for your approval'
+                                                : 'Starting estimate'}
                                             : ₱
                                             {Number(
                                                 booking.estimated_total,
                                             ).toLocaleString('en-PH')}
                                         </p>
-                                    )}
+                                    ) : null}
                                     {(booking.quote_pending ||
                                         booking.transportation_fee_pending) && (
                                         <p className="mb-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-3 py-2 text-sm font-semibold text-[#8a6a2f]">
@@ -637,88 +652,19 @@ export default function ClientDashboard({ bookings }: Props) {
                                             to review
                                         </p>
                                     )}
-                                    {booking.deposit_status === 'due' &&
-                                        booking.estimated_total != null && (
-                                            <p className="mb-3 text-sm font-semibold text-[#8a6a2f]">
-                                                50% deposit to secure: ₱
-                                                {(
-                                                    Number(
-                                                        booking.estimated_total,
-                                                    ) / 2
-                                                ).toLocaleString('en-PH', {
-                                                    minimumFractionDigits: 2,
-                                                })}
-                                                {' · '}Remaining balance after
-                                                deposit: ₱
-                                                {(
-                                                    Number(
-                                                        booking.estimated_total,
-                                                    ) / 2
-                                                ).toLocaleString('en-PH', {
-                                                    minimumFractionDigits: 2,
-                                                })}
-                                            </p>
-                                        )}
-                                    {(booking.deposit_status === 'submitted' ||
-                                        booking.deposit_status === 'received') &&
-                                        booking.estimated_total != null && (
-                                            <p className="mb-3 rounded-xl border border-[#e8d7cf] bg-[#fffcf8] px-3 py-2 text-sm text-[#4a4a4a]">
-                                                {booking.deposit_status ===
-                                                'received' ? (
-                                                    <>
-                                                        Deposit received: ₱
-                                                        {Number(
-                                                            booking.deposit_amount ??
-                                                                Number(
-                                                                    booking.estimated_total,
-                                                                ) / 2,
-                                                        ).toLocaleString(
-                                                            'en-PH',
-                                                            {
-                                                                minimumFractionDigits: 2,
-                                                            },
-                                                        )}{' '}
-                                                        · Remaining balance: ₱
-                                                        {Math.max(
-                                                            0,
-                                                            Number(
-                                                                booking.estimated_total,
-                                                            ) -
-                                                                Number(
-                                                                    booking.deposit_amount ??
-                                                                        Number(
-                                                                            booking.estimated_total,
-                                                                        ) / 2,
-                                                                ),
-                                                        ).toLocaleString(
-                                                            'en-PH',
-                                                            {
-                                                                minimumFractionDigits: 2,
-                                                            },
-                                                        )}{' '}
-                                                        due on service day.
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        Deposit payment submitted
-                                                        for confirmation: ₱
-                                                        {(
-                                                            Number(
-                                                                booking.estimated_total,
-                                                            ) / 2
-                                                        ).toLocaleString(
-                                                            'en-PH',
-                                                            {
-                                                                minimumFractionDigits: 2,
-                                                            },
-                                                        )}
-                                                        . The remaining balance
-                                                        will update after
-                                                        confirmation.
-                                                    </>
-                                                )}
-                                            </p>
-                                        )}
+                                    {booking.deposit_status === 'received' && !!booking.balance_payments?.length && (
+                                        <div className="mb-3 rounded-xl border border-[#e8d7cf] bg-white px-3 py-2 text-sm text-[#4a4a4a]">
+                                            <p className="font-semibold">Balance payment history</p>
+                                            <ul className="mt-1 grid gap-1">
+                                                {booking.balance_payments.map((payment) => (
+                                                    <li key={payment.id}>
+                                                        ₱{Number(payment.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })} · {payment.method.replace('_', ' ')} · {new Date(payment.paid_at).toLocaleDateString()}
+                                                        {payment.reference ? ` · Ref: ${payment.reference}` : ''}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
 
                                     <div className="flex flex-wrap gap-4 text-sm text-[#4a4a4a]">
                                         <span className="flex items-center gap-1.5">
@@ -1020,11 +966,11 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 <div className="flex justify-between gap-3 border-t border-[#e8d7cf] pt-2 font-semibold text-[#1a1a1a]">
                                                     <span>
                                                         {selectedBooking.quote_accepted_at
-                                                            ? 'Final quoted total'
-                                                            : selectedBooking.quote_pending ||
-                                                                selectedBooking.transportation_fee_pending
-                                                              ? 'Total for your approval'
-                                                              : 'Starting estimate'}
+                                                            ? 'Total service fee'
+                                                              : selectedBooking.quote_pending ||
+                                                                  selectedBooking.transportation_fee_pending
+                                                                ? 'Total for your approval'
+                                                                : 'Starting estimate'}
                                                     </span>
                                                     <span className="shrink-0">
                                                         ₱
@@ -1291,7 +1237,8 @@ export default function ClientDashboard({ bookings }: Props) {
                                             .
                                         </p>
                                         <p className="mt-2 font-medium text-[#4a4a4a]">
-                                            Deposit submitted: ₱
+                                            Deposit sent (awaiting
+                                            verification): ₱
                                             {(
                                                 Number(
                                                     selectedBooking.estimated_total ??
@@ -1300,8 +1247,13 @@ export default function ClientDashboard({ bookings }: Props) {
                                             ).toLocaleString('en-PH', {
                                                 minimumFractionDigits: 2,
                                             })}
-                                            . Balance will be confirmed after
-                                            Trixie verifies the payment.
+                                            . Estimated remaining balance: ₱
+                                            {Math.max(
+                                                0,
+                                                Number(selectedBooking.estimated_total ?? 0) / 2,
+                                            ).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                            . Trixie will confirm the balance
+                                            after verifying the deposit.
                                         </p>
                                         {selectedBooking.deposit_proof_url && (
                                             <img
@@ -1321,7 +1273,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                             Payment confirmed
                                         </p>
                                         <p className="mt-1">
-                                            Deposit received: ₱
+                                            50% deposit received: ₱
                                             {Number(
                                                 selectedBooking.deposit_amount ??
                                                     Number(
@@ -1332,25 +1284,20 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 minimumFractionDigits: 2,
                                             })}
                                             . Remaining balance: ₱
-                                            {Math.max(
-                                                0,
-                                                Number(
-                                                    selectedBooking.estimated_total ??
-                                                        0,
-                                                ) -
-                                                    Number(
-                                                        selectedBooking.deposit_amount ??
-                                                            Number(
-                                                                selectedBooking.estimated_total ??
-                                                                    0,
-                                                            ) / 2,
-                                                    ),
-                                            ).toLocaleString('en-PH', {
-                                                minimumFractionDigits: 2,
-                                            })}
-                                            , due on the service day. Trixie
+                                            {Number(selectedBooking.remaining_balance ?? Math.max(0, Number(selectedBooking.estimated_total ?? 0) - Number(selectedBooking.deposit_amount ?? Number(selectedBooking.estimated_total ?? 0) / 2))).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                            {Number(selectedBooking.remaining_balance ?? 0) > 0 ? ', due on the service day.' : ', paid in full.'} Trixie
                                             will confirm your booking shortly.
                                         </p>
+                                        {!!selectedBooking.balance_payments?.length && (
+                                            <ul className="mt-3 grid gap-1 border-t border-[#b7d5bb] pt-3">
+                                                {selectedBooking.balance_payments.map((payment) => (
+                                                    <li key={payment.id}>
+                                                        ₱{Number(payment.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })} · {payment.method.replace('_', ' ')} · {new Date(payment.paid_at).toLocaleDateString()}
+                                                        {payment.reference ? ` · Ref: ${payment.reference}` : ''}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </section>
                                 )}
 

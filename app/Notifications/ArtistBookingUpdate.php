@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Booking;
+use App\Models\BookingBalancePayment;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -13,6 +14,8 @@ class ArtistBookingUpdate extends Notification
     public function __construct(
         private readonly Booking $booking,
         private readonly string $event,
+        private readonly ?BookingBalancePayment $balancePayment = null,
+        private readonly ?int $remainingBalanceCents = null,
     ) {}
 
     public function via(object $notifiable): array
@@ -34,6 +37,7 @@ class ArtistBookingUpdate extends Notification
             'quote_accepted' => 'Client accepted the final quote',
             'deposit_submitted' => 'Client says deposit was sent',
             'deposit_received' => 'Deposit received',
+            'balance_payment_recorded' => 'Balance payment recorded',
         ];
 
         $travelFee = collect($this->booking->selected_add_ons ?? [])
@@ -54,6 +58,9 @@ class ArtistBookingUpdate extends Notification
                     0,
                     (float) ($this->booking->estimated_total ?? 0) - (float) ($this->booking->deposit_amount ?? 0),
                 ), 2).'. Trixie verified your payment.',
+            'balance_payment_recorded' => 'Balance payment of ₱'.number_format((float) ($this->balancePayment?->amount ?? 0), 2)
+                .' recorded via '.str_replace('_', ' ', ucfirst($this->balancePayment?->method ?? 'payment'))
+                .'. Remaining balance: ₱'.number_format(($this->remainingBalanceCents ?? 0) / 100, 2).'.',
             'travel_fee_updated' => 'Transportation: ₱'.number_format((float) ($travelFee['line_total'] ?? 0))
                 .($this->booking->estimated_total === null
                     ? ''
