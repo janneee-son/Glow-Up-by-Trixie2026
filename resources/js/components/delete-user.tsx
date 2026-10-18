@@ -4,6 +4,7 @@ import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileCo
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import RequiredAsterisk from '@/components/required-asterisk';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -70,7 +71,7 @@ export default function DeleteUser() {
                                             htmlFor="password"
                                             className="sr-only"
                                         >
-                                            Password
+                                            Password<RequiredAsterisk />
                                         </Label>
 
                                         <PasswordInput
@@ -79,6 +80,7 @@ export default function DeleteUser() {
                                             ref={passwordInput}
                                             placeholder="Password"
                                             autoComplete="current-password"
+                                            required
                                         />
 
                                         <InputError message={errors.password} />

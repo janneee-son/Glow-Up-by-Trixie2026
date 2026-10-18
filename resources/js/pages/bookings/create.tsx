@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import DashboardHeader from '@/components/dashboard-header';
 import InputError from '@/components/input-error';
+import RequiredAsterisk from '@/components/required-asterisk';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -374,7 +375,7 @@ export default function CreateBooking({
                                 className="flex items-center gap-1.5 text-[#1a1a1a]"
                             >
                                 <Brush className="h-4 w-4 text-[#8a6a2f]" />{' '}
-                                Category
+                                Category<RequiredAsterisk />
                             </Label>
                             <select
                                 id="offering"
@@ -624,7 +625,7 @@ export default function CreateBooking({
                                 htmlFor="service_city"
                                 className="text-[#1a1a1a]"
                             >
-                                Service city or municipality
+                                Service city or municipality<RequiredAsterisk />
                             </Label>
                             <select
                                 id="service_city"
@@ -674,7 +675,7 @@ export default function CreateBooking({
                                 htmlFor="venue_address"
                                 className="text-[#1a1a1a]"
                             >
-                                Venue address
+                                Venue address<RequiredAsterisk />
                             </Label>
                             <p className="text-xs text-[#4a4a4a]">
                                 Prefilled from your profile address. Edit it
@@ -703,7 +704,7 @@ export default function CreateBooking({
                                     className="flex items-center gap-1.5 text-[#1a1a1a]"
                                 >
                                     <CalendarDays className="h-4 w-4 text-[#8a6a2f]" />
-                                    Date
+                                    Date<RequiredAsterisk />
                                 </Label>
                                 <input
                                     id="booking_date"
@@ -728,7 +729,7 @@ export default function CreateBooking({
                                     className="flex items-center gap-1.5 text-[#1a1a1a]"
                                 >
                                     <Clock className="h-4 w-4 text-[#8a6a2f]" />
-                                    Time
+                                    Time<RequiredAsterisk />
                                 </Label>
                                 <input
                                     id="booking_time"
@@ -945,11 +946,12 @@ export default function CreateBooking({
                                             event.target.checked,
                                         )
                                     }
+                                    required
                                     className="mt-1 accent-[#8a6a2f]"
                                 />
                                 <span>
                                     I have read and agree to the booking terms
-                                    and conditions.
+                                    and conditions.<RequiredAsterisk />
                                 </span>
                             </label>
                             <InputError message={errors.terms_accepted} />

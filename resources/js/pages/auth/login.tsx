@@ -2,6 +2,7 @@ import { Form, Head } from '@inertiajs/react';
 import { Mail, Lock } from 'lucide-react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import RequiredAsterisk from '@/components/required-asterisk';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -35,7 +36,7 @@ export default function Login({ status, canResetPassword }: Props) {
                         <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="email" className="text-[#1a1a1a]">
-                                    Email address
+                                    Email address<RequiredAsterisk />
                                 </Label>
                                 <div className="relative">
                                     <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a6a2f]/60" />
@@ -57,7 +58,7 @@ export default function Login({ status, canResetPassword }: Props) {
                             <div className="grid gap-2">
                                 <div className="flex items-center">
                                     <Label htmlFor="password" className="text-[#1a1a1a]">
-                                        Password
+                                        Password<RequiredAsterisk />
                                     </Label>
                                     {canResetPassword && (
                                         <TextLink

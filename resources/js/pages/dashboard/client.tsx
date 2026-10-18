@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DashboardHeader from '@/components/dashboard-header';
+import RequiredAsterisk from '@/components/required-asterisk';
 
 type Booking = {
     id: number;
@@ -777,7 +778,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                         htmlFor={`review-rating-${selectedBooking.id}`}
                                         className="mt-3 block text-xs font-medium text-[#4a4a4a]"
                                     >
-                                        Your rating
+                                        Your rating<RequiredAsterisk />
                                     </label>
                                     <select
                                         id={`review-rating-${selectedBooking.id}`}
@@ -787,6 +788,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 Number(event.target.value),
                                             )
                                         }
+                                        required
                                         className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6a2f]"
                                     >
                                         <option value={5}>
@@ -805,7 +807,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                         htmlFor={`review-comment-${selectedBooking.id}`}
                                         className="mt-3 block text-xs font-medium text-[#4a4a4a]"
                                     >
-                                        Your review
+                                        Your review<RequiredAsterisk />
                                     </label>
                                     <textarea
                                         id={`review-comment-${selectedBooking.id}`}
@@ -815,6 +817,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                         }
                                         minLength={10}
                                         maxLength={1200}
+                                        required
                                         rows={3}
                                         placeholder="Share a little about your experience (10–1,200 characters)"
                                         className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] opacity-100 placeholder:text-[#6b625a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6a2f]"
@@ -1037,7 +1040,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 htmlFor={`deposit-method-${selectedBooking.id}`}
                                                 className="mt-3 block text-xs font-medium text-[#4a4a4a]"
                                             >
-                                                Payment method
+                                                Payment method<RequiredAsterisk />
                                             </label>
                                             <select
                                                 id={`deposit-method-${selectedBooking.id}`}
@@ -1122,7 +1125,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                                     >
                                                         Upload payment proof
                                                         (JPG, PNG, or WebP; up
-                                                        to 5 MB)
+                                                        to 5 MB)<RequiredAsterisk />
                                                     </label>
                                                     <input
                                                         id={`deposit-proof-${selectedBooking.id}`}
@@ -1445,7 +1448,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <div className="grid gap-1.5">
                                         <label className="text-xs font-semibold text-[#1a1a1a]">
-                                            New date
+                                            New date<RequiredAsterisk />
                                         </label>
                                         <input
                                             type="date"
@@ -1459,7 +1462,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                     </div>
                                     <div className="grid gap-1.5">
                                         <label className="text-xs font-semibold text-[#1a1a1a]">
-                                            New time
+                                            New time<RequiredAsterisk />
                                         </label>
                                         <input
                                             type="time"

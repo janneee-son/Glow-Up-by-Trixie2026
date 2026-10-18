@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import DashboardHeader from '@/components/dashboard-header';
 import InputError from '@/components/input-error';
+import RequiredAsterisk from '@/components/required-asterisk';
 
 type GalleryImage = {
     id: number;
@@ -116,7 +117,7 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
                         </h2>
 
                         <label className="grid cursor-pointer gap-1.5 text-xs font-semibold text-[#4a4a4a]">
-                            Photo (JPG, PNG, or WebP; up to 5 MB)
+                            Photo (JPG, PNG, or WebP; up to 5 MB)<RequiredAsterisk />
                             <input
                                 id="gallery-image"
                                 type="file"

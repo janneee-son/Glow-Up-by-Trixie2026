@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import DashboardHeader from '@/components/dashboard-header';
+import RequiredAsterisk from '@/components/required-asterisk';
 
 type Booking = {
     id: number;
@@ -474,7 +475,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                         htmlFor={`makeup-price-${booking.id}`}
                                                         className="mb-1 block text-xs font-medium text-[#4a4a4a]"
                                                     >
-                                                        Final makeup price (₱)
+                                                        Final makeup price (₱)<RequiredAsterisk />
                                                     </label>
                                                     <input
                                                         id={`makeup-price-${booking.id}`}
@@ -512,7 +513,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                         htmlFor={`travel-fee-${booking.id}`}
                                                         className="mb-1 block text-xs font-medium text-[#4a4a4a]"
                                                     >
-                                                        Transportation fee (₱)
+                                                        Transportation fee (₱)<RequiredAsterisk />
                                                     </label>
                                                     <input
                                                         id={`travel-fee-${booking.id}`}

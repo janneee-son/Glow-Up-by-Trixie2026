@@ -3,6 +3,7 @@ import { User, Mail, Lock, Phone, MapPin } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import RequiredAsterisk from '@/components/required-asterisk';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +66,7 @@ export default function Register({ passwordRules }: Props) {
                                     htmlFor="name"
                                     className="text-[#1a1a1a]"
                                 >
-                                    Name
+                                    Name<RequiredAsterisk />
                                 </Label>
                                 <div className="relative">
                                     <User className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#8a6a2f]/60" />
@@ -95,7 +96,7 @@ export default function Register({ passwordRules }: Props) {
                                     htmlFor="email"
                                     className="text-[#1a1a1a]"
                                 >
-                                    Email address
+                                    Email address<RequiredAsterisk />
                                 </Label>
                                 <div className="relative">
                                     <Mail className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#8a6a2f]/60" />
@@ -119,7 +120,7 @@ export default function Register({ passwordRules }: Props) {
                                     htmlFor="phone"
                                     className="text-[#1a1a1a]"
                                 >
-                                    Phone number
+                                    Phone number<RequiredAsterisk />
                                 </Label>
                                 <div className="relative">
                                     <Phone className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#8a6a2f]/60" />
@@ -153,7 +154,7 @@ export default function Register({ passwordRules }: Props) {
                                         htmlFor="street_address"
                                         className="text-[#1a1a1a]"
                                     >
-                                        House no. / Street
+                                        House no. / Street<RequiredAsterisk />
                                     </Label>
                                     <Input
                                         id="street_address"
@@ -177,7 +178,7 @@ export default function Register({ passwordRules }: Props) {
                                             htmlFor="barangay"
                                             className="text-[#1a1a1a]"
                                         >
-                                            Barangay
+                                            Barangay<RequiredAsterisk />
                                         </Label>
                                         <Input
                                             id="barangay"
@@ -197,7 +198,7 @@ export default function Register({ passwordRules }: Props) {
                                             htmlFor="city"
                                             className="text-[#1a1a1a]"
                                         >
-                                            City / Municipality
+                                            City / Municipality<RequiredAsterisk />
                                         </Label>
                                         <Input
                                             id="city"
@@ -219,7 +220,7 @@ export default function Register({ passwordRules }: Props) {
                                             htmlFor="province"
                                             className="text-[#1a1a1a]"
                                         >
-                                            Province
+                                            Province<RequiredAsterisk />
                                         </Label>
                                         <Input
                                             id="province"
@@ -239,7 +240,7 @@ export default function Register({ passwordRules }: Props) {
                                             htmlFor="postal_code"
                                             className="text-[#1a1a1a]"
                                         >
-                                            Postal code
+                                            Postal code<RequiredAsterisk />
                                         </Label>
                                         <Input
                                             id="postal_code"
@@ -268,7 +269,7 @@ export default function Register({ passwordRules }: Props) {
                                     htmlFor="password"
                                     className="text-[#1a1a1a]"
                                 >
-                                    Password
+                                    Password<RequiredAsterisk />
                                 </Label>
                                 <div className="relative">
                                     <Lock className="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-[#8a6a2f]/60" />
@@ -291,7 +292,7 @@ export default function Register({ passwordRules }: Props) {
                                     htmlFor="password_confirmation"
                                     className="text-[#1a1a1a]"
                                 >
-                                    Confirm password
+                                    Confirm password<RequiredAsterisk />
                                 </Label>
                                 <div className="relative">
                                     <Lock className="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-[#8a6a2f]/60" />

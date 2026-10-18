@@ -8,6 +8,7 @@ import ManagePasskeys from '@/components/manage-passkeys';
 import type { Props as ManageTwoFactorProps } from '@/components/manage-two-factor';
 import ManageTwoFactor from '@/components/manage-two-factor';
 import PasswordInput from '@/components/password-input';
+import RequiredAsterisk from '@/components/required-asterisk';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/security';
@@ -60,7 +61,7 @@ export default function Security(props: Props) {
                         <>
                             <div className="grid gap-2">
                                 <Label htmlFor="current_password">
-                                    Current password
+                                    Current password<RequiredAsterisk />
                                 </Label>
 
                                 <PasswordInput
@@ -76,7 +77,9 @@ export default function Security(props: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">New password</Label>
+                                <Label htmlFor="password">
+                                    New password<RequiredAsterisk />
+                                </Label>
 
                                 <PasswordInput
                                     id="password"
@@ -93,7 +96,7 @@ export default function Security(props: Props) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password_confirmation">
-                                    Confirm password
+                                    Confirm password<RequiredAsterisk />
                                 </Label>
 
                                 <PasswordInput

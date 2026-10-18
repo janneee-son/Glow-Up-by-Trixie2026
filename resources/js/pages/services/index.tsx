@@ -9,6 +9,7 @@ import {
 import { useState } from 'react';
 import DashboardHeader from '@/components/dashboard-header';
 import InputError from '@/components/input-error';
+import RequiredAsterisk from '@/components/required-asterisk';
 
 type Service = {
     id: number;
@@ -94,7 +95,7 @@ function ServiceFields({
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
-                    Service name
+                    Service name<RequiredAsterisk />
                     <input
                         className={inputClass}
                         maxLength={100}
@@ -107,7 +108,7 @@ function ServiceFields({
                     <InputError message={errors.name} />
                 </label>
                 <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
-                    Price (₱)
+                    Price (₱)<RequiredAsterisk />
                     <input
                         className={inputClass}
                         type="number"
@@ -321,7 +322,7 @@ function OfferingForm({
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
-                    Name
+                    Name<RequiredAsterisk />
                     <input
                         className={inputClass}
                         maxLength={120}
@@ -335,6 +336,9 @@ function OfferingForm({
                     {kind === 'add_on'
                         ? 'Price per person/item (₱)'
                         : 'Price (₱)'}
+                    {data.pricing_type !== 'quote_required' && (
+                        <RequiredAsterisk />
+                    )}
                     <input
                         className={inputClass}
                         type="number"
@@ -354,7 +358,7 @@ function OfferingForm({
                 </label>
             </div>
             <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
-                Price display
+                Price display<RequiredAsterisk />
                 <select
                     className={inputClass}
                     value={data.pricing_type}
@@ -402,7 +406,7 @@ function OfferingForm({
             {quantityLimitsApply && (
                 <div className="grid gap-4 sm:grid-cols-2">
                     <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
-                        Minimum quantity
+                        Minimum quantity<RequiredAsterisk />
                         <input
                             className={inputClass}
                             type="number"
@@ -421,7 +425,7 @@ function OfferingForm({
                         <InputError message={errors.add_on_min_quantity} />
                     </label>
                     <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
-                        Maximum quantity
+                        Maximum quantity<RequiredAsterisk />
                         <input
                             className={inputClass}
                             type="number"

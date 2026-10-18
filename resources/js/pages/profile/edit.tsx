@@ -14,6 +14,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import DashboardHeader from '@/components/dashboard-header';
 import InputError from '@/components/input-error';
+import RequiredAsterisk from '@/components/required-asterisk';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -405,7 +406,7 @@ export default function EditProfile({ user }: Props) {
                                 className="flex items-center gap-1.5 text-[#1a1a1a]"
                             >
                                 <UserIcon className="h-4 w-4 text-[#8a6a2f]" />{' '}
-                                Full name
+                                Full name<RequiredAsterisk />
                             </Label>
                             <input
                                 id="name"
@@ -450,7 +451,7 @@ export default function EditProfile({ user }: Props) {
                                 className="flex items-center gap-1.5 text-[#1a1a1a]"
                             >
                                 <Phone className="h-4 w-4 text-[#8a6a2f]" />{' '}
-                                Mobile number
+                                Mobile number<RequiredAsterisk />
                             </Label>
                             <input
                                 id="phone"
@@ -566,7 +567,7 @@ export default function EditProfile({ user }: Props) {
                                                 htmlFor="metro_manila_travel_fee"
                                                 className="text-[#1a1a1a]"
                                             >
-                                                Metro Manila (₱)
+                                                Metro Manila (₱)<RequiredAsterisk />
                                             </Label>
                                             <input
                                                 id="metro_manila_travel_fee"
@@ -598,7 +599,7 @@ export default function EditProfile({ user }: Props) {
                                                 htmlFor="out_of_town_travel_fee"
                                                 className="text-[#1a1a1a]"
                                             >
-                                                Nearby provinces (₱)
+                                                Nearby provinces (₱)<RequiredAsterisk />
                                             </Label>
                                             <input
                                                 id="out_of_town_travel_fee"
@@ -645,7 +646,7 @@ export default function EditProfile({ user }: Props) {
                                         htmlFor="street_address"
                                         className="text-[#1a1a1a]"
                                     >
-                                        House no. / Street
+                                        House no. / Street{!isArtist && <RequiredAsterisk />}
                                     </Label>
                                     <input
                                         id="street_address"
@@ -674,7 +675,7 @@ export default function EditProfile({ user }: Props) {
                                             htmlFor="barangay"
                                             className="text-[#1a1a1a]"
                                         >
-                                            Barangay
+                                            Barangay{!isArtist && <RequiredAsterisk />}
                                         </Label>
                                         <input
                                             id="barangay"
@@ -699,7 +700,7 @@ export default function EditProfile({ user }: Props) {
                                             htmlFor="city"
                                             className="text-[#1a1a1a]"
                                         >
-                                            City / Municipality
+                                            City / Municipality{!isArtist && <RequiredAsterisk />}
                                         </Label>
                                         <input
                                             id="city"
@@ -723,7 +724,7 @@ export default function EditProfile({ user }: Props) {
                                             htmlFor="province"
                                             className="text-[#1a1a1a]"
                                         >
-                                            Province
+                                            Province{!isArtist && <RequiredAsterisk />}
                                         </Label>
                                         <input
                                             id="province"
@@ -748,7 +749,7 @@ export default function EditProfile({ user }: Props) {
                                             htmlFor="postal_code"
                                             className="text-[#1a1a1a]"
                                         >
-                                            Postal code
+                                            Postal code{!isArtist && <RequiredAsterisk />}
                                         </Label>
                                         <input
                                             id="postal_code"

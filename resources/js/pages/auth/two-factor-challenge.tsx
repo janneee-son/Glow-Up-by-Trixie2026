@@ -2,6 +2,7 @@ import { Form, Head, setLayoutProps } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
+import RequiredAsterisk from '@/components/required-asterisk';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -64,7 +65,14 @@ export default function TwoFactorChallenge() {
                         <>
                             {showRecoveryInput ? (
                                 <>
+                                    <label
+                                        htmlFor="recovery_code"
+                                        className="text-sm text-muted-foreground"
+                                    >
+                                        Recovery code<RequiredAsterisk />
+                                    </label>
                                     <Input
+                                        id="recovery_code"
                                         name="recovery_code"
                                         type="text"
                                         placeholder="Enter recovery code"
@@ -77,6 +85,9 @@ export default function TwoFactorChallenge() {
                                 </>
                             ) : (
                                 <div className="flex flex-col items-center justify-center space-y-3 text-center">
+                                    <p className="text-sm text-muted-foreground">
+                                        Authentication code<RequiredAsterisk />
+                                    </p>
                                     <div className="flex w-full items-center justify-center">
                                         <InputOTP
                                             name="code"
