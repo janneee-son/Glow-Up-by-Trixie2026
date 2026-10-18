@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\ArtistBookingUpdate;
 use App\Notifications\NewBookingRequest;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -195,6 +196,84 @@ TERMS;
                 'version' => self::BOOKING_TERMS_VERSION,
                 'text' => self::BOOKING_TERMS,
             ],
+        ]);
+    }
+
+    public function checkAvailability(Request $request): JsonResponse
+    {
+        $artist = $this->theArtist();
+
+        if (! $artist) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Bookings are not open yet.',
+            ]);
+        }
+
+        $validated = $request->validate([
+            'booking_date' => ['required', 'date', 'after_or_equal:today'],
+            'booking_time' => ['nullable', 'date_format:H:i,H:i:s'],
+            'service' => [
+                'nullable',
+                'string',
+                Rule::exists('artist_services', 'name')
+                    ->where('user_id', $artist->id)
+                    ->where('is_active', true),
+            ],
+            'package_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('artist_offerings', 'id')
+                    ->where('user_id', $artist->id)
+                    ->where('kind', 'package')
+                    ->where('is_active', true),
+            ],
+        ]);
+
+        $service = filled($validated['service'] ?? null)
+            ? ArtistService::where('user_id', $artist->id)->where('name', $validated['service'])->first()
+            : null;
+        $package = filled($validated['package_id'] ?? null)
+            ? ArtistOffering::where('user_id', $artist->id)->find($validated['package_id'])
+            : null;
+
+        if (($service === null) === ($package === null)) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Choose a service or package to check availability.',
+            ]);
+        }
+
+        $serviceName = $package?->name ?? $service->name;
+
+        if ($this->dailyCapacityReached($artist->id, $validated['booking_date'], $serviceName)) {
+            return response()->json([
+                'available' => false,
+                'message' => 'This date has reached the usual limit of two bookings. Please choose another date.',
+            ]);
+        }
+
+        if (filled($validated['booking_time'] ?? null)) {
+            if (Carbon::parse("{$validated['booking_date']} {$validated['booking_time']}")->isPast()) {
+                return response()->json([
+                    'available' => false,
+                    'message' => 'Please choose a future time.',
+                ]);
+            }
+
+            if ($this->slotTaken($artist->id, $validated['booking_date'], $validated['booking_time'], $serviceName)) {
+                return response()->json([
+                    'available' => false,
+                    'message' => 'That time conflicts with another booking. Please choose a different time.',
+                ]);
+            }
+        }
+
+        return response()->json([
+            'available' => true,
+            'message' => filled($validated['booking_time'] ?? null)
+                ? 'This date and time appear available. The artist will confirm your request.'
+                : 'This date has booking capacity. Choose a time to check the slot.',
         ]);
     }
 

@@ -94,6 +94,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/client/notifications/read-all', [ClientNotificationController::class, 'markAllRead'])->name('client.notifications.read-all');
 
     Route::get('/book', [BookingController::class, 'create'])->name('bookings.create');
+    Route::get('/book/availability', [BookingController::class, 'checkAvailability'])->name('bookings.availability');
     Route::post('/book', [BookingController::class, 'store'])->name('bookings.store');
     Route::patch('/book/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
     Route::patch('/book/{booking}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');

@@ -138,6 +138,10 @@ export default function CreateBooking({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [newPreview, setNewPreview] = useState<string | null>(null);
     const [viewingUrl, setViewingUrl] = useState<string | null>(null);
+    const [availability, setAvailability] = useState<{
+        state: 'idle' | 'checking' | 'available' | 'unavailable' | 'error';
+        message: string;
+    }>({ state: 'idle', message: '' });
     const { data, setData, post, processing, errors } = useForm<{
         service: string;
         package_id: number | null;
@@ -200,6 +204,66 @@ export default function CreateBooking({
         data.booking_time >= '01:00' &&
         data.booking_time <= '05:00',
     );
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        if (!data.booking_date || (!data.service && !data.package_id)) {
+            const timer = window.setTimeout(() => {
+                setAvailability({ state: 'idle', message: '' });
+            }, 0);
+
+            return () => window.clearTimeout(timer);
+        }
+
+        const query = new URLSearchParams({
+            booking_date: data.booking_date,
+            ...(data.booking_time ? { booking_time: data.booking_time } : {}),
+            ...(data.service ? { service: data.service } : {}),
+            ...(data.package_id ? { package_id: String(data.package_id) } : {}),
+        });
+
+        const timer = window.setTimeout(() => {
+            setAvailability({ state: 'checking', message: 'Checking availability…' });
+
+            fetch(`/book/availability?${query.toString()}`, {
+                headers: { Accept: 'application/json' },
+                signal: controller.signal,
+            })
+                .then(async (response) => {
+                    if (!response.ok) {
+                        throw new Error('Availability could not be checked.');
+                    }
+
+                    return (await response.json()) as {
+                        available: boolean;
+                        message: string;
+                    };
+                })
+                .then((result) => {
+                    setAvailability({
+                        state: result.available ? 'available' : 'unavailable',
+                        message: result.message,
+                    });
+                })
+                .catch((error: unknown) => {
+                    if (error instanceof DOMException && error.name === 'AbortError') {
+                        return;
+                    }
+
+                    setAvailability({
+                        state: 'error',
+                        message: 'Availability could not be checked. You can still submit; the artist will verify your request.',
+                    });
+                });
+        }, 0);
+
+        return () => {
+            window.clearTimeout(timer);
+            controller.abort();
+        };
+    }, [data.booking_date, data.booking_time, data.package_id, data.service]);
+
     const travelFee = !data.service_city
         ? 0
         : isNearbyProvince
@@ -748,6 +812,22 @@ export default function CreateBooking({
                             </div>
                         </div>
 
+                        {availability.state !== 'idle' && (
+                            <p
+                                role="status"
+                                aria-live="polite"
+                                className={`rounded-xl px-3 py-2 text-sm leading-5 ${
+                                    availability.state === 'unavailable'
+                                        ? 'border border-red-200 bg-red-50 text-red-800'
+                                        : availability.state === 'available'
+                                          ? 'border border-green-200 bg-green-50 text-green-800'
+                                          : 'border border-[#E8D8A8] bg-[#FFF9E8] text-[#765C1F]'
+                                }`}
+                            >
+                                {availability.message}
+                            </p>
+                        )}
+
                         <p className="rounded-xl bg-[#fffcf8] px-3 py-2 text-xs leading-5 text-[#4a4a4a]">
                             Regular sessions take about 1½ hours; bridal and
                             wedding bookings reserve up to 3 hours. The artist
@@ -965,6 +1045,8 @@ export default function CreateBooking({
                                     packages.length === 0) ||
                                 (!data.service && !data.package_id) ||
                                 !data.terms_accepted ||
+                                availability.state === 'checking' ||
+                                availability.state === 'unavailable' ||
                                 processing
                             }
                             className="w-full rounded-full bg-[#8a6a2f] text-white shadow-md shadow-[#8a6a2f]/25 transition duration-200 hover:bg-[#8a6a2f] hover:shadow-lg disabled:opacity-50"
