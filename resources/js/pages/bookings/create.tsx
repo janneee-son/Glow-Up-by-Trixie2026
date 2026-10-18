@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import InputError from '@/components/input-error';
 import DashboardHeader from '@/components/dashboard-header';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -108,13 +108,22 @@ export default function CreateBooking({
         savedAddress?.city,
         savedAddress?.province,
         savedAddress?.postal_code,
-    ].filter(Boolean).join(', ');
+    ]
+        .filter(Boolean)
+        .join(', ');
     const savedCity = savedAddress?.city?.trim() ?? '';
     const savedProvince = savedAddress?.province?.trim() ?? '';
-    const defaultServiceCity = serviceCities.metroManila.find((city) => city.toLowerCase() === savedCity.toLowerCase())
-        ?? serviceCities.nearbyProvince.find((city) => city.toLowerCase() === savedCity.toLowerCase())
-        ?? serviceCities.nearbyProvince.find((city) => city.toLowerCase() === savedProvince.toLowerCase())
-        ?? '';
+    const defaultServiceCity =
+        serviceCities.metroManila.find(
+            (city) => city.toLowerCase() === savedCity.toLowerCase(),
+        ) ??
+        serviceCities.nearbyProvince.find(
+            (city) => city.toLowerCase() === savedCity.toLowerCase(),
+        ) ??
+        serviceCities.nearbyProvince.find(
+            (city) => city.toLowerCase() === savedProvince.toLowerCase(),
+        ) ??
+        '';
 
     const { auth } = usePage<{
         auth?: {
@@ -156,7 +165,9 @@ export default function CreateBooking({
         terms_version: bookingTerms.version,
     });
 
-    const selectedService = services.find((service) => service.name === data.service);
+    const selectedService = services.find(
+        (service) => service.name === data.service,
+    );
     const selectedPackage = packages.find((pkg) => pkg.id === data.package_id);
     const isBridalBooking = /bridal|wedding/i.test(
         `${selectedService?.name ?? ''} ${selectedPackage?.name ?? ''}`,
@@ -169,35 +180,55 @@ export default function CreateBooking({
     );
     const baseOffering = selectedPackage ?? selectedService;
     const basePriceType = selectedPackage?.pricing_type ?? 'fixed';
-    const basePrice = baseOffering?.price == null ? null : Number(baseOffering.price);
-    const isNearbyProvince = serviceCities.nearbyProvince.includes(data.service_city);
-    const quoteRequired = basePriceType === 'quote_required'
-        || selectedAddOns.some((item) => item.pricing_type === 'quote_required')
-        || Boolean(data.service_city);
+    const basePrice =
+        baseOffering?.price == null ? null : Number(baseOffering.price);
+    const isNearbyProvince = serviceCities.nearbyProvince.includes(
+        data.service_city,
+    );
+    const quoteRequired =
+        basePriceType === 'quote_required' ||
+        selectedAddOns.some((item) => item.pricing_type === 'quote_required') ||
+        Boolean(data.service_city);
     const isRushBooking = Boolean(
-        data.booking_date && rushBookingCutoffDate && data.booking_date < rushBookingCutoffDate,
+        data.booking_date &&
+        rushBookingCutoffDate &&
+        data.booking_date < rushBookingCutoffDate,
     );
     const isEarlyCallTime = Boolean(
-        data.booking_time && data.booking_time >= '01:00' && data.booking_time <= '05:00',
+        data.booking_time &&
+        data.booking_time >= '01:00' &&
+        data.booking_time <= '05:00',
     );
     const travelFee = !data.service_city
         ? 0
         : isNearbyProvince
-        ? outOfTownTravelFee
-        : metroManilaTravelFee;
-    const estimatedTotal = (basePrice ?? 0)
-        + selectedAddOns.reduce((sum, item) => sum + (item.price == null ? 0 : Number(item.price) * data.add_on_quantities[item.id]), 0)
-        + (isRushBooking ? rushBookingFee : 0)
-        + (isEarlyCallTime ? earlyCallTimeFee : 0)
-        + travelFee;
+          ? outOfTownTravelFee
+          : metroManilaTravelFee;
+    const estimatedTotal =
+        (basePrice ?? 0) +
+        selectedAddOns.reduce(
+            (sum, item) =>
+                sum +
+                (item.price == null
+                    ? 0
+                    : Number(item.price) * data.add_on_quantities[item.id]),
+            0,
+        ) +
+        (isRushBooking ? rushBookingFee : 0) +
+        (isEarlyCallTime ? earlyCallTimeFee : 0) +
+        travelFee;
 
     function clearBridalPartyAddOns(quantities: Record<number, number>) {
         const bridalPartyIds = new Set(
-            addOns.filter((addOn) => isBridalPartyAddOn(addOn.name)).map((addOn) => addOn.id),
+            addOns
+                .filter((addOn) => isBridalPartyAddOn(addOn.name))
+                .map((addOn) => addOn.id),
         );
 
         return Object.fromEntries(
-            Object.entries(quantities).filter(([id]) => !bridalPartyIds.has(Number(id))),
+            Object.entries(quantities).filter(
+                ([id]) => !bridalPartyIds.has(Number(id)),
+            ),
         ) as Record<number, number>;
     }
 
@@ -213,7 +244,8 @@ export default function CreateBooking({
     }
 
     function handlePackageChange(packageId: number | null) {
-        const packageName = packages.find((pkg) => pkg.id === packageId)?.name ?? '';
+        const packageName =
+            packages.find((pkg) => pkg.id === packageId)?.name ?? '';
 
         setData((previous) => ({
             ...previous,
@@ -229,17 +261,30 @@ export default function CreateBooking({
         const initialQuantity = usesQuantityLimits(addOn.name)
             ? addOn.add_on_min_quantity
             : 1;
-        setData('add_on_quantities', Object.hasOwn(data.add_on_quantities, addOn.id)
-            ? Object.fromEntries(Object.entries(data.add_on_quantities).filter(([id]) => Number(id) !== addOn.id))
-            : { ...data.add_on_quantities, [addOn.id]: initialQuantity });
+        setData(
+            'add_on_quantities',
+            Object.hasOwn(data.add_on_quantities, addOn.id)
+                ? Object.fromEntries(
+                      Object.entries(data.add_on_quantities).filter(
+                          ([id]) => Number(id) !== addOn.id,
+                      ),
+                  )
+                : { ...data.add_on_quantities, [addOn.id]: initialQuantity },
+        );
     }
 
     function changeAddOnQuantity(addOn: Offering, rawValue: string) {
         const parsed = Number.parseInt(rawValue, 10);
         const quantity = Number.isNaN(parsed)
             ? addOn.add_on_min_quantity
-            : Math.min(addOn.add_on_max_quantity, Math.max(addOn.add_on_min_quantity, parsed));
-        setData('add_on_quantities', { ...data.add_on_quantities, [addOn.id]: quantity });
+            : Math.min(
+                  addOn.add_on_max_quantity,
+                  Math.max(addOn.add_on_min_quantity, parsed),
+              );
+        setData('add_on_quantities', {
+            ...data.add_on_quantities,
+            [addOn.id]: quantity,
+        });
     }
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -324,16 +369,32 @@ export default function CreateBooking({
                         className="grid gap-6 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-lg shadow-[#c9a66b]/10 sm:p-7"
                     >
                         <div className="grid gap-2">
-                            <Label htmlFor="offering" className="flex items-center gap-1.5 text-[#1a1a1a]">
-                                <Brush className="h-4 w-4 text-[#8a6a2f]" /> Category
+                            <Label
+                                htmlFor="offering"
+                                className="flex items-center gap-1.5 text-[#1a1a1a]"
+                            >
+                                <Brush className="h-4 w-4 text-[#8a6a2f]" />{' '}
+                                Category
                             </Label>
                             <select
                                 id="offering"
-                                value={data.service ? `service:${encodeURIComponent(data.service)}` : data.package_id != null ? `package:${data.package_id}` : ''}
+                                value={
+                                    data.service
+                                        ? `service:${encodeURIComponent(data.service)}`
+                                        : data.package_id != null
+                                          ? `package:${data.package_id}`
+                                          : ''
+                                }
                                 onChange={(event) => {
-                                    const [kind, value] = event.target.value.split(':', 2);
+                                    const [kind, value] =
+                                        event.target.value.split(':', 2);
+
                                     if (kind === 'service') {
-                                        handleServiceChange(value ? decodeURIComponent(value) : '');
+                                        handleServiceChange(
+                                            value
+                                                ? decodeURIComponent(value)
+                                                : '',
+                                        );
                                     } else if (kind === 'package') {
                                         handlePackageChange(Number(value));
                                     } else {
@@ -344,60 +405,267 @@ export default function CreateBooking({
                             >
                                 <option value="">Select a category</option>
                                 <optgroup label="Services">
-                                    {services.map((service) => <option key={service.id} value={`service:${encodeURIComponent(service.name)}`}>{service.name} — ₱{Number(service.price).toLocaleString('en-PH')}</option>)}
+                                    {services.map((service) => (
+                                        <option
+                                            key={service.id}
+                                            value={`service:${encodeURIComponent(service.name)}`}
+                                        >
+                                            {service.name} — ₱
+                                            {Number(
+                                                service.price,
+                                            ).toLocaleString('en-PH')}
+                                        </option>
+                                    ))}
                                 </optgroup>
                                 <optgroup label="Packages">
-                                    {packages.map((pkg) => <option key={pkg.id} value={`package:${pkg.id}`}>{pkg.name} — {pkg.pricing_type === 'quote_required' ? 'Price confirmed after booking' : `${pkg.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(pkg.price ?? 0).toLocaleString('en-PH')}`}</option>)}
+                                    {packages.map((pkg) => (
+                                        <option
+                                            key={pkg.id}
+                                            value={`package:${pkg.id}`}
+                                        >
+                                            {pkg.name} —{' '}
+                                            {pkg.pricing_type ===
+                                            'quote_required'
+                                                ? 'Price confirmed after booking'
+                                                : `${pkg.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(pkg.price ?? 0).toLocaleString('en-PH')}`}
+                                        </option>
+                                    ))}
                                 </optgroup>
                             </select>
-                            <p className="text-xs text-[#4a4a4a]">Choose only one. Add-ons below are optional.</p>
+                            <p className="text-xs text-[#4a4a4a]">
+                                Choose only one. Add-ons below are optional.
+                            </p>
                             <InputError message={errors.service} />
                             <InputError message={errors.package_id} />
                         </div>
 
-                        {visibleAddOns.length > 0 && <fieldset className="grid gap-3 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
-                            <legend className="px-1 font-semibold text-[#1a1a1a]">Optional add-ons</legend>
-                            {visibleAddOns.map((addOn) => {
-                                const selectedQuantity = data.add_on_quantities[addOn.id];
-                                return <label key={addOn.id} className="flex cursor-pointer items-start gap-3 rounded-xl bg-white p-3">
-                                    <input type="checkbox" checked={selectedQuantity != null} onChange={() => toggleAddOn(addOn)} className="mt-1 accent-[#8a6a2f]" />
-                                    <span className="min-w-0 flex-1"><span className="block font-medium text-[#1a1a1a]">{addOn.name}</span>{addOn.description && <span className="mt-0.5 block text-xs text-[#4a4a4a]">{addOn.description}</span>}<span className="mt-1 block text-xs text-[#4a4a4a]">{addOn.pricing_type === 'quote_required' ? 'Price confirmed after booking' : `${addOn.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(addOn.price ?? 0).toLocaleString('en-PH')} each`}{usesQuantityLimits(addOn.name) && addOn.add_on_min_quantity > 1 ? ` · minimum ${addOn.add_on_min_quantity}` : ''}</span></span>
-                                    {selectedQuantity != null && usesQuantityLimits(addOn.name) && <span className="grid shrink-0 gap-1 text-xs font-medium text-[#4a4a4a]">Qty
-                                        <input aria-label={`${addOn.name} quantity`} type="number" min={addOn.add_on_min_quantity} max={addOn.add_on_max_quantity} step="1" value={selectedQuantity} onChange={(event) => changeAddOnQuantity(addOn, event.target.value)} onClick={(event) => event.stopPropagation()} className="w-20 rounded-lg border border-[#d7c0a2] px-2 py-1 text-sm text-[#1a1a1a]" />
-                                    </span>}
-                                    <InputError message={(errors as unknown as Record<string, string | undefined>)[`add_on_quantities.${addOn.id}`]} />
-                                </label>;
-                            })}
-                            <InputError message={errors.add_on_quantities} />
-                        </fieldset>}
+                        {visibleAddOns.length > 0 && (
+                            <fieldset className="grid gap-3 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
+                                <legend className="px-1 font-semibold text-[#1a1a1a]">
+                                    Optional add-ons
+                                </legend>
+                                {visibleAddOns.map((addOn) => {
+                                    const selectedQuantity =
+                                        data.add_on_quantities[addOn.id];
 
-                        {baseOffering && <aside className="rounded-2xl border border-[#e8d7cf] bg-gradient-to-r from-[#fffcf8] to-[#f4e9e5] p-4 text-sm">
-                            <div className="flex justify-between gap-3 font-semibold text-[#1a1a1a]"><span>{selectedPackage ? selectedPackage.name : selectedService?.name}</span><span className="shrink-0 text-[#8a6a2f]">{basePriceType === 'quote_required' ? 'Quote required' : `${basePriceType === 'starting_at' ? 'Starting at ' : ''}₱${(basePrice ?? 0).toLocaleString('en-PH')}`}</span></div>
-                            {selectedAddOns.map((item) => <div key={item.id} className="mt-2 flex justify-between gap-3 text-[#4a4a4a]"><span>{item.name} × {data.add_on_quantities[item.id]}</span><span className="shrink-0">{item.pricing_type === 'quote_required' ? 'Quote' : `₱${(Number(item.price ?? 0) * data.add_on_quantities[item.id]).toLocaleString('en-PH')}`}</span></div>)}
-                            {isRushBooking && <div className="mt-2 flex justify-between gap-3 text-[#4a4a4a]"><span>Rush booking fee</span><span className="shrink-0">₱{rushBookingFee.toLocaleString('en-PH')}</span></div>}
-                            {isEarlyCallTime && <div className="mt-2 flex justify-between gap-3 text-[#4a4a4a]"><span>Early call time fee</span><span className="shrink-0">₱{earlyCallTimeFee.toLocaleString('en-PH')}</span></div>}
-                            {data.service_city && <div className="mt-2 flex justify-between gap-3 text-[#4a4a4a]"><span>{isNearbyProvince ? 'Out-of-town transportation (starting fee)' : 'Metro Manila transportation (starting fee)'}</span><span className="shrink-0">₱{travelFee.toLocaleString('en-PH')}</span></div>}
-                            <div className="mt-3 flex justify-between border-t border-[#e8d7cf] pt-3 font-semibold text-[#1a1a1a]"><span>{quoteRequired ? 'Estimated total (final price to confirm)' : 'Estimated total'}</span><span>₱{estimatedTotal.toLocaleString('en-PH')}</span></div>
-                        </aside>}
+                                    return (
+                                        <label
+                                            key={addOn.id}
+                                            className="flex cursor-pointer items-start gap-3 rounded-xl bg-white p-3"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    selectedQuantity != null
+                                                }
+                                                onChange={() =>
+                                                    toggleAddOn(addOn)
+                                                }
+                                                className="mt-1 accent-[#8a6a2f]"
+                                            />
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block font-medium text-[#1a1a1a]">
+                                                    {addOn.name}
+                                                </span>
+                                                {addOn.description && (
+                                                    <span className="mt-0.5 block text-xs text-[#4a4a4a]">
+                                                        {addOn.description}
+                                                    </span>
+                                                )}
+                                                <span className="mt-1 block text-xs text-[#4a4a4a]">
+                                                    {addOn.pricing_type ===
+                                                    'quote_required'
+                                                        ? 'Price confirmed after booking'
+                                                        : `${addOn.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(addOn.price ?? 0).toLocaleString('en-PH')} each`}
+                                                    {usesQuantityLimits(
+                                                        addOn.name,
+                                                    ) &&
+                                                    addOn.add_on_min_quantity >
+                                                        1
+                                                        ? ` · minimum ${addOn.add_on_min_quantity}`
+                                                        : ''}
+                                                </span>
+                                            </span>
+                                            {selectedQuantity != null &&
+                                                usesQuantityLimits(
+                                                    addOn.name,
+                                                ) && (
+                                                    <span className="grid shrink-0 gap-1 text-xs font-medium text-[#4a4a4a]">
+                                                        Qty
+                                                        <input
+                                                            aria-label={`${addOn.name} quantity`}
+                                                            type="number"
+                                                            min={
+                                                                addOn.add_on_min_quantity
+                                                            }
+                                                            max={
+                                                                addOn.add_on_max_quantity
+                                                            }
+                                                            step="1"
+                                                            value={
+                                                                selectedQuantity
+                                                            }
+                                                            onChange={(event) =>
+                                                                changeAddOnQuantity(
+                                                                    addOn,
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            onClick={(event) =>
+                                                                event.stopPropagation()
+                                                            }
+                                                            className="w-20 rounded-lg border border-[#d7c0a2] px-2 py-1 text-sm text-[#1a1a1a]"
+                                                        />
+                                                    </span>
+                                                )}
+                                            <InputError
+                                                message={
+                                                    (
+                                                        errors as unknown as Record<
+                                                            string,
+                                                            string | undefined
+                                                        >
+                                                    )[
+                                                        `add_on_quantities.${addOn.id}`
+                                                    ]
+                                                }
+                                            />
+                                        </label>
+                                    );
+                                })}
+                                <InputError
+                                    message={errors.add_on_quantities}
+                                />
+                            </fieldset>
+                        )}
+
+                        {baseOffering && (
+                            <aside className="rounded-2xl border border-[#e8d7cf] bg-gradient-to-r from-[#fffcf8] to-[#f4e9e5] p-4 text-sm">
+                                <div className="flex justify-between gap-3 font-semibold text-[#1a1a1a]">
+                                    <span>
+                                        {selectedPackage
+                                            ? selectedPackage.name
+                                            : selectedService?.name}
+                                    </span>
+                                    <span className="shrink-0 text-[#8a6a2f]">
+                                        {basePriceType === 'quote_required'
+                                            ? 'Quote required'
+                                            : `${basePriceType === 'starting_at' ? 'Starting at ' : ''}₱${(basePrice ?? 0).toLocaleString('en-PH')}`}
+                                    </span>
+                                </div>
+                                {selectedAddOns.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="mt-2 flex justify-between gap-3 text-[#4a4a4a]"
+                                    >
+                                        <span>
+                                            {item.name} ×{' '}
+                                            {data.add_on_quantities[item.id]}
+                                        </span>
+                                        <span className="shrink-0">
+                                            {item.pricing_type ===
+                                            'quote_required'
+                                                ? 'Quote'
+                                                : `₱${(Number(item.price ?? 0) * data.add_on_quantities[item.id]).toLocaleString('en-PH')}`}
+                                        </span>
+                                    </div>
+                                ))}
+                                {isRushBooking && (
+                                    <div className="mt-2 flex justify-between gap-3 text-[#4a4a4a]">
+                                        <span>Rush booking fee</span>
+                                        <span className="shrink-0">
+                                            ₱
+                                            {rushBookingFee.toLocaleString(
+                                                'en-PH',
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
+                                {isEarlyCallTime && (
+                                    <div className="mt-2 flex justify-between gap-3 text-[#4a4a4a]">
+                                        <span>Early call time fee</span>
+                                        <span className="shrink-0">
+                                            ₱
+                                            {earlyCallTimeFee.toLocaleString(
+                                                'en-PH',
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
+                                {data.service_city && (
+                                    <div className="mt-2 flex justify-between gap-3 text-[#4a4a4a]">
+                                        <span>
+                                            {isNearbyProvince
+                                                ? 'Out-of-town transportation (starting fee)'
+                                                : 'Metro Manila transportation (starting fee)'}
+                                        </span>
+                                        <span className="shrink-0">
+                                            ₱{travelFee.toLocaleString('en-PH')}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="mt-3 flex justify-between border-t border-[#e8d7cf] pt-3 font-semibold text-[#1a1a1a]">
+                                    <span>
+                                        {quoteRequired
+                                            ? 'Estimated total (final price to confirm)'
+                                            : 'Estimated total'}
+                                    </span>
+                                    <span>
+                                        ₱
+                                        {estimatedTotal.toLocaleString('en-PH')}
+                                    </span>
+                                </div>
+                            </aside>
+                        )}
 
                         <div className="grid gap-2">
-                            <Label htmlFor="service_city" className="text-[#1a1a1a]">Service city or municipality</Label>
+                            <Label
+                                htmlFor="service_city"
+                                className="text-[#1a1a1a]"
+                            >
+                                Service city or municipality
+                            </Label>
                             <select
                                 id="service_city"
                                 value={data.service_city}
-                                onChange={(event) => setData('service_city', event.target.value)}
+                                onChange={(event) =>
+                                    setData('service_city', event.target.value)
+                                }
                                 className={fieldClass}
                                 required
                             >
-                                <option value="">Choose the service city or municipality</option>
-                                <optgroup label={`Metro Manila — transportation starts at ₱${metroManilaTravelFee.toLocaleString('en-PH')}`}>
-                                    {serviceCities.metroManila.map((city) => <option key={city} value={city}>{city}</option>)}
+                                <option value="">
+                                    Choose the service city or municipality
+                                </option>
+                                <optgroup
+                                    label={`Metro Manila — transportation starts at ₱${metroManilaTravelFee.toLocaleString('en-PH')}`}
+                                >
+                                    {serviceCities.metroManila.map((city) => (
+                                        <option key={city} value={city}>
+                                            {city}
+                                        </option>
+                                    ))}
                                 </optgroup>
-                                <optgroup label={`Nearby provinces — starts at ₱${outOfTownTravelFee.toLocaleString('en-PH')}`}>
-                                    {serviceCities.nearbyProvince.map((city) => <option key={city} value={city}>{city}</option>)}
+                                <optgroup
+                                    label={`Nearby provinces — starts at ₱${outOfTownTravelFee.toLocaleString('en-PH')}`}
+                                >
+                                    {serviceCities.nearbyProvince.map(
+                                        (city) => (
+                                            <option key={city} value={city}>
+                                                {city}
+                                            </option>
+                                        ),
+                                    )}
                                 </optgroup>
                             </select>
-                            {data.service_city && <p className="text-xs text-[#4a4a4a]">Transportation fees are starting amounts. The final fee depends on the full service address and Trixie will confirm it.</p>}
+                            {data.service_city && (
+                                <p className="text-xs text-[#4a4a4a]">
+                                    Transportation fees are starting amounts.
+                                    The final fee depends on the full service
+                                    address and Trixie will confirm it.
+                                </p>
+                            )}
                             <InputError message={errors.service_city} />
                         </div>
 
@@ -408,7 +676,11 @@ export default function CreateBooking({
                             >
                                 Venue address
                             </Label>
-                            <p className="text-xs text-[#4a4a4a]">Prefilled from your profile address. Edit it here and choose a different city above if this appointment is at another venue.</p>
+                            <p className="text-xs text-[#4a4a4a]">
+                                Prefilled from your profile address. Edit it
+                                here and choose a different city above if this
+                                appointment is at another venue.
+                            </p>
                             <textarea
                                 id="venue_address"
                                 value={data.venue_address}
@@ -481,16 +753,32 @@ export default function CreateBooking({
                             usually accepts up to two bookings per day, while
                             photo and event bookings depend on availability.
                             Bookings made less than 7 days ahead are subject to
-                            availability and include a ₱{rushBookingFee} rush fee.
-                            Start times from 1:00 AM to 5:00 AM include a ₱{earlyCallTimeFee} early call-time fee.
+                            availability and include a ₱{rushBookingFee} rush
+                            fee. Start times from 1:00 AM to 5:00 AM include a ₱
+                            {earlyCallTimeFee} early call-time fee.
                         </p>
 
-                        {isRushBooking && <p role="status" className="rounded-xl border border-[#E8D8A8] bg-[#FFF9E8] px-3 py-2 text-sm leading-5 text-[#765C1F]">
-                            This is a rush booking. It is subject to the artist&apos;s availability, and a ₱{rushBookingFee.toLocaleString('en-PH')} fee has been added to your estimate.
-                        </p>}
-                        {isEarlyCallTime && <p role="status" className="rounded-xl border border-[#E8D8A8] bg-[#FFF9E8] px-3 py-2 text-sm leading-5 text-[#765C1F]">
-                            This start time qualifies for the ₱{earlyCallTimeFee.toLocaleString('en-PH')} early call-time fee.
-                        </p>}
+                        {isRushBooking && (
+                            <p
+                                role="status"
+                                className="rounded-xl border border-[#E8D8A8] bg-[#FFF9E8] px-3 py-2 text-sm leading-5 text-[#765C1F]"
+                            >
+                                This is a rush booking. It is subject to the
+                                artist&apos;s availability, and a ₱
+                                {rushBookingFee.toLocaleString('en-PH')} fee has
+                                been added to your estimate.
+                            </p>
+                        )}
+                        {isEarlyCallTime && (
+                            <p
+                                role="status"
+                                className="rounded-xl border border-[#E8D8A8] bg-[#FFF9E8] px-3 py-2 text-sm leading-5 text-[#765C1F]"
+                            >
+                                This start time qualifies for the ₱
+                                {earlyCallTimeFee.toLocaleString('en-PH')} early
+                                call-time fee.
+                            </p>
+                        )}
 
                         <div className="grid gap-2 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
                             <Label className="flex items-center gap-1.5 text-[#1a1a1a]">
@@ -504,7 +792,8 @@ export default function CreateBooking({
                             <p className="text-xs text-[#4a4a4a]">
                                 Pick from your Inspiration History or upload a
                                 new photo — it&apos;s saved to your profile and
-                                it is saved to your account and your artist can view it for your booking.
+                                it is saved to your account and your artist can
+                                view it for your booking.
                             </p>
 
                             {inspoImages.length > 0 && (
@@ -625,19 +914,43 @@ export default function CreateBooking({
                             <InputError message={errors.notes} />
                         </div>
 
-                        <section className="grid gap-3 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4" aria-labelledby="booking-terms-heading">
-                            <h2 id="booking-terms-heading" className="font-semibold text-[#1a1a1a]">Booking terms and conditions</h2>
-                            <p className="whitespace-pre-line text-sm leading-6 text-[#4a4a4a]">{bookingTerms.text}</p>
-                            <p className="text-xs leading-5 text-[#4a4a4a]">Bank transfer is also accepted. Contact the artist for bank account details.</p>
-                            <label htmlFor="terms_accepted" className="flex cursor-pointer items-start gap-2 text-sm leading-5 text-[#1a1a1a]">
+                        <section
+                            className="grid gap-3 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4"
+                            aria-labelledby="booking-terms-heading"
+                        >
+                            <h2
+                                id="booking-terms-heading"
+                                className="font-semibold text-[#1a1a1a]"
+                            >
+                                Booking terms and conditions
+                            </h2>
+                            <p className="text-sm leading-6 whitespace-pre-line text-[#4a4a4a]">
+                                {bookingTerms.text}
+                            </p>
+                            <p className="text-xs leading-5 text-[#4a4a4a]">
+                                Bank transfer is also accepted. Contact the
+                                artist for bank account details.
+                            </p>
+                            <label
+                                htmlFor="terms_accepted"
+                                className="flex cursor-pointer items-start gap-2 text-sm leading-5 text-[#1a1a1a]"
+                            >
                                 <input
                                     id="terms_accepted"
                                     type="checkbox"
                                     checked={data.terms_accepted}
-                                    onChange={(event) => setData('terms_accepted', event.target.checked)}
+                                    onChange={(event) =>
+                                        setData(
+                                            'terms_accepted',
+                                            event.target.checked,
+                                        )
+                                    }
                                     className="mt-1 accent-[#8a6a2f]"
                                 />
-                                <span>I have read and agree to the booking terms and conditions.</span>
+                                <span>
+                                    I have read and agree to the booking terms
+                                    and conditions.
+                                </span>
                             </label>
                             <InputError message={errors.terms_accepted} />
                         </section>
@@ -645,7 +958,12 @@ export default function CreateBooking({
                         <Button
                             type="submit"
                             disabled={
-                                !artist || (services.length === 0 && packages.length === 0) || (!data.service && !data.package_id) || !data.terms_accepted || processing
+                                !artist ||
+                                (services.length === 0 &&
+                                    packages.length === 0) ||
+                                (!data.service && !data.package_id) ||
+                                !data.terms_accepted ||
+                                processing
                             }
                             className="w-full rounded-full bg-[#8a6a2f] text-white shadow-md shadow-[#8a6a2f]/25 transition duration-200 hover:bg-[#8a6a2f] hover:shadow-lg disabled:opacity-50"
                         >

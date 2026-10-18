@@ -1,6 +1,13 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
-import { BadgeCheck, Brush, CalendarCheck, Clock, Sparkles, X } from 'lucide-react';
+import {
+    BadgeCheck,
+    Brush,
+    CalendarCheck,
+    Clock,
+    Sparkles,
+    X,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import BehindTheGlow from '@/components/landing/BehindTheGlow';
 import SocialLinks from '@/components/landing/SocialLinks';
 import { dashboard, login, register } from '@/routes';
@@ -46,7 +53,15 @@ type Props = {
     services: Service[];
     packages?: Package[] | null;
     galleryImages?: GalleryImage[] | null;
-    reviews?: { id: number; rating: number; comment: string; client: { name: string }; booking: { service: string } }[] | null;
+    reviews?:
+        | {
+              id: number;
+              rating: number;
+              comment: string;
+              client: { name: string };
+              booking: { service: string };
+          }[]
+        | null;
 };
 
 /*
@@ -74,7 +89,10 @@ const NAV_LINKS = [
 const STEPS = [
     { title: 'Choose', desc: 'Pick a service and tell us the occasion.' },
     { title: 'Book', desc: 'Select a date and time that works for you.' },
-    { title: 'Get glammed', desc: 'Show up and let your artist work their magic.' },
+    {
+        title: 'Get glammed',
+        desc: 'Show up and let your artist work their magic.',
+    },
     { title: 'Shine', desc: 'Walk out confident and camera-ready.' },
 ];
 
@@ -99,8 +117,12 @@ const ARTIST_PHOTOS = [
 function SectionHeading({ title, sub }: { title: string; sub?: string }) {
     return (
         <div className="mb-10 max-w-xl">
-            <h3 className="font-display text-3xl font-bold leading-tight text-[#1A1A1A] sm:text-4xl">{title}</h3>
-            {sub && <p className="mt-3 leading-relaxed text-[#4A4A4A]">{sub}</p>}
+            <h3 className="font-display text-3xl leading-tight font-bold text-[#1A1A1A] sm:text-4xl">
+                {title}
+            </h3>
+            {sub && (
+                <p className="mt-3 leading-relaxed text-[#4A4A4A]">{sub}</p>
+            )}
         </div>
     );
 }
@@ -111,27 +133,53 @@ const primaryBtn =
 const secondaryBtn =
     'inline-flex items-center justify-center rounded-full border border-[#1A1A1A]/40 px-7 py-3 text-sm font-semibold text-[#1A1A1A] transition-colors duration-200 hover:bg-[#E8B4B8]/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A1A1A]';
 
-export default function Welcome({ artist, services, packages: packagesProp, galleryImages: galleryImagesProp, reviews: reviewsProp }: Props) {
+export default function Welcome({
+    artist,
+    services,
+    packages: packagesProp,
+    galleryImages: galleryImagesProp,
+    reviews: reviewsProp,
+}: Props) {
     const packages = Array.isArray(packagesProp) ? packagesProp : [];
-    const galleryImages = Array.isArray(galleryImagesProp) ? galleryImagesProp : [];
+    const galleryImages = Array.isArray(galleryImagesProp)
+        ? galleryImagesProp
+        : [];
     const reviews = Array.isArray(reviewsProp) ? reviewsProp : [];
     const [activeArtistPhotoIndex, setActiveArtistPhotoIndex] = useState(0);
     const [activeNavHref, setActiveNavHref] = useState<string | null>(null);
-    const [selectedServiceImage, setSelectedServiceImage] = useState<{ src: string; alt: string; name: string } | null>(null);
-    const [selectedGalleryImageId, setSelectedGalleryImageId] = useState<number | null>(null);
-    const selectedGalleryImage = galleryImages.find((image) => image.id === selectedGalleryImageId) ?? null;
+    const [selectedServiceImage, setSelectedServiceImage] = useState<{
+        src: string;
+        alt: string;
+        name: string;
+    } | null>(null);
+    const [selectedGalleryImageId, setSelectedGalleryImageId] = useState<
+        number | null
+    >(null);
+    const selectedGalleryImage =
+        galleryImages.find((image) => image.id === selectedGalleryImageId) ??
+        null;
 
     const { auth } = usePage<{ auth?: { user?: unknown } }>().props;
     const isLoggedIn = Boolean(auth?.user);
     const bookHref = isLoggedIn ? dashboard() : register();
 
-    const navLinks = NAV_LINKS.filter((link) => (link.href !== '#artist' || artist) && (link.href !== '#reviews' || reviews.length > 0));
+    const navLinks = useMemo(
+        () =>
+            NAV_LINKS.filter(
+                (link) =>
+                    (link.href !== '#artist' || artist) &&
+                    (link.href !== '#reviews' || reviews.length > 0),
+            ),
+        [artist, reviews.length],
+    );
 
     useEffect(() => {
         const availableHrefs = new Set(navLinks.map((link) => link.href));
         const updateFromHash = () => {
             const currentHref = window.location.hash;
-            setActiveNavHref(availableHrefs.has(currentHref) ? currentHref : null);
+            setActiveNavHref(
+                availableHrefs.has(currentHref) ? currentHref : null,
+            );
         };
 
         updateFromHash();
@@ -147,8 +195,14 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                     .filter((entry) => entry.isIntersecting)
                     .sort(
                         (first, second) =>
-                            Math.abs(first.boundingClientRect.top - window.innerHeight * 0.2) -
-                            Math.abs(second.boundingClientRect.top - window.innerHeight * 0.2),
+                            Math.abs(
+                                first.boundingClientRect.top -
+                                    window.innerHeight * 0.2,
+                            ) -
+                            Math.abs(
+                                second.boundingClientRect.top -
+                                    window.innerHeight * 0.2,
+                            ),
                     );
                 const visibleSection = visibleSections[0]?.target;
 
@@ -165,18 +219,22 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
             window.removeEventListener('hashchange', updateFromHash);
             observer.disconnect();
         };
-    }, [artist, reviews.length]);
+    }, [navLinks]);
 
     useEffect(() => {
         const slideshowTimer = window.setInterval(() => {
-            setActiveArtistPhotoIndex((currentIndex) => (currentIndex + 1) % ARTIST_PHOTOS.length);
+            setActiveArtistPhotoIndex(
+                (currentIndex) => (currentIndex + 1) % ARTIST_PHOTOS.length,
+            );
         }, 5000);
 
         return () => window.clearInterval(slideshowTimer);
     }, []);
 
     useEffect(() => {
-        if (selectedGalleryImageId === null && selectedServiceImage === null) return;
+        if (selectedGalleryImageId === null && selectedServiceImage === null) {
+            return;
+        }
 
         function handleKeyDown(event: KeyboardEvent) {
             if (event.key === 'Escape') {
@@ -186,6 +244,7 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
         }
 
         window.addEventListener('keydown', handleKeyDown);
+
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selectedGalleryImageId, selectedServiceImage]);
 
@@ -207,7 +266,9 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                 <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#E8B4B8]/50 bg-[#FAF7F4]/90 px-8 py-4 backdrop-blur">
                     <a href="#top" className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-[#8A6A2F]" />
-                        <span className="font-display text-lg font-bold text-[#1A1A1A]">Glow Up by Trixie</span>
+                        <span className="font-display text-lg font-bold text-[#1A1A1A]">
+                            Glow Up by Trixie
+                        </span>
                     </a>
 
                     <nav className="hidden items-center gap-8 text-sm text-[#4A4A4A] md:flex">
@@ -215,10 +276,16 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                             <a
                                 key={link.href}
                                 href={link.href}
-                                aria-current={activeNavHref === link.href ? 'location' : undefined}
+                                aria-current={
+                                    activeNavHref === link.href
+                                        ? 'location'
+                                        : undefined
+                                }
                                 onClick={() => setActiveNavHref(link.href)}
                                 className={`transition-colors duration-200 hover:text-[#8A6A2F] ${
-                                    activeNavHref === link.href ? 'font-medium text-[#8A6A2F]' : ''
+                                    activeNavHref === link.href
+                                        ? 'font-medium text-[#8A6A2F]'
+                                        : ''
                                 }`}
                             >
                                 {link.label}
@@ -257,7 +324,10 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                     {/* Artist banner: her name, tagline and contact details are already part of the image */}
                     <section aria-label="Glow Up by Trixie" className="gl-hero">
                         <picture>
-                            <source media="(min-width: 768px)" srcSet="/images/landing/trixie-banner.webp" />
+                            <source
+                                media="(min-width: 768px)"
+                                srcSet="/images/landing/trixie-banner.webp"
+                            />
                             <img
                                 className="gl-hero__img"
                                 src="/images/landing/trixie-banner.webp"
@@ -269,7 +339,9 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                         </picture>
                         <div className="gl-hero__bar">
                             <Link href={bookHref} className="gl-btn">
-                                {isLoggedIn ? 'Book a session' : 'Book your glow'}
+                                {isLoggedIn
+                                    ? 'Book a session'
+                                    : 'Book your glow'}
                             </Link>
                             <SocialLinks variant="light" className="mt-4" />
                         </div>
@@ -281,8 +353,10 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                     {/* First layout: text only, since the photos are already in the slideshow and Recent work */}
                     <section className="mx-auto grid max-w-6xl items-center gap-14 px-8 py-16 lg:grid-cols-2 lg:py-24">
                         <div>
-                            <p className="mb-4 font-display text-xl italic text-[#8A6A2F]">Still you, just glowing.</p>
-                            <h2 className="font-display text-4xl font-bold leading-[1.1] text-[#1A1A1A] sm:text-6xl">
+                            <p className="mb-4 font-display text-xl text-[#8A6A2F] italic">
+                                Still you, just glowing.
+                            </p>
+                            <h2 className="font-display text-4xl leading-[1.1] font-bold text-[#1A1A1A] sm:text-6xl">
                                 Makeup that feels like{' '}
                                 <span className="bg-gradient-to-r from-[#8A6A2F] to-[#B9656D] bg-clip-text text-transparent">
                                     you
@@ -290,8 +364,9 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                 , at your most radiant
                             </h2>
                             <p className="mt-5 max-w-md text-lg leading-relaxed text-[#4A4A4A]">
-                                Pick a service, choose a time, and your artist confirms. Share photos of the look you
-                                have in mind and show up ready.
+                                Pick a service, choose a time, and your artist
+                                confirms. Share photos of the look you have in
+                                mind and show up ready.
                             </p>
 
                             <div className="mt-8 flex flex-wrap gap-3">
@@ -322,16 +397,19 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                         </div>
 
                         <div className="relative mx-auto w-full max-w-md">
-                            <div className="absolute -right-5 -top-5 h-48 w-48 rounded-full bg-[#E8B4B8]/40 blur-sm" />
+                            <div className="absolute -top-5 -right-5 h-48 w-48 rounded-full bg-[#E8B4B8]/40 blur-sm" />
                             <div className="relative rounded-[2rem] border border-[#E8B4B8]/60 bg-gradient-to-br from-white via-white to-[#E8B4B8]/20 p-8 shadow-xl shadow-[#C9A66B]/20 sm:p-10">
                                 <Sparkles className="mb-6 h-9 w-9 text-[#C9A66B]" />
-                                <p className="text-sm font-semibold text-[#8A6A2F]">Your look, your moment</p>
-                                <h3 className="mt-3 font-display text-3xl font-bold leading-tight text-[#1A1A1A] sm:text-4xl">
+                                <p className="text-sm font-semibold text-[#8A6A2F]">
+                                    Your look, your moment
+                                </p>
+                                <h3 className="mt-3 font-display text-3xl leading-tight font-bold text-[#1A1A1A] sm:text-4xl">
                                     Soft glam, thoughtfully made.
                                 </h3>
                                 <p className="mt-4 leading-relaxed text-[#4A4A4A]">
-                                    From soft Korean and Thai-inspired makeup to natural glam, each look is tailored to
-                                    bring out your own features.
+                                    From soft Korean and Thai-inspired makeup to
+                                    natural glam, each look is tailored to bring
+                                    out your own features.
                                 </p>
                                 <div className="mt-7 flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm">
                                     <BadgeCheck className="h-5 w-5 shrink-0 text-[#8A6A2F]" />
@@ -343,7 +421,10 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                         </div>
                     </section>
 
-                    <section id="services" className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16">
+                    <section
+                        id="services"
+                        className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16"
+                    >
                         <div className="mx-auto max-w-5xl">
                             <SectionHeading
                                 title="Services"
@@ -360,11 +441,13 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                                 <button
                                                     type="button"
                                                     onClick={() =>
-                                                        setSelectedServiceImage({
-                                                            src: service.image_url!,
-                                                            alt: `${service.name} makeup service`,
-                                                            name: service.name,
-                                                        })
+                                                        setSelectedServiceImage(
+                                                            {
+                                                                src: service.image_url!,
+                                                                alt: `${service.name} makeup service`,
+                                                                name: service.name,
+                                                            },
+                                                        )
                                                     }
                                                     aria-label={`View ${service.name} image`}
                                                     className="shrink-0 cursor-zoom-in rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8A6A2F]"
@@ -380,17 +463,22 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                                 <Brush className="h-5 w-5 shrink-0 text-[#8A6A2F]" />
                                             )}
                                             <div>
-                                                <h4 className="font-display text-2xl font-bold">{service.name}</h4>
+                                                <h4 className="font-display text-2xl font-bold">
+                                                    {service.name}
+                                                </h4>
                                                 <p className="text-sm font-semibold text-[#8A6A2F]">
                                                     ₱
-                                                    {Number(service.price).toLocaleString('en-PH', {
+                                                    {Number(
+                                                        service.price,
+                                                    ).toLocaleString('en-PH', {
                                                         minimumFractionDigits: 2,
                                                     })}
                                                 </p>
                                             </div>
                                         </div>
                                         <p className="text-[#4A4A4A]">
-                                            {service.description || 'Ask your artist for service details.'}
+                                            {service.description ||
+                                                'Ask your artist for service details.'}
                                         </p>
                                         <Link
                                             href={bookHref}
@@ -402,7 +490,8 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                 ))}
                                 {services.length === 0 && (
                                     <p className="py-6 text-sm text-[#4A4A4A]">
-                                        Services will appear here when the artist adds them.
+                                        Services will appear here when the
+                                        artist adds them.
                                     </p>
                                 )}
                             </div>
@@ -422,9 +511,12 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                             key={pkg.id}
                                             className="rounded-3xl border border-[#E8B4B8]/60 bg-white p-6 shadow-sm"
                                         >
-                                            <h4 className="font-display text-2xl font-bold">{pkg.name}</h4>
+                                            <h4 className="font-display text-2xl font-bold">
+                                                {pkg.name}
+                                            </h4>
                                             <p className="mt-2 font-semibold text-[#8A6A2F]">
-                                                {pkg.pricing_type === 'quote_required'
+                                                {pkg.pricing_type ===
+                                                'quote_required'
                                                     ? 'Price confirmed after booking'
                                                     : `${pkg.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(pkg.price ?? 0).toLocaleString('en-PH')}`}
                                             </p>
@@ -435,12 +527,19 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                             )}
                                             {!!pkg.inclusions?.length && (
                                                 <ul className="mt-4 grid gap-1 text-sm text-[#4A4A4A]">
-                                                    {pkg.inclusions.map((item, index) => (
-                                                        <li key={`${pkg.id}-${index}`} className="flex gap-2">
-                                                            <span className="text-[#8A6A2F]">✓</span>
-                                                            {item}
-                                                        </li>
-                                                    ))}
+                                                    {pkg.inclusions.map(
+                                                        (item, index) => (
+                                                            <li
+                                                                key={`${pkg.id}-${index}`}
+                                                                className="flex gap-2"
+                                                            >
+                                                                <span className="text-[#8A6A2F]">
+                                                                    ✓
+                                                                </span>
+                                                                {item}
+                                                            </li>
+                                                        ),
+                                                    )}
                                                 </ul>
                                             )}
                                             <Link
@@ -454,31 +553,42 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                 </div>
                             ) : (
                                 <p className="rounded-2xl border border-dashed border-[#E8B4B8] bg-white/70 p-5 text-sm text-[#4A4A4A]">
-                                    Packages will appear here when they are added by the artist.
+                                    Packages will appear here when they are
+                                    added by the artist.
                                 </p>
                             )}
                         </div>
                     </section>
 
-                    <section id="how-it-works" className="scroll-mt-20 px-8 py-16">
+                    <section
+                        id="how-it-works"
+                        className="scroll-mt-20 px-8 py-16"
+                    >
                         <div className="mx-auto max-w-5xl">
                             <SectionHeading title="From booking to glam in four steps" />
                             <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                                <div className="absolute left-5 right-5 top-5 hidden h-px bg-[#E8B4B8] lg:block" />
+                                <div className="absolute top-5 right-5 left-5 hidden h-px bg-[#E8B4B8] lg:block" />
                                 {STEPS.map((step, index) => (
                                     <div key={step.title} className="relative">
                                         <div className="relative mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-[#1A1A1A] text-sm font-semibold text-[#C9A66B] ring-8 ring-[#FAF7F4]">
                                             {index + 1}
                                         </div>
-                                        <p className="font-display text-xl font-bold">{step.title}</p>
-                                        <p className="mt-1 text-sm leading-relaxed text-[#4A4A4A]">{step.desc}</p>
+                                        <p className="font-display text-xl font-bold">
+                                            {step.title}
+                                        </p>
+                                        <p className="mt-1 text-sm leading-relaxed text-[#4A4A4A]">
+                                            {step.desc}
+                                        </p>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     </section>
 
-                    <section id="booking-details" className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16">
+                    <section
+                        id="booking-details"
+                        className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16"
+                    >
                         <div className="mx-auto max-w-5xl">
                             <SectionHeading
                                 title="Know what to expect before you book"
@@ -486,27 +596,49 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                             />
                             <div className="grid gap-5 md:grid-cols-3">
                                 <article className="rounded-2xl border border-[#E8B4B8]/60 bg-white p-5">
-                                    <h4 className="font-display text-xl font-bold">Deposit & balance</h4>
+                                    <h4 className="font-display text-xl font-bold">
+                                        Deposit & balance
+                                    </h4>
                                     <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">
-                                        A 50% down payment is required to reserve your preferred date and time. The remaining balance is due on your service day. The deposit is non-refundable once your booking is confirmed.
+                                        A 50% down payment is required to
+                                        reserve your preferred date and time.
+                                        The remaining balance is due on your
+                                        service day. The deposit is
+                                        non-refundable once your booking is
+                                        confirmed.
                                     </p>
                                 </article>
                                 <article className="rounded-2xl border border-[#E8B4B8]/60 bg-white p-5">
-                                    <h4 className="font-display text-xl font-bold">Payment & confirmation</h4>
+                                    <h4 className="font-display text-xl font-bold">
+                                        Payment & confirmation
+                                    </h4>
                                     <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">
-                                        Pay by GCash or bank transfer. Your booking is confirmed after Trixie verifies the deposit; a preferred time may be released if the deposit is not settled by the required time.
+                                        Pay by GCash or bank transfer. Your
+                                        booking is confirmed after Trixie
+                                        verifies the deposit; a preferred time
+                                        may be released if the deposit is not
+                                        settled by the required time.
                                     </p>
                                 </article>
                                 <article className="rounded-2xl border border-[#E8B4B8]/60 bg-white p-5">
-                                    <h4 className="font-display text-xl font-bold">Final price & travel</h4>
+                                    <h4 className="font-display text-xl font-bold">
+                                        Final price & travel
+                                    </h4>
                                     <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">
-                                        Some packages and add-ons need a custom quote. Travel fees are estimates until Trixie confirms them using your full venue address. Review the final quote before accepting it.
+                                        Some packages and add-ons need a custom
+                                        quote. Travel fees are estimates until
+                                        Trixie confirms them using your full
+                                        venue address. Review the final quote
+                                        before accepting it.
                                     </p>
                                 </article>
                             </div>
                             <p className="mt-5 text-sm text-[#4A4A4A]">
                                 Have a question first?{' '}
-                                <a href="tel:09241013301" className="font-semibold text-[#8A6A2F] underline underline-offset-4">
+                                <a
+                                    href="tel:09241013301"
+                                    className="font-semibold text-[#8A6A2F] underline underline-offset-4"
+                                >
                                     Call or text Trixie at 0924 101 3301
                                 </a>
                                 .
@@ -515,27 +647,42 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                     </section>
 
                     {artist && (
-                        <section id="artist" className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-20">
+                        <section
+                            id="artist"
+                            className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-20"
+                        >
                             <div className="mx-auto grid max-w-5xl items-center gap-14 md:grid-cols-[22rem_1fr]">
                                 <div className="relative mx-auto w-full max-w-sm">
-                                    <div className="absolute -right-5 -top-5 h-56 w-56 rounded-full bg-[#C9A66B]/30" />
+                                    <div className="absolute -top-5 -right-5 h-56 w-56 rounded-full bg-[#C9A66B]/30" />
                                     <div className="relative z-10 aspect-[3/4] overflow-hidden rounded-t-full rounded-b-3xl border-4 border-white bg-[#E8B4B8]/40 shadow-xl shadow-[#C9A66B]/30">
                                         {ARTIST_PHOTOS.length > 0 ? (
-                                            ARTIST_PHOTOS.map((photo, index) => {
-                                                const isActive = index === activeArtistPhotoIndex;
+                                            ARTIST_PHOTOS.map(
+                                                (photo, index) => {
+                                                    const isActive =
+                                                        index ===
+                                                        activeArtistPhotoIndex;
 
-                                                return (
-                                                    <img
-                                                        key={photo.src}
-                                                        src={photo.src}
-                                                        alt={isActive ? photo.alt : ''}
-                                                        aria-hidden={!isActive}
-                                                        className={`absolute inset-0 h-full w-full object-cover ${photo.position} transition-[opacity,transform] duration-1000 ease-in-out motion-reduce:transition-none ${
-                                                            isActive ? 'scale-[1.06] opacity-100' : 'scale-100 opacity-0'
-                                                        }`}
-                                                    />
-                                                );
-                                            })
+                                                    return (
+                                                        <img
+                                                            key={photo.src}
+                                                            src={photo.src}
+                                                            alt={
+                                                                isActive
+                                                                    ? photo.alt
+                                                                    : ''
+                                                            }
+                                                            aria-hidden={
+                                                                !isActive
+                                                            }
+                                                            className={`absolute inset-0 h-full w-full object-cover ${photo.position} transition-[opacity,transform] duration-1000 ease-in-out motion-reduce:transition-none ${
+                                                                isActive
+                                                                    ? 'scale-[1.06] opacity-100'
+                                                                    : 'scale-100 opacity-0'
+                                                            }`}
+                                                        />
+                                                    );
+                                                },
+                                            )
                                         ) : (
                                             <div className="flex h-full w-full items-center justify-center">
                                                 <span className="font-display text-7xl font-bold text-[#8A6A2F]">
@@ -547,31 +694,40 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
 
                                     {artist.years_experience != null && (
                                         <div className="absolute -bottom-4 -left-3 z-20 rounded-xl bg-white px-5 py-3 shadow-lg shadow-[#C9A66B]/30">
-                                            <p className="font-display text-3xl font-bold leading-none text-[#8A6A2F]">
+                                            <p className="font-display text-3xl leading-none font-bold text-[#8A6A2F]">
                                                 {artist.years_experience}
                                             </p>
                                             <p className="mt-1 text-xs text-[#4A4A4A]">
-                                                {artist.years_experience === 1 ? 'year' : 'years'} of experience
+                                                {artist.years_experience === 1
+                                                    ? 'year'
+                                                    : 'years'}{' '}
+                                                of experience
                                             </p>
                                         </div>
                                     )}
                                 </div>
 
                                 <div>
-                                    <p className="text-sm font-semibold text-[#8A6A2F]">Meet your artist</p>
-                                    <h3 className="mt-2 font-display text-4xl font-bold leading-tight sm:text-5xl">
+                                    <p className="text-sm font-semibold text-[#8A6A2F]">
+                                        Meet your artist
+                                    </p>
+                                    <h3 className="mt-2 font-display text-4xl leading-tight font-bold sm:text-5xl">
                                         {artist.name}
                                     </h3>
-                                    <p className="mt-2 text-lg text-[#8A6A2F]">{artist.specialty ?? 'Makeup artist'}</p>
+                                    <p className="mt-2 text-lg text-[#8A6A2F]">
+                                        {artist.specialty ?? 'Makeup artist'}
+                                    </p>
 
                                     {artist.bio && (
-                                        <p className="mt-6 max-w-xl border-l-4 border-[#C9A66B] pl-5 font-display text-xl italic leading-relaxed text-[#1A1A1A]">
+                                        <p className="mt-6 max-w-xl border-l-4 border-[#C9A66B] pl-5 font-display text-xl leading-relaxed text-[#1A1A1A] italic">
                                             {artist.bio}
                                         </p>
                                     )}
 
                                     <div className="mt-8">
-                                        <p className="mb-3 text-sm font-semibold">Services</p>
+                                        <p className="mb-3 text-sm font-semibold">
+                                            Services
+                                        </p>
                                         <div className="flex flex-wrap gap-2">
                                             {services.map((service) => (
                                                 <Link
@@ -583,7 +739,9 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                                 </Link>
                                             ))}
                                             {services.length === 0 && (
-                                                <p className="text-sm text-[#4A4A4A]">No services listed yet.</p>
+                                                <p className="text-sm text-[#4A4A4A]">
+                                                    No services listed yet.
+                                                </p>
                                             )}
                                         </div>
                                     </div>
@@ -595,7 +753,11 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                                     {artist.years_experience}
                                                 </p>
                                                 <p className="text-sm text-[#4A4A4A]">
-                                                    {artist.years_experience === 1 ? 'year' : 'years'} in the craft
+                                                    {artist.years_experience ===
+                                                    1
+                                                        ? 'year'
+                                                        : 'years'}{' '}
+                                                    in the craft
                                                 </p>
                                             </div>
                                         )}
@@ -603,19 +765,31 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                             <p className="font-display text-3xl font-bold text-[#8A6A2F]">
                                                 {services.length}
                                             </p>
-                                            <p className="text-sm text-[#4A4A4A]">services offered</p>
+                                            <p className="text-sm text-[#4A4A4A]">
+                                                services offered
+                                            </p>
                                         </div>
                                         <div>
-                                            <p className="font-display text-3xl font-bold text-[#8A6A2F]">1:1</p>
-                                            <p className="text-sm text-[#4A4A4A]">the same artist, every time</p>
+                                            <p className="font-display text-3xl font-bold text-[#8A6A2F]">
+                                                1:1
+                                            </p>
+                                            <p className="text-sm text-[#4A4A4A]">
+                                                the same artist, every time
+                                            </p>
                                         </div>
                                     </div>
 
                                     <div className="mt-8 flex flex-wrap gap-3">
-                                        <Link href={bookHref} className={primaryBtn}>
+                                        <Link
+                                            href={bookHref}
+                                            className={primaryBtn}
+                                        >
                                             Book with {firstName}
                                         </Link>
-                                        <a href="#gallery" className={secondaryBtn}>
+                                        <a
+                                            href="#gallery"
+                                            className={secondaryBtn}
+                                        >
                                             See recent work
                                         </a>
                                     </div>
@@ -632,7 +806,9 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                     <button
                                         key={image.id}
                                         type="button"
-                                        onClick={() => setSelectedGalleryImageId(image.id)}
+                                        onClick={() =>
+                                            setSelectedGalleryImageId(image.id)
+                                        }
                                         aria-label={`View ${image.caption || 'makeup look'} and its story`}
                                         className="w-[75%] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#E8B4B8]/60 bg-white sm:w-[40%] lg:w-[24%]"
                                     >
@@ -642,8 +818,12 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                                             className="aspect-[4/5] w-full object-cover"
                                         />
                                         <span className="flex items-center justify-between gap-2 px-3 py-2 text-left text-sm text-[#4A4A4A]">
-                                            <span className="truncate">{image.caption || 'Makeup look'}</span>
-                                            <span className="shrink-0 text-xs font-semibold text-[#8A6A2F]">Read story</span>
+                                            <span className="truncate">
+                                                {image.caption || 'Makeup look'}
+                                            </span>
+                                            <span className="shrink-0 text-xs font-semibold text-[#8A6A2F]">
+                                                Read story
+                                            </span>
                                         </span>
                                     </button>
                                 ))}
@@ -652,16 +832,38 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                     </section>
 
                     {reviews.length > 0 && (
-                        <section id="reviews" className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16">
+                        <section
+                            id="reviews"
+                            className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16"
+                        >
                             <div className="mx-auto max-w-6xl">
-                                <SectionHeading title="Kind words from clients" sub="Shared by clients after their completed glam sessions." />
+                                <SectionHeading
+                                    title="Kind words from clients"
+                                    sub="Shared by clients after their completed glam sessions."
+                                />
                                 <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                                     {reviews.map((review) => (
-                                        <article key={review.id} className="rounded-3xl border border-[#E8B4B8]/60 bg-white p-6 shadow-sm">
-                                            <p className="text-lg tracking-widest text-[#8A6A2F]" aria-label={`${review.rating} out of 5 stars`}>{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</p>
-                                            <blockquote className="mt-3 whitespace-pre-line text-sm leading-6 text-[#4A4A4A]">“{review.comment}”</blockquote>
-                                            <p className="mt-5 border-t border-[#E8B4B8]/40 pt-4 text-sm font-semibold text-[#1A1A1A]">{review.client.name}</p>
-                                            <p className="mt-1 text-xs text-[#6b625a]">Verified client · {review.booking.service}</p>
+                                        <article
+                                            key={review.id}
+                                            className="rounded-3xl border border-[#E8B4B8]/60 bg-white p-6 shadow-sm"
+                                        >
+                                            <p
+                                                className="text-lg tracking-widest text-[#8A6A2F]"
+                                                aria-label={`${review.rating} out of 5 stars`}
+                                            >
+                                                {'★'.repeat(review.rating)}
+                                                {'☆'.repeat(5 - review.rating)}
+                                            </p>
+                                            <blockquote className="mt-3 text-sm leading-6 whitespace-pre-line text-[#4A4A4A]">
+                                                “{review.comment}”
+                                            </blockquote>
+                                            <p className="mt-5 border-t border-[#E8B4B8]/40 pt-4 text-sm font-semibold text-[#1A1A1A]">
+                                                {review.client.name}
+                                            </p>
+                                            <p className="mt-1 text-xs text-[#6b625a]">
+                                                Verified client ·{' '}
+                                                {review.booking.service}
+                                            </p>
                                         </article>
                                     ))}
                                 </div>
@@ -672,13 +874,21 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                     <section className="bg-[#1A1A1A] px-8 py-14 text-[#FAF7F4]">
                         <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
                             <div>
-                                <h3 className="font-display text-3xl font-bold">Ready to book your session?</h3>
+                                <h3 className="font-display text-3xl font-bold">
+                                    Ready to book your session?
+                                </h3>
                                 <p className="mt-2 max-w-md text-[#FAF7F4]/85">
-                                    It takes a minute. Your artist confirms the time with you.
+                                    It takes a minute. Your artist confirms the
+                                    time with you.
                                 </p>
                             </div>
-                            <Link href={bookHref} className="gl-btn whitespace-nowrap">
-                                {isLoggedIn ? 'Book a session' : 'Create your account'}
+                            <Link
+                                href={bookHref}
+                                className="gl-btn whitespace-nowrap"
+                            >
+                                {isLoggedIn
+                                    ? 'Book a session'
+                                    : 'Create your account'}
                             </Link>
                         </div>
                     </section>
@@ -687,11 +897,15 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                 <footer className="flex flex-col gap-4 border-t border-[#C9A66B]/30 bg-[#1A1A1A] px-8 py-6 text-sm text-[#FAF7F4]/80 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-[#C9A66B]" />
-                        <span className="font-semibold text-[#FAF7F4]">Glow Up by Trixie</span>
+                        <span className="font-semibold text-[#FAF7F4]">
+                            Glow Up by Trixie
+                        </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                         <SocialLinks variant="dark" showPhone />
-                        <span>© {new Date().getFullYear()} All rights reserved.</span>
+                        <span>
+                            © {new Date().getFullYear()} All rights reserved.
+                        </span>
                     </div>
                 </footer>
 
@@ -747,21 +961,37 @@ export default function Welcome({ artist, services, packages: packagesProp, gall
                             <div className="h-[42vh] shrink-0 bg-[#1A1A1A] md:h-[82vh] md:min-h-0">
                                 <img
                                     src={selectedGalleryImage.image_url}
-                                    alt={selectedGalleryImage.caption || 'Makeup look by Trixie'}
+                                    alt={
+                                        selectedGalleryImage.caption ||
+                                        'Makeup look by Trixie'
+                                    }
                                     className="h-full max-h-full w-full object-contain"
                                 />
                             </div>
                             <div className="min-h-0 flex-1 overflow-y-auto p-6 sm:p-8 md:self-center md:p-10">
-                                <p className="text-xs font-semibold tracking-[0.18em] text-[#8A6A2F] uppercase">Recent work · behind the look</p>
-                                <h2 id="gallery-story-title" className="mt-3 font-display text-3xl font-bold text-[#1A1A1A] sm:text-4xl">
-                                    {selectedGalleryImage.caption || 'A closer look'}
+                                <p className="text-xs font-semibold tracking-[0.18em] text-[#8A6A2F] uppercase">
+                                    Recent work · behind the look
+                                </p>
+                                <h2
+                                    id="gallery-story-title"
+                                    className="mt-3 font-display text-3xl font-bold text-[#1A1A1A] sm:text-4xl"
+                                >
+                                    {selectedGalleryImage.caption ||
+                                        'A closer look'}
                                 </h2>
                                 {selectedGalleryImage.story ? (
-                                    <p className="mt-5 whitespace-pre-line text-base leading-7 text-[#4A4A4A]">{selectedGalleryImage.story}</p>
+                                    <p className="mt-5 text-base leading-7 whitespace-pre-line text-[#4A4A4A]">
+                                        {selectedGalleryImage.story}
+                                    </p>
                                 ) : (
-                                    <p className="mt-5 text-sm leading-6 text-[#4A4A4A]">Trixie hasn’t added a story for this look yet.</p>
+                                    <p className="mt-5 text-sm leading-6 text-[#4A4A4A]">
+                                        Trixie hasn’t added a story for this
+                                        look yet.
+                                    </p>
                                 )}
-                                <p className="mt-8 border-t border-[#C9A66B]/40 pt-5 text-sm font-medium text-[#8A6A2F]">Glow Up by Trixie</p>
+                                <p className="mt-8 border-t border-[#C9A66B]/40 pt-5 text-sm font-medium text-[#8A6A2F]">
+                                    Glow Up by Trixie
+                                </p>
                             </div>
                         </section>
                     </div>

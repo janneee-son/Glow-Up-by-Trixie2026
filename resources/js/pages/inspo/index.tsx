@@ -40,7 +40,11 @@ export default function InspoIndex({ images }: Props) {
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (data.images.length === 0) return;
+
+        if (data.images.length === 0) {
+            return;
+        }
+
         post('/inspo', {
             forceFormData: true,
             onSuccess: () => {
@@ -48,7 +52,10 @@ export default function InspoIndex({ images }: Props) {
                 setPreviews([]);
                 setJustUploaded(true);
                 setTimeout(() => setJustUploaded(false), 2500);
-                if (fileInputRef.current) fileInputRef.current.value = '';
+
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
             },
         });
     }
@@ -61,11 +68,17 @@ export default function InspoIndex({ images }: Props) {
     }
 
     useEffect(() => {
-        if (!viewingImage) return;
+        if (!viewingImage) {
+            return;
+        }
+
         function onKeyDown(e: KeyboardEvent) {
-            if (e.key === 'Escape') setViewingImage(null);
+            if (e.key === 'Escape') {
+                setViewingImage(null);
+            }
         }
         window.addEventListener('keydown', onKeyDown);
+
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [viewingImage]);
 

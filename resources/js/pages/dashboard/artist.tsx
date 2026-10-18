@@ -29,7 +29,17 @@ type Booking = {
     deposit_method?: 'gcash' | 'bank_transfer' | 'cash' | null;
     deposit_reference?: string | null;
     deposit_proof_url?: string | null;
-    selected_add_ons?: { id: number | null; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string; is_system_fee?: boolean }[] | null;
+    selected_add_ons?:
+        | {
+              id: number | null;
+              name: string;
+              price: number | string | null;
+              quantity: number;
+              line_total: number | string | null;
+              pricing_type: string;
+              is_system_fee?: boolean;
+          }[]
+        | null;
     requires_quote?: boolean;
     booking_date: string;
     booking_time: string;
@@ -78,6 +88,7 @@ function formatTime(timeStr: string) {
     const [h, m] = timeStr.split(':');
     const date = new Date();
     date.setHours(Number(h), Number(m));
+
     return date.toLocaleTimeString(undefined, {
         hour: 'numeric',
         minute: '2-digit',
@@ -86,8 +97,12 @@ function formatTime(timeStr: string) {
 
 /** Splits saved notes into the "Occasion: X" first line and the client's own text. */
 function splitNotes(notes: string | null) {
-    if (!notes) return { occasion: null as string | null, text: '' };
+    if (!notes) {
+        return { occasion: null as string | null, text: '' };
+    }
+
     const m = notes.match(/^Occasion: (.+?)(?:\n|$)/);
+
     return m
         ? { occasion: m[1], text: notes.slice(m[0].length).trim() }
         : { occasion: null, text: notes };
@@ -97,11 +112,13 @@ function transportationFeeForBooking(booking: Booking): string {
     const feeItem = booking.selected_add_ons?.find(
         (item) => item.is_system_fee && /transportation/i.test(item.name),
     );
+
     return String(feeItem?.line_total ?? feeItem?.price ?? 0);
 }
 
 function isPastBooking(booking: Booking) {
     const dt = new Date(`${booking.booking_date}T${booking.booking_time}`);
+
     return (
         dt.getTime() < Date.now() ||
         booking.status === 'completed' ||
@@ -119,9 +136,15 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
     const [busyId, setBusyId] = useState<number | null>(null);
     const [viewingUrl, setViewingUrl] = useState<string | null>(null);
     const [messages, setMessages] = useState<Record<number, string>>({});
-    const [makeupPrices, setMakeupPrices] = useState<Record<number, string>>({});
-    const [transportationFees, setTransportationFees] = useState<Record<number, string>>({});
-    const [quoteReasons, setQuoteReasons] = useState<Record<number, string>>({});
+    const [makeupPrices, setMakeupPrices] = useState<Record<number, string>>(
+        {},
+    );
+    const [transportationFees, setTransportationFees] = useState<
+        Record<number, string>
+    >({});
+    const [quoteReasons, setQuoteReasons] = useState<Record<number, string>>(
+        {},
+    );
     const [quoteErrors, setQuoteErrors] = useState<Record<number, string>>({});
     const [reviewBusyId, setReviewBusyId] = useState<number | null>(null);
 
@@ -137,10 +160,15 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
     const { upcoming, past } = useMemo(() => {
         const upcoming: Booking[] = [];
         const past: Booking[] = [];
+
         for (const b of bookings) {
-            if (b.status === 'pending') continue;
+            if (b.status === 'pending') {
+                continue;
+            }
+
             (isPastBooking(b) ? past : upcoming).push(b);
         }
+
         return { upcoming, past };
     }, [bookings]);
 
@@ -160,6 +188,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                     setMessages((prev) => {
                         const next = { ...prev };
                         delete next[id];
+
                         return next;
                     });
                 },
@@ -168,21 +197,35 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
     }
 
     function sendQuote(booking: Booking) {
-        const makeupPrice = makeupPrices[booking.id] ?? String(booking.final_makeup_price ?? booking.base_price ?? '');
-        const fee = transportationFees[booking.id] ?? transportationFeeForBooking(booking);
+        const makeupPrice =
+            makeupPrices[booking.id] ??
+            String(booking.final_makeup_price ?? booking.base_price ?? '');
+        const fee =
+            transportationFees[booking.id] ??
+            transportationFeeForBooking(booking);
         const reason = quoteReasons[booking.id] ?? booking.quote_reason ?? '';
 
         setBusyId(booking.id);
         setQuoteErrors((current) => ({ ...current, [booking.id]: '' }));
         router.patch(
             `/book/${booking.id}/quote`,
-            { final_makeup_price: makeupPrice, transportation_fee: fee, quote_reason: reason },
+            {
+                final_makeup_price: makeupPrice,
+                transportation_fee: fee,
+                quote_reason: reason,
+            },
             {
                 preserveScroll: true,
-                onError: (errors) => setQuoteErrors((current) => ({
-                    ...current,
-                    [booking.id]: String(errors.quote_reason ?? errors.final_makeup_price ?? errors.transportation_fee ?? 'Could not send the final quote.'),
-                })),
+                onError: (errors) =>
+                    setQuoteErrors((current) => ({
+                        ...current,
+                        [booking.id]: String(
+                            errors.quote_reason ??
+                                errors.final_makeup_price ??
+                                errors.transportation_fee ??
+                                'Could not send the final quote.',
+                        ),
+                    })),
                 onFinish: () => {
                     setBusyId(null);
                 },
@@ -192,26 +235,40 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
 
     function markDepositReceived(booking: Booking) {
         setBusyId(booking.id);
-        router.patch(`/book/${booking.id}/deposit/received`, {}, {
-            preserveScroll: true,
-            onFinish: () => setBusyId(null),
-        });
+        router.patch(
+            `/book/${booking.id}/deposit/received`,
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setBusyId(null),
+            },
+        );
     }
 
     function setReviewApproval(id: number, is_approved: boolean) {
         setReviewBusyId(id);
-        router.patch(`/artist/reviews/${id}`, { is_approved }, {
-            preserveScroll: true,
-            onFinish: () => setReviewBusyId(null),
-        });
+        router.patch(
+            `/artist/reviews/${id}`,
+            { is_approved },
+            {
+                preserveScroll: true,
+                onFinish: () => setReviewBusyId(null),
+            },
+        );
     }
 
     useEffect(() => {
-        if (!viewingUrl) return;
+        if (!viewingUrl) {
+            return;
+        }
+
         function onKeyDown(e: KeyboardEvent) {
-            if (e.key === 'Escape') setViewingUrl(null);
+            if (e.key === 'Escape') {
+                setViewingUrl(null);
+            }
         }
         window.addEventListener('keydown', onKeyDown);
+
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [viewingUrl]);
 
@@ -257,25 +314,75 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                     <section className="mb-8 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm sm:p-6">
                         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
                             <div>
-                                <p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">Client feedback</p>
-                                <h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">Reviews</h2>
+                                <p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
+                                    Client feedback
+                                </p>
+                                <h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">
+                                    Reviews
+                                </h2>
                             </div>
-                            <span className="rounded-full bg-[#f4e9e5] px-3 py-1 text-sm font-semibold text-[#8a6a2f]">{reviews.filter((review) => !review.is_approved).length} awaiting approval</span>
+                            <span className="rounded-full bg-[#f4e9e5] px-3 py-1 text-sm font-semibold text-[#8a6a2f]">
+                                {
+                                    reviews.filter(
+                                        (review) => !review.is_approved,
+                                    ).length
+                                }{' '}
+                                awaiting approval
+                            </span>
                         </div>
                         {reviews.length === 0 ? (
-                            <p className="text-sm text-[#4a4a4a]">Reviews from completed sessions will appear here.</p>
+                            <p className="text-sm text-[#4a4a4a]">
+                                Reviews from completed sessions will appear
+                                here.
+                            </p>
                         ) : (
                             <div className="grid gap-3">
                                 {reviews.map((review) => (
-                                    <article key={review.id} className="rounded-2xl border border-[#f0e2dd] bg-[#fffcf8] p-4">
+                                    <article
+                                        key={review.id}
+                                        className="rounded-2xl border border-[#f0e2dd] bg-[#fffcf8] p-4"
+                                    >
                                         <div className="flex flex-wrap items-start justify-between gap-3">
                                             <div>
-                                                <p className="font-semibold text-[#1a1a1a]">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)} <span className="ml-1 text-sm font-medium text-[#4a4a4a]">{review.client.name} · {review.booking.service}</span></p>
-                                                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#4a4a4a]">{review.comment}</p>
-                                                <p className="mt-2 text-xs text-[#6b625a]">Session on {formatDate(review.booking.booking_date)}</p>
+                                                <p className="font-semibold text-[#1a1a1a]">
+                                                    {'★'.repeat(review.rating)}
+                                                    {'☆'.repeat(
+                                                        5 - review.rating,
+                                                    )}{' '}
+                                                    <span className="ml-1 text-sm font-medium text-[#4a4a4a]">
+                                                        {review.client.name} ·{' '}
+                                                        {review.booking.service}
+                                                    </span>
+                                                </p>
+                                                <p className="mt-2 text-sm leading-6 whitespace-pre-line text-[#4a4a4a]">
+                                                    {review.comment}
+                                                </p>
+                                                <p className="mt-2 text-xs text-[#6b625a]">
+                                                    Session on{' '}
+                                                    {formatDate(
+                                                        review.booking
+                                                            .booking_date,
+                                                    )}
+                                                </p>
                                             </div>
-                                            <button type="button" disabled={reviewBusyId === review.id} onClick={() => setReviewApproval(review.id, !review.is_approved)} className="shrink-0 rounded-full border border-[#c9a66b] px-4 py-2 text-xs font-semibold text-[#8a6a2f] disabled:opacity-50">
-                                                {reviewBusyId === review.id ? 'Saving…' : review.is_approved ? 'Hide from homepage' : 'Approve & publish'}
+                                            <button
+                                                type="button"
+                                                disabled={
+                                                    reviewBusyId === review.id
+                                                }
+                                                onClick={() =>
+                                                    setReviewApproval(
+                                                        review.id,
+                                                        !review.is_approved,
+                                                    )
+                                                }
+                                                className="shrink-0 rounded-full border border-[#c9a66b] px-4 py-2 text-xs font-semibold text-[#8a6a2f] disabled:opacity-50"
+                                            >
+                                                {reviewBusyId === review.id
+                                                    ? 'Saving…'
+                                                    : review.is_approved
+                                                      ? 'Hide from homepage'
+                                                      : 'Approve & publish'}
                                             </button>
                                         </div>
                                     </article>
@@ -352,13 +459,23 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                         />
 
                                         <div className="mt-4 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
-                                            <h3 className="text-sm font-semibold text-[#1a1a1a]">Prepare the final quote</h3>
+                                            <h3 className="text-sm font-semibold text-[#1a1a1a]">
+                                                Prepare the final quote
+                                            </h3>
                                             <p className="mt-1 text-xs leading-5 text-[#4a4a4a]">
-                                                Review the inspiration and address, then send one itemized makeup and transportation price for the client to approve.
+                                                Review the inspiration and
+                                                address, then send one itemized
+                                                makeup and transportation price
+                                                for the client to approve.
                                             </p>
                                             <div className="mt-3 grid gap-3 sm:grid-cols-2">
                                                 <div>
-                                                    <label htmlFor={`makeup-price-${booking.id}`} className="mb-1 block text-xs font-medium text-[#4a4a4a]">Final makeup price (₱)</label>
+                                                    <label
+                                                        htmlFor={`makeup-price-${booking.id}`}
+                                                        className="mb-1 block text-xs font-medium text-[#4a4a4a]"
+                                                    >
+                                                        Final makeup price (₱)
+                                                    </label>
                                                     <input
                                                         id={`makeup-price-${booking.id}`}
                                                         type="number"
@@ -366,13 +483,37 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                         max={1000000}
                                                         step="0.01"
                                                         inputMode="decimal"
-                                                        value={makeupPrices[booking.id] ?? String(booking.final_makeup_price ?? booking.base_price ?? '')}
-                                                        onChange={(event) => setMakeupPrices((current) => ({ ...current, [booking.id]: event.target.value }))}
-                                                        className="w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
+                                                        value={
+                                                            makeupPrices[
+                                                                booking.id
+                                                            ] ??
+                                                            String(
+                                                                booking.final_makeup_price ??
+                                                                    booking.base_price ??
+                                                                    '',
+                                                            )
+                                                        }
+                                                        onChange={(event) =>
+                                                            setMakeupPrices(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [booking.id]:
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                }),
+                                                            )
+                                                        }
+                                                        className="w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30 focus-visible:outline-none"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label htmlFor={`travel-fee-${booking.id}`} className="mb-1 block text-xs font-medium text-[#4a4a4a]">Transportation fee (₱)</label>
+                                                    <label
+                                                        htmlFor={`travel-fee-${booking.id}`}
+                                                        className="mb-1 block text-xs font-medium text-[#4a4a4a]"
+                                                    >
+                                                        Transportation fee (₱)
+                                                    </label>
                                                     <input
                                                         id={`travel-fee-${booking.id}`}
                                                         type="number"
@@ -380,46 +521,180 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                         max={1000000}
                                                         step={1}
                                                         inputMode="numeric"
-                                                        value={transportationFees[booking.id] ?? transportationFeeForBooking(booking)}
-                                                        onChange={(event) => setTransportationFees((current) => ({ ...current, [booking.id]: event.target.value }))}
-                                                        className="w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
+                                                        value={
+                                                            transportationFees[
+                                                                booking.id
+                                                            ] ??
+                                                            transportationFeeForBooking(
+                                                                booking,
+                                                            )
+                                                        }
+                                                        onChange={(event) =>
+                                                            setTransportationFees(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [booking.id]:
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                }),
+                                                            )
+                                                        }
+                                                        className="w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30 focus-visible:outline-none"
                                                     />
                                                 </div>
                                             </div>
                                             <div className="mt-3">
-                                                <label htmlFor={`quote-reason-${booking.id}`} className="mb-1 block text-xs font-medium text-[#4a4a4a]">Reason for a price above the starting price</label>
+                                                <label
+                                                    htmlFor={`quote-reason-${booking.id}`}
+                                                    className="mb-1 block text-xs font-medium text-[#4a4a4a]"
+                                                >
+                                                    Reason for a price above the
+                                                    starting price
+                                                </label>
                                                 <textarea
                                                     id={`quote-reason-${booking.id}`}
                                                     rows={2}
                                                     maxLength={500}
-                                                    value={quoteReasons[booking.id] ?? booking.quote_reason ?? ''}
-                                                    onChange={(event) => setQuoteReasons((current) => ({ ...current, [booking.id]: event.target.value }))}
+                                                    value={
+                                                        quoteReasons[
+                                                            booking.id
+                                                        ] ??
+                                                        booking.quote_reason ??
+                                                        ''
+                                                    }
+                                                    onChange={(event) =>
+                                                        setQuoteReasons(
+                                                            (current) => ({
+                                                                ...current,
+                                                                [booking.id]:
+                                                                    event.target
+                                                                        .value,
+                                                            }),
+                                                        )
+                                                    }
                                                     placeholder="For example, the requested look needs extra styling or preparation."
-                                                    className="w-full resize-y rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] placeholder:text-[#4a4a4a]/60 focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
+                                                    className="w-full resize-y rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] placeholder:text-[#4a4a4a]/60 focus-visible:border-[#8a6a2f] focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30 focus-visible:outline-none"
                                                 />
                                             </div>
                                             <button
                                                 type="button"
-                                                disabled={busyId === booking.id || makeupPrices[booking.id] === '' || transportationFees[booking.id] === '' || Number(makeupPrices[booking.id] ?? booking.final_makeup_price ?? booking.base_price ?? 0) < 0 || Number(transportationFees[booking.id] ?? 0) < 0}
-                                                onClick={() => sendQuote(booking)}
+                                                disabled={
+                                                    busyId === booking.id ||
+                                                    makeupPrices[booking.id] ===
+                                                        '' ||
+                                                    transportationFees[
+                                                        booking.id
+                                                    ] === '' ||
+                                                    Number(
+                                                        makeupPrices[
+                                                            booking.id
+                                                        ] ??
+                                                            booking.final_makeup_price ??
+                                                            booking.base_price ??
+                                                            0,
+                                                    ) < 0 ||
+                                                    Number(
+                                                        transportationFees[
+                                                            booking.id
+                                                        ] ?? 0,
+                                                    ) < 0
+                                                }
+                                                onClick={() =>
+                                                    sendQuote(booking)
+                                                }
                                                 className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
                                             >
-                                                {busyId === booking.id ? 'Sending…' : 'Send itemized quote'}
+                                                {busyId === booking.id
+                                                    ? 'Sending…'
+                                                    : 'Send itemized quote'}
                                             </button>
-                                            {quoteErrors[booking.id] && <p role="alert" className="mt-2 text-xs text-[#A13F3F]">{quoteErrors[booking.id]}</p>}
+                                            {quoteErrors[booking.id] && (
+                                                <p
+                                                    role="alert"
+                                                    className="mt-2 text-xs text-[#A13F3F]"
+                                                >
+                                                    {quoteErrors[booking.id]}
+                                                </p>
+                                            )}
                                         </div>
 
-                                        {(booking.quote_pending || booking.transportation_fee_pending) && <p className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-4 py-3 text-sm font-medium text-[#8a6a2f]">The itemized quote is with the client. They must approve it before the deposit step.</p>}
-                                        {booking.quote_accepted_at && booking.deposit_status === 'due' && <p className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-4 py-3 text-sm font-medium text-[#8a6a2f]">Quote accepted. Waiting for the 50% deposit of ₱{(Number(booking.estimated_total ?? 0) / 2).toLocaleString('en-PH', { minimumFractionDigits: 2 })}.</p>}
-                                        {booking.deposit_status === 'submitted' && (
+                                        {(booking.quote_pending ||
+                                            booking.transportation_fee_pending) && (
+                                            <p className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-4 py-3 text-sm font-medium text-[#8a6a2f]">
+                                                The itemized quote is with the
+                                                client. They must approve it
+                                                before the deposit step.
+                                            </p>
+                                        )}
+                                        {booking.quote_accepted_at &&
+                                            booking.deposit_status ===
+                                                'due' && (
+                                                <p className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-4 py-3 text-sm font-medium text-[#8a6a2f]">
+                                                    Quote accepted. Waiting for
+                                                    the 50% deposit of ₱
+                                                    {(
+                                                        Number(
+                                                            booking.estimated_total ??
+                                                                0,
+                                                        ) / 2
+                                                    ).toLocaleString('en-PH', {
+                                                        minimumFractionDigits: 2,
+                                                    })}
+                                                    .
+                                                </p>
+                                            )}
+                                        {booking.deposit_status ===
+                                            'submitted' && (
                                             <div className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4 text-sm">
-                                                <p className="font-semibold text-[#1a1a1a]">Client marked the deposit as sent</p>
-                                                <p className="mt-1 text-[#4a4a4a]">Payment method: {booking.deposit_method?.replace('_', ' ') ?? 'Not specified'}{booking.deposit_reference ? ` · Reference: ${booking.deposit_reference}` : ''}</p>
-                                                {booking.deposit_proof_url && <img src={booking.deposit_proof_url} alt="Client's uploaded deposit payment proof" className="mt-3 max-h-72 rounded-xl border border-[#e8d7cf] object-contain" />}
-                                                <button type="button" disabled={busyId === booking.id} onClick={() => markDepositReceived(booking)} className="mt-3 rounded-full bg-[#2E7D46] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50">{busyId === booking.id ? 'Saving…' : 'Mark deposit received'}</button>
+                                                <p className="font-semibold text-[#1a1a1a]">
+                                                    Client marked the deposit as
+                                                    sent
+                                                </p>
+                                                <p className="mt-1 text-[#4a4a4a]">
+                                                    Payment method:{' '}
+                                                    {booking.deposit_method?.replace(
+                                                        '_',
+                                                        ' ',
+                                                    ) ?? 'Not specified'}
+                                                    {booking.deposit_reference
+                                                        ? ` · Reference: ${booking.deposit_reference}`
+                                                        : ''}
+                                                </p>
+                                                {booking.deposit_proof_url && (
+                                                    <img
+                                                        src={
+                                                            booking.deposit_proof_url
+                                                        }
+                                                        alt="Client's uploaded deposit payment proof"
+                                                        className="mt-3 max-h-72 rounded-xl border border-[#e8d7cf] object-contain"
+                                                    />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    disabled={
+                                                        busyId === booking.id
+                                                    }
+                                                    onClick={() =>
+                                                        markDepositReceived(
+                                                            booking,
+                                                        )
+                                                    }
+                                                    className="mt-3 rounded-full bg-[#2E7D46] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
+                                                >
+                                                    {busyId === booking.id
+                                                        ? 'Saving…'
+                                                        : 'Mark deposit received'}
+                                                </button>
                                             </div>
                                         )}
-                                        {booking.deposit_status === 'received' && <p className="mt-3 rounded-xl border border-[#b7d5bb] bg-[#f1f7f1] px-4 py-3 text-sm font-medium text-[#426948]">50% deposit received. You can now confirm the booking.</p>}
+                                        {booking.deposit_status ===
+                                            'received' && (
+                                            <p className="mt-3 rounded-xl border border-[#b7d5bb] bg-[#f1f7f1] px-4 py-3 text-sm font-medium text-[#426948]">
+                                                50% deposit received. You can
+                                                now confirm the booking.
+                                            </p>
+                                        )}
 
                                         {/* optional message to client */}
                                         <div className="mt-4 grid gap-1.5">
@@ -455,14 +730,26 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                         <div className="mt-3 flex gap-2">
                                             <button
                                                 type="button"
-                                                disabled={busyId === booking.id || booking.quote_pending || booking.transportation_fee_pending || booking.deposit_status !== 'received'}
+                                                disabled={
+                                                    busyId === booking.id ||
+                                                    booking.quote_pending ||
+                                                    booking.transportation_fee_pending ||
+                                                    booking.deposit_status !==
+                                                        'received'
+                                                }
                                                 onClick={() =>
                                                     act(booking.id, 'accept')
                                                 }
                                                 className="flex items-center gap-1.5 rounded-full bg-[#2E7D46] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
                                             >
                                                 <Check className="h-3.5 w-3.5" />{' '}
-                                                {booking.quote_pending || booking.transportation_fee_pending ? 'Waiting for quote approval' : booking.deposit_status !== 'received' ? 'Waiting for deposit' : 'Confirm booking'}
+                                                {booking.quote_pending ||
+                                                booking.transportation_fee_pending
+                                                    ? 'Waiting for quote approval'
+                                                    : booking.deposit_status !==
+                                                        'received'
+                                                      ? 'Waiting for deposit'
+                                                      : 'Confirm booking'}
                                             </button>
                                             <button
                                                 type="button"
@@ -600,16 +887,34 @@ function BookingHeader({
                         {booking.service}
                     </p>
                     {booking.final_makeup_price != null ? (
-                        <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">Final makeup quote: ₱{Number(booking.final_makeup_price).toLocaleString('en-PH')}</p>
-                    ) : booking.base_price_type && (
                         <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
-                            {booking.requires_quote || booking.base_price_type === 'quote_required' ? 'Artist quote needed' : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
+                            Final makeup quote: ₱
+                            {Number(booking.final_makeup_price).toLocaleString(
+                                'en-PH',
+                            )}
                         </p>
+                    ) : (
+                        booking.base_price_type && (
+                            <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
+                                {booking.requires_quote ||
+                                booking.base_price_type === 'quote_required'
+                                    ? 'Artist quote needed'
+                                    : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
+                            </p>
+                        )
                     )}
                     <p className="text-sm text-[#4a4a4a]">
                         with {booking.client.name}
                     </p>
-                    {booking.terms_accepted_at && <p className="mt-1 text-xs text-[#4a4a4a]">Booking terms accepted on {new Date(booking.terms_accepted_at).toLocaleString('en-PH')}.</p>}
+                    {booking.terms_accepted_at && (
+                        <p className="mt-1 text-xs text-[#4a4a4a]">
+                            Booking terms accepted on{' '}
+                            {new Date(booking.terms_accepted_at).toLocaleString(
+                                'en-PH',
+                            )}
+                            .
+                        </p>
+                    )}
                 </div>
                 <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[booking.status]}`}
@@ -618,10 +923,41 @@ function BookingHeader({
                 </span>
             </div>
 
-            {!!booking.selected_add_ons?.length && <p className="mb-3 text-xs text-[#4a4a4a]">Client add-ons: {booking.selected_add_ons.map((item) => `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`).join(', ')}</p>}
-            {booking.venue_address && <p className="mb-3 text-sm text-[#4a4a4a]">Home service · {booking.location_type === 'nearby_province' ? 'Nearby province' : 'Metro Manila'} · {booking.venue_address}</p>}
-            {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">{booking.quote_accepted_at ? 'Final quoted total' : booking.quote_pending ? 'Quote sent for client approval' : 'Starting estimate'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
-            {booking.quote_reason && <p className="mb-3 text-sm text-[#4a4a4a]">Quote note: {booking.quote_reason}</p>}
+            {!!booking.selected_add_ons?.length && (
+                <p className="mb-3 text-xs text-[#4a4a4a]">
+                    Client add-ons:{' '}
+                    {booking.selected_add_ons
+                        .map(
+                            (item) =>
+                                `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`,
+                        )
+                        .join(', ')}
+                </p>
+            )}
+            {booking.venue_address && (
+                <p className="mb-3 text-sm text-[#4a4a4a]">
+                    Home service ·{' '}
+                    {booking.location_type === 'nearby_province'
+                        ? 'Nearby province'
+                        : 'Metro Manila'}{' '}
+                    · {booking.venue_address}
+                </p>
+            )}
+            {booking.estimated_total != null && (
+                <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">
+                    {booking.quote_accepted_at
+                        ? 'Final quoted total'
+                        : booking.quote_pending
+                          ? 'Quote sent for client approval'
+                          : 'Starting estimate'}
+                    : ₱{Number(booking.estimated_total).toLocaleString('en-PH')}
+                </p>
+            )}
+            {booking.quote_reason && (
+                <p className="mb-3 text-sm text-[#4a4a4a]">
+                    Quote note: {booking.quote_reason}
+                </p>
+            )}
 
             <div className="flex flex-wrap gap-4 text-sm text-[#4a4a4a]">
                 <span className="flex items-center gap-1.5">

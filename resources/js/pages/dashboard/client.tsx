@@ -32,7 +32,17 @@ type Booking = {
     deposit_method?: 'gcash' | 'bank_transfer' | 'cash' | null;
     deposit_reference?: string | null;
     deposit_proof_url?: string | null;
-    selected_add_ons?: { id: number | null; name: string; price: number | string | null; quantity: number; line_total: number | string | null; pricing_type: string; is_system_fee?: boolean }[] | null;
+    selected_add_ons?:
+        | {
+              id: number | null;
+              name: string;
+              price: number | string | null;
+              quantity: number;
+              line_total: number | string | null;
+              pricing_type: string;
+              is_system_fee?: boolean;
+          }[]
+        | null;
     requires_quote?: boolean;
     booking_date: string;
     booking_time: string;
@@ -82,6 +92,7 @@ function formatTime(timeStr: string) {
     const [h, m] = timeStr.split(':');
     const date = new Date();
     date.setHours(Number(h), Number(m));
+
     return date.toLocaleTimeString(undefined, {
         hour: 'numeric',
         minute: '2-digit',
@@ -92,13 +103,18 @@ function formatTime(timeStr: string) {
 function todayISO() {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+
     return d.toISOString().split('T')[0];
 }
 
 /** Splits saved notes into the "Occasion: X" first line and the client's own text. */
 function splitNotes(notes: string | null) {
-    if (!notes) return { occasion: null as string | null, text: '' };
+    if (!notes) {
+        return { occasion: null as string | null, text: '' };
+    }
+
     const m = notes.match(/^Occasion: (.+?)(?:\n|$)/);
+
     return m
         ? { occasion: m[1], text: notes.slice(m[0].length).trim() }
         : { occasion: null, text: notes };
@@ -122,9 +138,14 @@ function hoursUntil(booking: Booking) {
 
 /** Same rule governs both self-cancel and reschedule eligibility. */
 function canModify(booking: Booking) {
-    if (booking.status === 'pending') return true;
-    if (booking.status === 'confirmed')
+    if (booking.status === 'pending') {
+        return true;
+    }
+
+    if (booking.status === 'confirmed') {
         return hoursUntil(booking) > CANCEL_CUTOFF_HOURS;
+    }
+
     return false;
 }
 
@@ -164,11 +185,21 @@ export default function ClientDashboard({ bookings }: Props) {
     const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
     const [cancellingId, setCancellingId] = useState<number | null>(null);
-    const [feeDecisionBusyId, setFeeDecisionBusyId] = useState<number | null>(null);
-    const [depositReference, setDepositReference] = useState<Record<number, string>>({});
-    const [depositMethod, setDepositMethod] = useState<Record<number, string>>({});
-    const [depositProof, setDepositProof] = useState<Record<number, File | null>>({});
-    const [depositErrors, setDepositErrors] = useState<Record<number, string>>({});
+    const [feeDecisionBusyId, setFeeDecisionBusyId] = useState<number | null>(
+        null,
+    );
+    const [depositReference, setDepositReference] = useState<
+        Record<number, string>
+    >({});
+    const [depositMethod, setDepositMethod] = useState<Record<number, string>>(
+        {},
+    );
+    const [depositProof, setDepositProof] = useState<
+        Record<number, File | null>
+    >({});
+    const [depositErrors, setDepositErrors] = useState<Record<number, string>>(
+        {},
+    );
     const [dismissed, setDismissed] = useState<number[]>(() =>
         typeof window !== 'undefined' ? getDismissedIds() : [],
     );
@@ -200,9 +231,11 @@ export default function ClientDashboard({ bookings }: Props) {
     const { upcoming, past } = useMemo(() => {
         const upcoming: Booking[] = [];
         const past: Booking[] = [];
+
         for (const b of bookings) {
             (isPast(b) ? past : upcoming).push(b);
         }
+
         return { upcoming, past };
     }, [bookings]);
 
@@ -239,40 +272,68 @@ export default function ClientDashboard({ bookings }: Props) {
 
     function handleAcceptQuote(booking: Booking) {
         setFeeDecisionBusyId(booking.id);
-        router.patch(`/book/${booking.id}/quote/accept`, {}, {
-            preserveScroll: true,
-            onFinish: () => setFeeDecisionBusyId(null),
-        });
+        router.patch(
+            `/book/${booking.id}/quote/accept`,
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setFeeDecisionBusyId(null),
+            },
+        );
     }
 
     function submitReview(booking: Booking) {
         setReviewBusy(true);
         setReviewError('');
-        router.post(`/book/${booking.id}/review`, { rating: reviewRating, comment: reviewComment }, {
-            preserveScroll: true,
-            onError: (errors) => setReviewError(String(errors.comment ?? errors.rating ?? 'Could not submit your review.')),
-            onSuccess: () => setReviewComment(''),
-            onFinish: () => setReviewBusy(false),
-        });
+        router.post(
+            `/book/${booking.id}/review`,
+            { rating: reviewRating, comment: reviewComment },
+            {
+                preserveScroll: true,
+                onError: (errors) =>
+                    setReviewError(
+                        String(
+                            errors.comment ??
+                                errors.rating ??
+                                'Could not submit your review.',
+                        ),
+                    ),
+                onSuccess: () => setReviewComment(''),
+                onFinish: () => setReviewBusy(false),
+            },
+        );
     }
 
     function handleSubmitDeposit(booking: Booking) {
         setFeeDecisionBusyId(booking.id);
         setDepositErrors((current) => ({ ...current, [booking.id]: '' }));
         const method = depositMethod[booking.id] ?? '';
-        router.patch(`/book/${booking.id}/deposit`, {
-            deposit_method: method,
-            deposit_reference: depositReference[booking.id] ?? '',
-            deposit_proof: method === 'cash' ? null : depositProof[booking.id] ?? null,
-        }, {
-            forceFormData: true,
-            preserveScroll: true,
-            onError: (errors) => setDepositErrors((current) => ({
-                ...current,
-                [booking.id]: String(errors.deposit_method ?? errors.deposit_proof ?? errors.deposit_reference ?? 'Could not submit the deposit details.'),
-            })),
-            onFinish: () => setFeeDecisionBusyId(null),
-        });
+        router.patch(
+            `/book/${booking.id}/deposit`,
+            {
+                deposit_method: method,
+                deposit_reference: depositReference[booking.id] ?? '',
+                deposit_proof:
+                    method === 'cash'
+                        ? null
+                        : (depositProof[booking.id] ?? null),
+            },
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onError: (errors) =>
+                    setDepositErrors((current) => ({
+                        ...current,
+                        [booking.id]: String(
+                            errors.deposit_method ??
+                                errors.deposit_proof ??
+                                errors.deposit_reference ??
+                                'Could not submit the deposit details.',
+                        ),
+                    })),
+                onFinish: () => setFeeDecisionBusyId(null),
+            },
+        );
     }
 
     function handleDismiss(id: number) {
@@ -295,12 +356,18 @@ export default function ClientDashboard({ bookings }: Props) {
             newTime !== selectedBooking.booking_time);
 
     function handleProceed() {
-        if (!rescheduleChanged) return;
+        if (!rescheduleChanged) {
+            return;
+        }
+
         setConfirmingReschedule(true);
     }
 
     function handleConfirmReschedule() {
-        if (!selectedBooking) return;
+        if (!selectedBooking) {
+            return;
+        }
+
         setRescheduleBusy(true);
         router.patch(
             `/book/${selectedBooking.id}/reschedule`,
@@ -491,12 +558,24 @@ export default function ClientDashboard({ bookings }: Props) {
                                             <p className="font-serif text-lg font-bold text-[#1a1a1a]">
                                                 {booking.service}
                                             </p>
-                                            {booking.final_makeup_price != null ? (
-                                                <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">Final makeup quote: ₱{Number(booking.final_makeup_price).toLocaleString('en-PH')}</p>
-                                            ) : booking.base_price_type && (
+                                            {booking.final_makeup_price !=
+                                            null ? (
                                                 <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
-                                                    {booking.requires_quote || booking.base_price_type === 'quote_required' ? 'Artist quote in progress' : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
+                                                    Final makeup quote: ₱
+                                                    {Number(
+                                                        booking.final_makeup_price,
+                                                    ).toLocaleString('en-PH')}
                                                 </p>
+                                            ) : (
+                                                booking.base_price_type && (
+                                                    <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
+                                                        {booking.requires_quote ||
+                                                        booking.base_price_type ===
+                                                            'quote_required'
+                                                            ? 'Artist quote in progress'
+                                                            : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
+                                                    </p>
+                                                )
                                             )}
                                             <p className="text-sm text-[#4a4a4a]">
                                                 with {booking.artist.name}
@@ -514,11 +593,61 @@ export default function ClientDashboard({ bookings }: Props) {
                                         </span>
                                     </div>
 
-                                    {!!booking.selected_add_ons?.length && <p className="mb-3 text-xs text-[#4a4a4a]">Add-ons: {booking.selected_add_ons.map((item) => `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`).join(', ')}</p>}
-                                    {booking.venue_address && <p className="mb-3 text-sm text-[#4a4a4a]">Home service · {booking.location_type === 'nearby_province' ? 'Nearby province' : 'Metro Manila'} · {booking.venue_address}</p>}
-                                    {booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">{booking.quote_accepted_at ? 'Final quoted total' : booking.quote_pending || booking.transportation_fee_pending ? 'Quote total for your approval' : 'Starting estimate'}: ₱{Number(booking.estimated_total).toLocaleString('en-PH')}</p>}
-                                    {(booking.quote_pending || booking.transportation_fee_pending) && <p className="mb-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-3 py-2 text-sm font-semibold text-[#8a6a2f]">Your itemized final quote is ready to review</p>}
-                                    {booking.deposit_status === 'due' && booking.estimated_total != null && <p className="mb-3 text-sm font-semibold text-[#8a6a2f]">50% deposit to secure: ₱{(Number(booking.estimated_total) / 2).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>}
+                                    {!!booking.selected_add_ons?.length && (
+                                        <p className="mb-3 text-xs text-[#4a4a4a]">
+                                            Add-ons:{' '}
+                                            {booking.selected_add_ons
+                                                .map(
+                                                    (item) =>
+                                                        `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`,
+                                                )
+                                                .join(', ')}
+                                        </p>
+                                    )}
+                                    {booking.venue_address && (
+                                        <p className="mb-3 text-sm text-[#4a4a4a]">
+                                            Home service ·{' '}
+                                            {booking.location_type ===
+                                            'nearby_province'
+                                                ? 'Nearby province'
+                                                : 'Metro Manila'}{' '}
+                                            · {booking.venue_address}
+                                        </p>
+                                    )}
+                                    {booking.estimated_total != null && (
+                                        <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">
+                                            {booking.quote_accepted_at
+                                                ? 'Final quoted total'
+                                                : booking.quote_pending ||
+                                                    booking.transportation_fee_pending
+                                                  ? 'Quote total for your approval'
+                                                  : 'Starting estimate'}
+                                            : ₱
+                                            {Number(
+                                                booking.estimated_total,
+                                            ).toLocaleString('en-PH')}
+                                        </p>
+                                    )}
+                                    {(booking.quote_pending ||
+                                        booking.transportation_fee_pending) && (
+                                        <p className="mb-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-3 py-2 text-sm font-semibold text-[#8a6a2f]">
+                                            Your itemized final quote is ready
+                                            to review
+                                        </p>
+                                    )}
+                                    {booking.deposit_status === 'due' &&
+                                        booking.estimated_total != null && (
+                                            <p className="mb-3 text-sm font-semibold text-[#8a6a2f]">
+                                                50% deposit to secure: ₱
+                                                {(
+                                                    Number(
+                                                        booking.estimated_total,
+                                                    ) / 2
+                                                ).toLocaleString('en-PH', {
+                                                    minimumFractionDigits: 2,
+                                                })}
+                                            </p>
+                                        )}
 
                                     <div className="flex flex-wrap gap-4 text-sm text-[#4a4a4a]">
                                         <span className="flex items-center gap-1.5">
@@ -611,35 +740,117 @@ export default function ClientDashboard({ bookings }: Props) {
                             </span>
                         </div>
 
-                        {selectedBooking.terms_accepted_at && <p className="mt-2 text-xs text-[#4a4a4a]">Booking terms accepted on {new Date(selectedBooking.terms_accepted_at).toLocaleString('en-PH')}.</p>}
+                        {selectedBooking.terms_accepted_at && (
+                            <p className="mt-2 text-xs text-[#4a4a4a]">
+                                Booking terms accepted on{' '}
+                                {new Date(
+                                    selectedBooking.terms_accepted_at,
+                                ).toLocaleString('en-PH')}
+                                .
+                            </p>
+                        )}
 
-                        {selectedBooking.status === 'completed' && (selectedBooking.review ? (
-                            <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
-                                <p className="font-semibold text-[#1a1a1a]">Your review · {'★'.repeat(selectedBooking.review.rating)}</p>
-                                <p className="mt-1 text-sm text-[#4a4a4a]">{selectedBooking.review.comment}</p>
-                                <p className="mt-2 text-xs text-[#8a6a2f]">{selectedBooking.review.is_approved ? 'Published on the homepage' : 'Waiting for Trixie’s approval'}</p>
-                            </section>
-                        ) : (
-                            <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
-                                <h3 className="text-sm font-semibold text-[#1a1a1a]">How was your glam session?</h3>
-                                <label htmlFor={`review-rating-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Your rating</label>
-                                <select id={`review-rating-${selectedBooking.id}`} value={reviewRating} onChange={(event) => setReviewRating(Number(event.target.value))} className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6a2f]">
-                                    <option value={5}>★★★★★ — Loved it</option>
-                                    <option value={4}>★★★★☆ — Great</option>
-                                    <option value={3}>★★★☆☆ — Good</option>
-                                    <option value={2}>★★☆☆☆ — Could be better</option>
-                                    <option value={1}>★☆☆☆☆ — Not for me</option>
-                                </select>
-                                <label htmlFor={`review-comment-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Your review</label>
-                                <textarea id={`review-comment-${selectedBooking.id}`} value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} minLength={10} maxLength={1200} rows={3} placeholder="Share a little about your experience (10–1,200 characters)" className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] opacity-100 placeholder:text-[#6b625a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6a2f]" />
-                                <p className="mt-1 text-xs text-[#6b625a]">Trixie reviews each submission before it appears publicly.</p>
-                                {reviewError && <p role="alert" className="mt-1 text-xs text-[#A13F3F]">{reviewError}</p>}
-                                <button type="button" disabled={reviewBusy || reviewComment.trim().length < 10} onClick={() => submitReview(selectedBooking)} className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{reviewBusy ? 'Submitting…' : 'Submit review'}</button>
-                            </section>
-                        ))}
+                        {selectedBooking.status === 'completed' &&
+                            (selectedBooking.review ? (
+                                <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
+                                    <p className="font-semibold text-[#1a1a1a]">
+                                        Your review ·{' '}
+                                        {'★'.repeat(
+                                            selectedBooking.review.rating,
+                                        )}
+                                    </p>
+                                    <p className="mt-1 text-sm text-[#4a4a4a]">
+                                        {selectedBooking.review.comment}
+                                    </p>
+                                    <p className="mt-2 text-xs text-[#8a6a2f]">
+                                        {selectedBooking.review.is_approved
+                                            ? 'Published on the homepage'
+                                            : 'Waiting for Trixie’s approval'}
+                                    </p>
+                                </section>
+                            ) : (
+                                <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
+                                    <h3 className="text-sm font-semibold text-[#1a1a1a]">
+                                        How was your glam session?
+                                    </h3>
+                                    <label
+                                        htmlFor={`review-rating-${selectedBooking.id}`}
+                                        className="mt-3 block text-xs font-medium text-[#4a4a4a]"
+                                    >
+                                        Your rating
+                                    </label>
+                                    <select
+                                        id={`review-rating-${selectedBooking.id}`}
+                                        value={reviewRating}
+                                        onChange={(event) =>
+                                            setReviewRating(
+                                                Number(event.target.value),
+                                            )
+                                        }
+                                        className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6a2f]"
+                                    >
+                                        <option value={5}>
+                                            ★★★★★ — Loved it
+                                        </option>
+                                        <option value={4}>★★★★☆ — Great</option>
+                                        <option value={3}>★★★☆☆ — Good</option>
+                                        <option value={2}>
+                                            ★★☆☆☆ — Could be better
+                                        </option>
+                                        <option value={1}>
+                                            ★☆☆☆☆ — Not for me
+                                        </option>
+                                    </select>
+                                    <label
+                                        htmlFor={`review-comment-${selectedBooking.id}`}
+                                        className="mt-3 block text-xs font-medium text-[#4a4a4a]"
+                                    >
+                                        Your review
+                                    </label>
+                                    <textarea
+                                        id={`review-comment-${selectedBooking.id}`}
+                                        value={reviewComment}
+                                        onChange={(event) =>
+                                            setReviewComment(event.target.value)
+                                        }
+                                        minLength={10}
+                                        maxLength={1200}
+                                        rows={3}
+                                        placeholder="Share a little about your experience (10–1,200 characters)"
+                                        className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] opacity-100 placeholder:text-[#6b625a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8a6a2f]"
+                                    />
+                                    <p className="mt-1 text-xs text-[#6b625a]">
+                                        Trixie reviews each submission before it
+                                        appears publicly.
+                                    </p>
+                                    {reviewError && (
+                                        <p
+                                            role="alert"
+                                            className="mt-1 text-xs text-[#A13F3F]"
+                                        >
+                                            {reviewError}
+                                        </p>
+                                    )}
+                                    <button
+                                        type="button"
+                                        disabled={
+                                            reviewBusy ||
+                                            reviewComment.trim().length < 10
+                                        }
+                                        onClick={() =>
+                                            submitReview(selectedBooking)
+                                        }
+                                        className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                                    >
+                                        {reviewBusy
+                                            ? 'Submitting…'
+                                            : 'Submit review'}
+                                    </button>
+                                </section>
+                            ))}
 
-                                {!rescheduling ? (
-                                    <>
+                        {!rescheduling ? (
+                            <>
                                 <div className="mb-4 grid gap-2 rounded-xl bg-[#faf7f4] p-4 text-sm text-[#1a1a1a]">
                                     <span className="flex items-center gap-2">
                                         <MapPin className="h-4 w-4 text-[#8a6a2f]" />{' '}
@@ -661,31 +872,95 @@ export default function ClientDashboard({ bookings }: Props) {
                                     )}
                                 </div>
 
-                                {(selectedBooking.base_price != null || selectedBooking.final_makeup_price != null || !!selectedBooking.selected_add_ons?.length || selectedBooking.estimated_total != null) && (
+                                {(selectedBooking.base_price != null ||
+                                    selectedBooking.final_makeup_price !=
+                                        null ||
+                                    !!selectedBooking.selected_add_ons
+                                        ?.length ||
+                                    selectedBooking.estimated_total !=
+                                        null) && (
                                     <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-white p-4">
-                                        <h3 className="mb-3 text-sm font-semibold text-[#1a1a1a]">Price breakdown</h3>
+                                        <h3 className="mb-3 text-sm font-semibold text-[#1a1a1a]">
+                                            Price breakdown
+                                        </h3>
                                         <div className="grid gap-2 text-sm text-[#4a4a4a]">
-                                            {selectedBooking.final_makeup_price != null ? (
+                                            {selectedBooking.final_makeup_price !=
+                                            null ? (
                                                 <div className="flex justify-between gap-3">
-                                                    <span>Final makeup price</span>
-                                                    <span className="shrink-0">₱{Number(selectedBooking.final_makeup_price).toLocaleString('en-PH')}</span>
+                                                    <span>
+                                                        Final makeup price
+                                                    </span>
+                                                    <span className="shrink-0">
+                                                        ₱
+                                                        {Number(
+                                                            selectedBooking.final_makeup_price,
+                                                        ).toLocaleString(
+                                                            'en-PH',
+                                                        )}
+                                                    </span>
                                                 </div>
-                                            ) : selectedBooking.base_price != null && (
-                                                <div className="flex justify-between gap-3">
-                                                    <span>{selectedBooking.service}{selectedBooking.base_price_type === 'starting_at' ? ' (starting price)' : ''}</span>
-                                                    <span className="shrink-0">{selectedBooking.base_price_type === 'quote_required' ? 'Quote' : `₱${Number(selectedBooking.base_price).toLocaleString('en-PH')}`}</span>
-                                                </div>
+                                            ) : (
+                                                selectedBooking.base_price !=
+                                                    null && (
+                                                    <div className="flex justify-between gap-3">
+                                                        <span>
+                                                            {
+                                                                selectedBooking.service
+                                                            }
+                                                            {selectedBooking.base_price_type ===
+                                                            'starting_at'
+                                                                ? ' (starting price)'
+                                                                : ''}
+                                                        </span>
+                                                        <span className="shrink-0">
+                                                            {selectedBooking.base_price_type ===
+                                                            'quote_required'
+                                                                ? 'Quote'
+                                                                : `₱${Number(selectedBooking.base_price).toLocaleString('en-PH')}`}
+                                                        </span>
+                                                    </div>
+                                                )
                                             )}
-                                            {selectedBooking.selected_add_ons?.map((item, index) => (
-                                                <div key={`${item.name}-${index}`} className="flex justify-between gap-3">
-                                                    <span>{item.name}{item.quantity > 1 ? ` × ${item.quantity}` : ''}</span>
-                                                    <span className="shrink-0">{item.line_total == null ? 'Quote' : `₱${Number(item.line_total).toLocaleString('en-PH')}`}</span>
-                                                </div>
-                                            ))}
-                                            {selectedBooking.estimated_total != null && (
+                                            {selectedBooking.selected_add_ons?.map(
+                                                (item, index) => (
+                                                    <div
+                                                        key={`${item.name}-${index}`}
+                                                        className="flex justify-between gap-3"
+                                                    >
+                                                        <span>
+                                                            {item.name}
+                                                            {item.quantity > 1
+                                                                ? ` × ${item.quantity}`
+                                                                : ''}
+                                                        </span>
+                                                        <span className="shrink-0">
+                                                            {item.line_total ==
+                                                            null
+                                                                ? 'Quote'
+                                                                : `₱${Number(item.line_total).toLocaleString('en-PH')}`}
+                                                        </span>
+                                                    </div>
+                                                ),
+                                            )}
+                                            {selectedBooking.estimated_total !=
+                                                null && (
                                                 <div className="flex justify-between gap-3 border-t border-[#e8d7cf] pt-2 font-semibold text-[#1a1a1a]">
-                                                    <span>{selectedBooking.quote_accepted_at ? 'Final quoted total' : selectedBooking.quote_pending || selectedBooking.transportation_fee_pending ? 'Total for your approval' : 'Starting estimate'}</span>
-                                                    <span className="shrink-0">₱{Number(selectedBooking.estimated_total).toLocaleString('en-PH')}</span>
+                                                    <span>
+                                                        {selectedBooking.quote_accepted_at
+                                                            ? 'Final quoted total'
+                                                            : selectedBooking.quote_pending ||
+                                                                selectedBooking.transportation_fee_pending
+                                                              ? 'Total for your approval'
+                                                              : 'Starting estimate'}
+                                                    </span>
+                                                    <span className="shrink-0">
+                                                        ₱
+                                                        {Number(
+                                                            selectedBooking.estimated_total,
+                                                        ).toLocaleString(
+                                                            'en-PH',
+                                                        )}
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
@@ -694,93 +969,292 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                 {selectedBooking.quote_reason && (
                                     <section className="mb-4 rounded-xl bg-[#faf7f4] p-4">
-                                        <h3 className="text-sm font-semibold text-[#1a1a1a]">Artist&apos;s quote note</h3>
-                                        <p className="mt-1 whitespace-pre-line text-sm text-[#4a4a4a]">{selectedBooking.quote_reason}</p>
+                                        <h3 className="text-sm font-semibold text-[#1a1a1a]">
+                                            Artist&apos;s quote note
+                                        </h3>
+                                        <p className="mt-1 text-sm whitespace-pre-line text-[#4a4a4a]">
+                                            {selectedBooking.quote_reason}
+                                        </p>
                                     </section>
                                 )}
 
-                                {(selectedBooking.quote_pending || selectedBooking.transportation_fee_pending) && (
+                                {(selectedBooking.quote_pending ||
+                                    selectedBooking.transportation_fee_pending) && (
                                     <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4">
-                                        <p className="text-sm font-semibold text-[#1a1a1a]">Review your final quote</p>
-                                        <p className="mt-1 text-sm text-[#4a4a4a]">This quote includes the final makeup price and transportation fee. Accept it to continue to the 50% deposit, or cancel the request if the total does not work for you.</p>
+                                        <p className="text-sm font-semibold text-[#1a1a1a]">
+                                            Review your final quote
+                                        </p>
+                                        <p className="mt-1 text-sm text-[#4a4a4a]">
+                                            This quote includes the final makeup
+                                            price and transportation fee. Accept
+                                            it to continue to the 50% deposit,
+                                            or cancel the request if the total
+                                            does not work for you.
+                                        </p>
                                         <button
                                             type="button"
-                                            disabled={feeDecisionBusyId === selectedBooking.id}
-                                            onClick={() => handleAcceptQuote(selectedBooking)}
+                                            disabled={
+                                                feeDecisionBusyId ===
+                                                selectedBooking.id
+                                            }
+                                            onClick={() =>
+                                                handleAcceptQuote(
+                                                    selectedBooking,
+                                                )
+                                            }
                                             className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
                                         >
                                             <Check className="h-3.5 w-3.5" />
-                                            {feeDecisionBusyId === selectedBooking.id ? 'Saving...' : 'Accept quote'}
+                                            {feeDecisionBusyId ===
+                                            selectedBooking.id
+                                                ? 'Saving...'
+                                                : 'Accept quote'}
                                         </button>
                                     </section>
                                 )}
 
-                                {selectedBooking.deposit_status === 'due' && selectedBooking.estimated_total != null && (
-                                    <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4">
-                                        <p className="text-sm font-semibold text-[#1a1a1a]">50% deposit: ₱{(Number(selectedBooking.estimated_total) / 2).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
-                                        <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">Choose how you paid. Upload a screenshot or photo of the successful transaction for GCash or bank transfer so Trixie can verify the deposit.</p>
-                                        <label htmlFor={`deposit-method-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Payment method</label>
-                                        <select
-                                            id={`deposit-method-${selectedBooking.id}`}
-                                            value={depositMethod[selectedBooking.id] ?? ''}
-                                            onChange={(event) => {
-                                                const method = event.target.value;
-                                                setDepositMethod((current) => ({ ...current, [selectedBooking.id]: method }));
-                                                if (method === 'cash') setDepositProof((current) => ({ ...current, [selectedBooking.id]: null }));
-                                            }}
-                                            className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
-                                        >
-                                            <option value="">Choose a payment method</option>
-                                            <option value="gcash">GCash</option>
-                                            <option value="bank_transfer">Bank transfer</option>
-                                            <option value="cash">Cash</option>
-                                        </select>
-                                        <label htmlFor={`deposit-reference-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Payment reference or note</label>
-                                        <input
-                                            id={`deposit-reference-${selectedBooking.id}`}
-                                            value={depositReference[selectedBooking.id] ?? ''}
-                                            onChange={(event) => setDepositReference((current) => ({ ...current, [selectedBooking.id]: event.target.value }))}
-                                            maxLength={120}
-                                            placeholder="Optional transaction reference"
-                                            className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30"
-                                        />
-                                        {(depositMethod[selectedBooking.id] === 'gcash' || depositMethod[selectedBooking.id] === 'bank_transfer') && <>
-                                            <label htmlFor={`deposit-proof-${selectedBooking.id}`} className="mt-3 block text-xs font-medium text-[#4a4a4a]">Upload payment proof (JPG, PNG, or WebP; up to 5 MB)</label>
+                                {selectedBooking.deposit_status === 'due' &&
+                                    selectedBooking.estimated_total != null && (
+                                        <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4">
+                                            <p className="text-sm font-semibold text-[#1a1a1a]">
+                                                50% deposit: ₱
+                                                {(
+                                                    Number(
+                                                        selectedBooking.estimated_total,
+                                                    ) / 2
+                                                ).toLocaleString('en-PH', {
+                                                    minimumFractionDigits: 2,
+                                                })}
+                                            </p>
+                                            <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">
+                                                Choose how you paid. Upload a
+                                                screenshot or photo of the
+                                                successful transaction for GCash
+                                                or bank transfer so Trixie can
+                                                verify the deposit.
+                                            </p>
+                                            <label
+                                                htmlFor={`deposit-method-${selectedBooking.id}`}
+                                                className="mt-3 block text-xs font-medium text-[#4a4a4a]"
+                                            >
+                                                Payment method
+                                            </label>
+                                            <select
+                                                id={`deposit-method-${selectedBooking.id}`}
+                                                value={
+                                                    depositMethod[
+                                                        selectedBooking.id
+                                                    ] ?? ''
+                                                }
+                                                onChange={(event) => {
+                                                    const method =
+                                                        event.target.value;
+                                                    setDepositMethod(
+                                                        (current) => ({
+                                                            ...current,
+                                                            [selectedBooking.id]:
+                                                                method,
+                                                        }),
+                                                    );
+
+                                                    if (method === 'cash') {
+                                                        setDepositProof(
+                                                            (current) => ({
+                                                                ...current,
+                                                                [selectedBooking.id]:
+                                                                    null,
+                                                            }),
+                                                        );
+                                                    }
+                                                }}
+                                                className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30 focus-visible:outline-none"
+                                            >
+                                                <option value="">
+                                                    Choose a payment method
+                                                </option>
+                                                <option value="gcash">
+                                                    GCash
+                                                </option>
+                                                <option value="bank_transfer">
+                                                    Bank transfer
+                                                </option>
+                                                <option value="cash">
+                                                    Cash
+                                                </option>
+                                            </select>
+                                            <label
+                                                htmlFor={`deposit-reference-${selectedBooking.id}`}
+                                                className="mt-3 block text-xs font-medium text-[#4a4a4a]"
+                                            >
+                                                Payment reference or note
+                                            </label>
                                             <input
-                                                id={`deposit-proof-${selectedBooking.id}`}
-                                                type="file"
-                                                accept="image/jpeg,image/png,image/webp"
-                                                onChange={(event) => setDepositProof((current) => ({ ...current, [selectedBooking.id]: event.target.files?.[0] ?? null }))}
-                                                className="mt-1 w-full text-sm text-[#4a4a4a] file:mr-3 file:rounded-full file:border-0 file:bg-[#f4e9e5] file:px-4 file:py-2 file:text-xs file:font-semibold file:text-[#8a6a2f]"
+                                                id={`deposit-reference-${selectedBooking.id}`}
+                                                value={
+                                                    depositReference[
+                                                        selectedBooking.id
+                                                    ] ?? ''
+                                                }
+                                                onChange={(event) =>
+                                                    setDepositReference(
+                                                        (current) => ({
+                                                            ...current,
+                                                            [selectedBooking.id]:
+                                                                event.target
+                                                                    .value,
+                                                        }),
+                                                    )
+                                                }
+                                                maxLength={120}
+                                                placeholder="Optional transaction reference"
+                                                className="mt-1 w-full rounded-xl border border-[#d7c0a2] bg-white px-3 py-2 text-sm text-[#1a1a1a] focus-visible:border-[#8a6a2f] focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/30 focus-visible:outline-none"
                                             />
-                                        </>}
-                                        {depositErrors[selectedBooking.id] && <p role="alert" className="mt-1 text-xs text-[#A13F3F]">{depositErrors[selectedBooking.id]}</p>}
-                                        <button type="button" disabled={feeDecisionBusyId === selectedBooking.id || !depositMethod[selectedBooking.id] || (depositMethod[selectedBooking.id] !== 'cash' && !depositProof[selectedBooking.id])} onClick={() => handleSubmitDeposit(selectedBooking)} className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50">
-                                            {feeDecisionBusyId === selectedBooking.id ? 'Submitting…' : 'I sent the deposit'}
-                                        </button>
-                                    </section>
-                                )}
-                                {selectedBooking.deposit_status === 'submitted' && (
+                                            {(depositMethod[
+                                                selectedBooking.id
+                                            ] === 'gcash' ||
+                                                depositMethod[
+                                                    selectedBooking.id
+                                                ] === 'bank_transfer') && (
+                                                <>
+                                                    <label
+                                                        htmlFor={`deposit-proof-${selectedBooking.id}`}
+                                                        className="mt-3 block text-xs font-medium text-[#4a4a4a]"
+                                                    >
+                                                        Upload payment proof
+                                                        (JPG, PNG, or WebP; up
+                                                        to 5 MB)
+                                                    </label>
+                                                    <input
+                                                        id={`deposit-proof-${selectedBooking.id}`}
+                                                        type="file"
+                                                        accept="image/jpeg,image/png,image/webp"
+                                                        onChange={(event) =>
+                                                            setDepositProof(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [selectedBooking.id]:
+                                                                        event
+                                                                            .target
+                                                                            .files?.[0] ??
+                                                                        null,
+                                                                }),
+                                                            )
+                                                        }
+                                                        className="mt-1 w-full text-sm text-[#4a4a4a] file:mr-3 file:rounded-full file:border-0 file:bg-[#f4e9e5] file:px-4 file:py-2 file:text-xs file:font-semibold file:text-[#8a6a2f]"
+                                                    />
+                                                </>
+                                            )}
+                                            {depositErrors[
+                                                selectedBooking.id
+                                            ] && (
+                                                <p
+                                                    role="alert"
+                                                    className="mt-1 text-xs text-[#A13F3F]"
+                                                >
+                                                    {
+                                                        depositErrors[
+                                                            selectedBooking.id
+                                                        ]
+                                                    }
+                                                </p>
+                                            )}
+                                            <button
+                                                type="button"
+                                                disabled={
+                                                    feeDecisionBusyId ===
+                                                        selectedBooking.id ||
+                                                    !depositMethod[
+                                                        selectedBooking.id
+                                                    ] ||
+                                                    (depositMethod[
+                                                        selectedBooking.id
+                                                    ] !== 'cash' &&
+                                                        !depositProof[
+                                                            selectedBooking.id
+                                                        ])
+                                                }
+                                                onClick={() =>
+                                                    handleSubmitDeposit(
+                                                        selectedBooking,
+                                                    )
+                                                }
+                                                className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
+                                            >
+                                                {feeDecisionBusyId ===
+                                                selectedBooking.id
+                                                    ? 'Submitting…'
+                                                    : 'I sent the deposit'}
+                                            </button>
+                                        </section>
+                                    )}
+                                {selectedBooking.deposit_status ===
+                                    'submitted' && (
                                     <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4 text-sm">
-                                        <p className="font-semibold text-[#1a1a1a]">Deposit marked as sent</p>
-                                        <p className="mt-1 text-[#4a4a4a]">Trixie will verify your {selectedBooking.deposit_method?.replace('_', ' ')} payment{selectedBooking.deposit_reference ? ` · Reference: ${selectedBooking.deposit_reference}` : ''}.</p>
-                                        {selectedBooking.deposit_proof_url && <img src={selectedBooking.deposit_proof_url} alt="Uploaded deposit payment proof" className="mt-3 max-h-64 rounded-xl border border-[#e8d7cf] object-contain" />}
+                                        <p className="font-semibold text-[#1a1a1a]">
+                                            Deposit marked as sent
+                                        </p>
+                                        <p className="mt-1 text-[#4a4a4a]">
+                                            Trixie will verify your{' '}
+                                            {selectedBooking.deposit_method?.replace(
+                                                '_',
+                                                ' ',
+                                            )}{' '}
+                                            payment
+                                            {selectedBooking.deposit_reference
+                                                ? ` · Reference: ${selectedBooking.deposit_reference}`
+                                                : ''}
+                                            .
+                                        </p>
+                                        {selectedBooking.deposit_proof_url && (
+                                            <img
+                                                src={
+                                                    selectedBooking.deposit_proof_url
+                                                }
+                                                alt="Uploaded deposit payment proof"
+                                                className="mt-3 max-h-64 rounded-xl border border-[#e8d7cf] object-contain"
+                                            />
+                                        )}
                                     </section>
                                 )}
-                                {selectedBooking.deposit_status === 'received' && (
+                                {selectedBooking.deposit_status ===
+                                    'received' && (
                                     <section className="mb-4 rounded-xl border border-[#b7d5bb] bg-[#f1f7f1] p-4 text-sm text-[#426948]">
-                                        <p className="font-semibold">50% deposit received</p>
-                                        <p className="mt-1">Trixie will confirm your booking shortly.</p>
+                                        <p className="font-semibold">
+                                            50% deposit received
+                                        </p>
+                                        <p className="mt-1">
+                                            Trixie will confirm your booking
+                                            shortly.
+                                        </p>
                                     </section>
                                 )}
 
                                 {selectedBooking.package && (
                                     <section className="mb-4 rounded-xl bg-[#fffcf8] p-4">
-                                        <h3 className="mb-2 text-sm font-semibold text-[#1a1a1a]">Package details</h3>
-                                        {selectedBooking.package.description && <p className="mb-2 text-sm text-[#4a4a4a]">{selectedBooking.package.description}</p>}
-                                        {!!selectedBooking.package.inclusions?.length && (
+                                        <h3 className="mb-2 text-sm font-semibold text-[#1a1a1a]">
+                                            Package details
+                                        </h3>
+                                        {selectedBooking.package
+                                            .description && (
+                                            <p className="mb-2 text-sm text-[#4a4a4a]">
+                                                {
+                                                    selectedBooking.package
+                                                        .description
+                                                }
+                                            </p>
+                                        )}
+                                        {!!selectedBooking.package.inclusions
+                                            ?.length && (
                                             <ul className="grid gap-1 text-sm text-[#4a4a4a]">
-                                                {selectedBooking.package.inclusions.map((inclusion, index) => <li key={`${inclusion}-${index}`}>• {inclusion}</li>)}
+                                                {selectedBooking.package.inclusions.map(
+                                                    (inclusion, index) => (
+                                                        <li
+                                                            key={`${inclusion}-${index}`}
+                                                        >
+                                                            • {inclusion}
+                                                        </li>
+                                                    ),
+                                                )}
                                             </ul>
                                         )}
                                     </section>
@@ -788,9 +1262,21 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                 {selectedBooking.venue_address && (
                                     <section className="mb-4 rounded-xl bg-[#faf7f4] p-4 text-sm">
-                                        <h3 className="mb-1 font-semibold text-[#1a1a1a]">Home-service location</h3>
-                                        <p className="text-[#4a4a4a]">{selectedBooking.location_type === 'nearby_province' ? 'Nearby province' : selectedBooking.location_type === 'metro_manila' ? 'Metro Manila' : 'Home service'}</p>
-                                        <p className="mt-1 whitespace-pre-line text-[#1a1a1a]">{selectedBooking.venue_address}</p>
+                                        <h3 className="mb-1 font-semibold text-[#1a1a1a]">
+                                            Home-service location
+                                        </h3>
+                                        <p className="text-[#4a4a4a]">
+                                            {selectedBooking.location_type ===
+                                            'nearby_province'
+                                                ? 'Nearby province'
+                                                : selectedBooking.location_type ===
+                                                    'metro_manila'
+                                                  ? 'Metro Manila'
+                                                  : 'Home service'}
+                                        </p>
+                                        <p className="mt-1 whitespace-pre-line text-[#1a1a1a]">
+                                            {selectedBooking.venue_address}
+                                        </p>
                                     </section>
                                 )}
 
@@ -872,16 +1358,19 @@ export default function ClientDashboard({ bookings }: Props) {
 
                                 {canModify(selectedBooking) && (
                                     <div className="flex flex-wrap gap-2 border-t border-[#e8d7cf] pt-4">
-                                        {!selectedBooking.transportation_fee_pending && !selectedBooking.quote_pending && <button
-                                            type="button"
-                                            onClick={() =>
-                                                setRescheduling(true)
-                                            }
-                                            className="flex items-center gap-1.5 rounded-full border border-[#8a6a2f] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5]"
-                                        >
-                                            <CalendarDays className="h-3.5 w-3.5" />{' '}
-                                            Reschedule
-                                        </button>}
+                                        {!selectedBooking.transportation_fee_pending &&
+                                            !selectedBooking.quote_pending && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setRescheduling(true)
+                                                    }
+                                                    className="flex items-center gap-1.5 rounded-full border border-[#8a6a2f] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5]"
+                                                >
+                                                    <CalendarDays className="h-3.5 w-3.5" />{' '}
+                                                    Reschedule
+                                                </button>
+                                            )}
 
                                         {confirmingId === selectedBooking.id ? (
                                             <div className="flex w-full flex-wrap items-center gap-2 pt-2">

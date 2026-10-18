@@ -59,11 +59,19 @@ export default function EditProfile({ user }: Props) {
 
     const isArtist = user.role === 'artist';
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const cropDragRef = useRef<{ pointerX: number; pointerY: number; offsetX: number; offsetY: number } | null>(null);
+    const cropDragRef = useRef<{
+        pointerX: number;
+        pointerY: number;
+        offsetX: number;
+        offsetY: number;
+    } | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [viewingAvatar, setViewingAvatar] = useState(false);
     const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
-    const [cropImageSize, setCropImageSize] = useState<{ width: number; height: number } | null>(null);
+    const [cropImageSize, setCropImageSize] = useState<{
+        width: number;
+        height: number;
+    } | null>(null);
     const [cropZoom, setCropZoom] = useState(1);
     const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
     const [cropError, setCropError] = useState<string | null>(null);
@@ -88,8 +96,15 @@ export default function EditProfile({ user }: Props) {
 
     function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0] ?? null;
-        if (!file) return;
-        if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+
+        if (!file) {
+            return;
+        }
+
+        if (cropImageUrl) {
+            URL.revokeObjectURL(cropImageUrl);
+        }
+
         setCropImageUrl(URL.createObjectURL(file));
         setCropImageSize(null);
         setCropZoom(1);
@@ -98,17 +113,29 @@ export default function EditProfile({ user }: Props) {
     }
 
     function closeCropEditor() {
-        if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+        if (cropImageUrl) {
+            URL.revokeObjectURL(cropImageUrl);
+        }
+
         setCropImageUrl(null);
         setCropImageSize(null);
         setCropError(null);
         cropDragRef.current = null;
-        if (fileInputRef.current) fileInputRef.current.value = '';
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     }
 
     function cropDimensions(zoom = cropZoom) {
-        if (!cropImageSize) return null;
-        const scale = Math.max(288 / cropImageSize.width, 288 / cropImageSize.height) * zoom;
+        if (!cropImageSize) {
+            return null;
+        }
+
+        const scale =
+            Math.max(288 / cropImageSize.width, 288 / cropImageSize.height) *
+            zoom;
+
         return {
             scale,
             width: cropImageSize.width * scale,
@@ -119,17 +146,29 @@ export default function EditProfile({ user }: Props) {
     function handleCropPointerMove(event: React.PointerEvent<HTMLDivElement>) {
         const drag = cropDragRef.current;
         const dimensions = cropDimensions();
-        if (!drag || !dimensions) return;
+
+        if (!drag || !dimensions) {
+            return;
+        }
+
         const maxX = Math.max(0, (dimensions.width - 288) / 2);
         const maxY = Math.max(0, (dimensions.height - 288) / 2);
         setCropOffset({
-            x: Math.max(-maxX, Math.min(maxX, drag.offsetX + event.clientX - drag.pointerX)),
-            y: Math.max(-maxY, Math.min(maxY, drag.offsetY + event.clientY - drag.pointerY)),
+            x: Math.max(
+                -maxX,
+                Math.min(maxX, drag.offsetX + event.clientX - drag.pointerX),
+            ),
+            y: Math.max(
+                -maxY,
+                Math.min(maxY, drag.offsetY + event.clientY - drag.pointerY),
+            ),
         });
     }
 
     async function applyAvatarCrop() {
-        if (!cropImageUrl || !cropImageSize) return;
+        if (!cropImageUrl || !cropImageSize) {
+            return;
+        }
 
         try {
             const image = new Image();
@@ -137,39 +176,90 @@ export default function EditProfile({ user }: Props) {
             await image.decode();
 
             const dimensions = cropDimensions();
-            if (!dimensions) return;
+
+            if (!dimensions) {
+                return;
+            }
+
             const left = (288 - dimensions.width) / 2 + cropOffset.x;
             const top = (288 - dimensions.height) / 2 + cropOffset.y;
-            const sourceX = Math.max(0, Math.min(cropImageSize.width - 288 / dimensions.scale, -left / dimensions.scale));
-            const sourceY = Math.max(0, Math.min(cropImageSize.height - 288 / dimensions.scale, -top / dimensions.scale));
+            const sourceX = Math.max(
+                0,
+                Math.min(
+                    cropImageSize.width - 288 / dimensions.scale,
+                    -left / dimensions.scale,
+                ),
+            );
+            const sourceY = Math.max(
+                0,
+                Math.min(
+                    cropImageSize.height - 288 / dimensions.scale,
+                    -top / dimensions.scale,
+                ),
+            );
             const sourceSize = 288 / dimensions.scale;
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 512;
             const context = canvas.getContext('2d');
-            if (!context) throw new Error('Canvas is unavailable');
-            context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 512, 512);
+
+            if (!context) {
+                throw new Error('Canvas is unavailable');
+            }
+
+            context.drawImage(
+                image,
+                sourceX,
+                sourceY,
+                sourceSize,
+                sourceSize,
+                0,
+                0,
+                512,
+                512,
+            );
 
             const blob = await new Promise<Blob>((resolve, reject) => {
-                canvas.toBlob((result) => result ? resolve(result) : reject(new Error('Could not crop the image')), 'image/jpeg', 0.9);
+                canvas.toBlob(
+                    (result) =>
+                        result
+                            ? resolve(result)
+                            : reject(new Error('Could not crop the image')),
+                    'image/jpeg',
+                    0.9,
+                );
             });
-            const croppedFile = new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' });
+            const croppedFile = new File([blob], 'profile-photo.jpg', {
+                type: 'image/jpeg',
+            });
             setData('avatar', croppedFile);
             setData('remove_avatar', false);
-            if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+
+            if (avatarPreview) {
+                URL.revokeObjectURL(avatarPreview);
+            }
+
             setAvatarPreview(URL.createObjectURL(croppedFile));
             closeCropEditor();
         } catch {
-            setCropError('Could not adjust this image. Please choose another photo and try again.');
+            setCropError(
+                'Could not adjust this image. Please choose another photo and try again.',
+            );
         }
     }
 
     function handleRemoveAvatar() {
-        if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+        if (avatarPreview) {
+            URL.revokeObjectURL(avatarPreview);
+        }
+
         setData('avatar', null);
         setData('remove_avatar', true);
         setAvatarPreview(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     }
 
     function handleSubmit(e: React.FormEvent) {
@@ -179,7 +269,11 @@ export default function EditProfile({ user }: Props) {
             forceFormData: true,
             onSuccess: () => {
                 setData('remove_avatar', false);
-                if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+
+                if (avatarPreview) {
+                    URL.revokeObjectURL(avatarPreview);
+                }
+
                 setAvatarPreview(null);
             },
         });
@@ -189,17 +283,25 @@ export default function EditProfile({ user }: Props) {
         avatarPreview ?? (!data.remove_avatar ? user.avatar_url : null);
 
     useEffect(() => {
-        if (!viewingAvatar && !cropImageUrl) return;
+        if (!viewingAvatar && !cropImageUrl) {
+            return;
+        }
+
         function onKeyDown(e: KeyboardEvent) {
             if (e.key === 'Escape') {
                 setViewingAvatar(false);
-                if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+
+                if (cropImageUrl) {
+                    URL.revokeObjectURL(cropImageUrl);
+                }
+
                 setCropImageUrl(null);
                 setCropImageSize(null);
                 cropDragRef.current = null;
             }
         }
         window.addEventListener('keydown', onKeyDown);
+
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [viewingAvatar, cropImageUrl]);
 
@@ -449,13 +551,23 @@ export default function EditProfile({ user }: Props) {
                                 </div>
 
                                 <div className="border-t border-[#e8d7cf] pt-4">
-                                    <p className="text-sm font-semibold text-[#1a1a1a]">Transportation starting fees</p>
+                                    <p className="text-sm font-semibold text-[#1a1a1a]">
+                                        Transportation starting fees
+                                    </p>
                                     <p className="mt-1 text-xs leading-5 text-[#4a4a4a]">
-                                        Clients see the matching starting fee after choosing their service location. You can confirm the final travel price from the full address.
+                                        Clients see the matching starting fee
+                                        after choosing their service location.
+                                        You can confirm the final travel price
+                                        from the full address.
                                     </p>
                                     <div className="mt-3 grid gap-4 sm:grid-cols-2">
                                         <div className="grid gap-2">
-                                            <Label htmlFor="metro_manila_travel_fee" className="text-[#1a1a1a]">Metro Manila (₱)</Label>
+                                            <Label
+                                                htmlFor="metro_manila_travel_fee"
+                                                className="text-[#1a1a1a]"
+                                            >
+                                                Metro Manila (₱)
+                                            </Label>
                                             <input
                                                 id="metro_manila_travel_fee"
                                                 type="number"
@@ -463,15 +575,31 @@ export default function EditProfile({ user }: Props) {
                                                 max={1000000}
                                                 step={1}
                                                 inputMode="numeric"
-                                                value={data.metro_manila_travel_fee}
-                                                onChange={(e) => setData('metro_manila_travel_fee', e.target.value)}
+                                                value={
+                                                    data.metro_manila_travel_fee
+                                                }
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'metro_manila_travel_fee',
+                                                        e.target.value,
+                                                    )
+                                                }
                                                 required
                                                 className={fieldClass}
                                             />
-                                            <InputError message={errors.metro_manila_travel_fee} />
+                                            <InputError
+                                                message={
+                                                    errors.metro_manila_travel_fee
+                                                }
+                                            />
                                         </div>
                                         <div className="grid gap-2">
-                                            <Label htmlFor="out_of_town_travel_fee" className="text-[#1a1a1a]">Nearby provinces (₱)</Label>
+                                            <Label
+                                                htmlFor="out_of_town_travel_fee"
+                                                className="text-[#1a1a1a]"
+                                            >
+                                                Nearby provinces (₱)
+                                            </Label>
                                             <input
                                                 id="out_of_town_travel_fee"
                                                 type="number"
@@ -479,12 +607,23 @@ export default function EditProfile({ user }: Props) {
                                                 max={1000000}
                                                 step={1}
                                                 inputMode="numeric"
-                                                value={data.out_of_town_travel_fee}
-                                                onChange={(e) => setData('out_of_town_travel_fee', e.target.value)}
+                                                value={
+                                                    data.out_of_town_travel_fee
+                                                }
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'out_of_town_travel_fee',
+                                                        e.target.value,
+                                                    )
+                                                }
                                                 required
                                                 className={fieldClass}
                                             />
-                                            <InputError message={errors.out_of_town_travel_fee} />
+                                            <InputError
+                                                message={
+                                                    errors.out_of_town_travel_fee
+                                                }
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -688,10 +827,23 @@ export default function EditProfile({ user }: Props) {
                     >
                         <div className="flex items-center justify-between gap-3">
                             <div>
-                                <h2 id="avatar-crop-title" className="text-lg font-semibold text-[#1a1a1a]">Adjust profile picture</h2>
-                                <p className="mt-1 text-xs text-[#4a4a4a]">Drag to move the photo. Use the slider to zoom.</p>
+                                <h2
+                                    id="avatar-crop-title"
+                                    className="text-lg font-semibold text-[#1a1a1a]"
+                                >
+                                    Adjust profile picture
+                                </h2>
+                                <p className="mt-1 text-xs text-[#4a4a4a]">
+                                    Drag to move the photo. Use the slider to
+                                    zoom.
+                                </p>
                             </div>
-                            <button type="button" onClick={closeCropEditor} aria-label="Cancel photo adjustment" className="rounded-full p-2 text-[#4a4a4a] hover:bg-[#f4e9e5]">
+                            <button
+                                type="button"
+                                onClick={closeCropEditor}
+                                aria-label="Cancel photo adjustment"
+                                className="rounded-full p-2 text-[#4a4a4a] hover:bg-[#f4e9e5]"
+                            >
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
@@ -699,7 +851,9 @@ export default function EditProfile({ user }: Props) {
                         <div
                             className="relative mx-auto mt-5 h-72 w-72 touch-none overflow-hidden rounded-full bg-[#f4e9e5] ring-4 ring-[#e8d7cf]"
                             onPointerDown={(event) => {
-                                event.currentTarget.setPointerCapture(event.pointerId);
+                                event.currentTarget.setPointerCapture(
+                                    event.pointerId,
+                                );
                                 cropDragRef.current = {
                                     pointerX: event.clientX,
                                     pointerY: event.clientY,
@@ -708,26 +862,45 @@ export default function EditProfile({ user }: Props) {
                                 };
                             }}
                             onPointerMove={handleCropPointerMove}
-                            onPointerUp={() => { cropDragRef.current = null; }}
-                            onPointerCancel={() => { cropDragRef.current = null; }}
+                            onPointerUp={() => {
+                                cropDragRef.current = null;
+                            }}
+                            onPointerCancel={() => {
+                                cropDragRef.current = null;
+                            }}
                             aria-label="Drag the photo to adjust its position"
                         >
                             <img
                                 src={cropImageUrl}
                                 alt="Photo crop preview"
                                 draggable={false}
-                                onLoad={(event) => setCropImageSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
+                                onLoad={(event) =>
+                                    setCropImageSize({
+                                        width: event.currentTarget.naturalWidth,
+                                        height: event.currentTarget
+                                            .naturalHeight,
+                                    })
+                                }
                                 className="pointer-events-none absolute top-1/2 left-1/2 max-w-none select-none"
-                                style={cropDimensions() ? {
-                                    width: cropDimensions()!.width,
-                                    height: cropDimensions()!.height,
-                                    transform: `translate(calc(-50% + ${cropOffset.x}px), calc(-50% + ${cropOffset.y}px))`,
-                                } : { visibility: 'hidden' }}
+                                style={
+                                    cropDimensions()
+                                        ? {
+                                              width: cropDimensions()!.width,
+                                              height: cropDimensions()!.height,
+                                              transform: `translate(calc(-50% + ${cropOffset.x}px), calc(-50% + ${cropOffset.y}px))`,
+                                          }
+                                        : { visibility: 'hidden' }
+                                }
                             />
                         </div>
 
                         <div className="mt-5 grid gap-2">
-                            <label htmlFor="avatar-zoom" className="text-sm font-medium text-[#1a1a1a]">Zoom</label>
+                            <label
+                                htmlFor="avatar-zoom"
+                                className="text-sm font-medium text-[#1a1a1a]"
+                            >
+                                Zoom
+                            </label>
                             <input
                                 id="avatar-zoom"
                                 type="range"
@@ -739,23 +912,56 @@ export default function EditProfile({ user }: Props) {
                                     const zoom = Number(event.target.value);
                                     const dimensions = cropDimensions(zoom);
                                     setCropZoom(zoom);
+
                                     if (dimensions) {
-                                        const maxX = Math.max(0, (dimensions.width - 288) / 2);
-                                        const maxY = Math.max(0, (dimensions.height - 288) / 2);
+                                        const maxX = Math.max(
+                                            0,
+                                            (dimensions.width - 288) / 2,
+                                        );
+                                        const maxY = Math.max(
+                                            0,
+                                            (dimensions.height - 288) / 2,
+                                        );
                                         setCropOffset((offset) => ({
-                                            x: Math.max(-maxX, Math.min(maxX, offset.x)),
-                                            y: Math.max(-maxY, Math.min(maxY, offset.y)),
+                                            x: Math.max(
+                                                -maxX,
+                                                Math.min(maxX, offset.x),
+                                            ),
+                                            y: Math.max(
+                                                -maxY,
+                                                Math.min(maxY, offset.y),
+                                            ),
                                         }));
                                     }
                                 }}
                                 className="w-full accent-[#8a6a2f]"
                             />
                         </div>
-                        {cropError && <p role="alert" className="mt-3 text-sm text-[#A13F3F]">{cropError}</p>}
+                        {cropError && (
+                            <p
+                                role="alert"
+                                className="mt-3 text-sm text-[#A13F3F]"
+                            >
+                                {cropError}
+                            </p>
+                        )}
 
                         <div className="mt-5 flex justify-end gap-2">
-                            <button type="button" onClick={closeCropEditor} className="rounded-full border border-[#c9a66b] px-4 py-2 text-sm font-semibold text-[#8a6a2f] hover:bg-[#f4e9e5]">Cancel</button>
-                            <button type="button" onClick={() => void applyAvatarCrop()} disabled={!cropImageSize} className="rounded-full bg-[#8a6a2f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#735829] disabled:opacity-50">Use photo</button>
+                            <button
+                                type="button"
+                                onClick={closeCropEditor}
+                                className="rounded-full border border-[#c9a66b] px-4 py-2 text-sm font-semibold text-[#8a6a2f] hover:bg-[#f4e9e5]"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void applyAvatarCrop()}
+                                disabled={!cropImageSize}
+                                className="rounded-full bg-[#8a6a2f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#735829] disabled:opacity-50"
+                            >
+                                Use photo
+                            </button>
                         </div>
                     </section>
                 </div>

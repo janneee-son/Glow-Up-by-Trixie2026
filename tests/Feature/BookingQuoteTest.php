@@ -87,7 +87,10 @@ test('client approval starts the 50 percent deposit step and artist confirms aft
         ->and($booking->fresh()->quote_accepted_at)->not->toBeNull();
 
     $this->actingAs($client)
-        ->patch(route('bookings.deposit.submit', $booking), ['deposit_reference' => 'GCash 12345'])
+        ->patch(route('bookings.deposit.submit', $booking), [
+            'deposit_method' => 'cash',
+            'deposit_reference' => 'Paid in cash',
+        ])
         ->assertRedirect();
 
     expect($booking->fresh()->deposit_status)->toBe('submitted');

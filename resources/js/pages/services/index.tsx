@@ -71,6 +71,7 @@ function ServiceFields({
                 }
             },
         };
+
         if (service) {
             patch(`/artist/services/${service.id}`, options);
         } else {
@@ -244,8 +245,9 @@ function ServiceCard({ service }: { service: Service }) {
                 <button
                     type="button"
                     onClick={() => {
-                        if (window.confirm(`Delete ${service.name}?`))
+                        if (window.confirm(`Delete ${service.name}?`)) {
                             destroy(`/artist/services/${service.id}`);
+                        }
                     }}
                     disabled={processing}
                     className="flex items-center gap-1 rounded-full border border-[#D9A5A5] px-4 py-1.5 text-xs font-semibold text-[#A13F3F] hover:bg-[#FDEDED]"
@@ -271,27 +273,31 @@ function OfferingForm({
     offering?: Offering;
     onSaved?: () => void;
 }) {
-    const { data, setData, post, patch, processing, errors, reset, transform } = useForm({
-        kind,
-        name: offering?.name ?? '',
-        price: offering?.price?.toString() ?? '',
-        pricing_type: offering?.pricing_type ?? 'fixed',
-        description: offering?.description ?? '',
-        inclusions: offering?.inclusions ?? [],
-        add_on_min_quantity: offering?.add_on_min_quantity ?? 1,
-        add_on_max_quantity: offering?.add_on_max_quantity ?? 1,
-    });
-    const quantityLimitsApply = kind === 'add_on' && usesQuantityLimits(data.name);
+    const { data, setData, post, patch, processing, errors, reset, transform } =
+        useForm({
+            kind,
+            name: offering?.name ?? '',
+            price: offering?.price?.toString() ?? '',
+            pricing_type: offering?.pricing_type ?? 'fixed',
+            description: offering?.description ?? '',
+            inclusions: offering?.inclusions ?? [],
+            add_on_min_quantity: offering?.add_on_min_quantity ?? 1,
+            add_on_max_quantity: offering?.add_on_max_quantity ?? 1,
+        });
+    const quantityLimitsApply =
+        kind === 'add_on' && usesQuantityLimits(data.name);
 
     function submit(event: React.FormEvent) {
         event.preventDefault();
         transform((form) => ({
             ...form,
             price: form.pricing_type === 'quote_required' ? '' : form.price,
-            inclusions: kind === 'package'
-                ? form.inclusions.map((line) => line.trim()).filter(Boolean)
-                : [],
+            inclusions:
+                kind === 'package'
+                    ? form.inclusions.map((line) => line.trim()).filter(Boolean)
+                    : [],
         }));
+
         if (offering) {
             patch(`/artist/offerings/${offering.id}`);
         } else {
@@ -305,45 +311,146 @@ function OfferingForm({
     }
 
     return (
-        <form onSubmit={submit} className="grid gap-4 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm sm:p-6">
-            <h3 className="font-semibold text-[#1a1a1a]">{offering ? 'Edit' : 'Add'} {kind === 'package' ? 'package' : 'add-on'}</h3>
+        <form
+            onSubmit={submit}
+            className="grid gap-4 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm sm:p-6"
+        >
+            <h3 className="font-semibold text-[#1a1a1a]">
+                {offering ? 'Edit' : 'Add'}{' '}
+                {kind === 'package' ? 'package' : 'add-on'}
+            </h3>
             <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Name
-                    <input className={inputClass} maxLength={120} value={data.name} onChange={(e) => setData('name', e.target.value)} required />
+                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
+                    Name
+                    <input
+                        className={inputClass}
+                        maxLength={120}
+                        value={data.name}
+                        onChange={(e) => setData('name', e.target.value)}
+                        required
+                    />
                     <InputError message={errors.name} />
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">{kind === 'add_on' ? 'Price per person/item (₱)' : 'Price (₱)'}
-                    <input className={inputClass} type="number" min="0" step="0.01" value={data.price} onChange={(e) => setData('price', e.target.value)} required={data.pricing_type !== 'quote_required'} disabled={data.pricing_type === 'quote_required'} placeholder={data.pricing_type === 'quote_required' ? 'Artist will provide a quote' : 'e.g. 3500'} />
+                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
+                    {kind === 'add_on'
+                        ? 'Price per person/item (₱)'
+                        : 'Price (₱)'}
+                    <input
+                        className={inputClass}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={data.price}
+                        onChange={(e) => setData('price', e.target.value)}
+                        required={data.pricing_type !== 'quote_required'}
+                        disabled={data.pricing_type === 'quote_required'}
+                        placeholder={
+                            data.pricing_type === 'quote_required'
+                                ? 'Artist will provide a quote'
+                                : 'e.g. 3500'
+                        }
+                    />
                     <InputError message={errors.price} />
                 </label>
             </div>
-            <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Price display
-                <select className={inputClass} value={data.pricing_type} onChange={(e) => setData('pricing_type', e.target.value as typeof data.pricing_type)}>
+            <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
+                Price display
+                <select
+                    className={inputClass}
+                    value={data.pricing_type}
+                    onChange={(e) =>
+                        setData(
+                            'pricing_type',
+                            e.target.value as typeof data.pricing_type,
+                        )
+                    }
+                >
                     <option value="fixed">Fixed price</option>
                     <option value="starting_at">Starting at</option>
-                    <option value="quote_required">Price confirmed after booking</option>
+                    <option value="quote_required">
+                        Price confirmed after booking
+                    </option>
                 </select>
                 <InputError message={errors.pricing_type} />
             </label>
-            <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Description
-                <textarea className={inputClass} maxLength={500} rows={2} value={data.description} onChange={(e) => setData('description', e.target.value)} />
+            <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
+                Description
+                <textarea
+                    className={inputClass}
+                    maxLength={500}
+                    rows={2}
+                    value={data.description}
+                    onChange={(e) => setData('description', e.target.value)}
+                />
                 <InputError message={errors.description} />
             </label>
-            {kind === 'package' && <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Package inclusions (one per line)
-                <textarea className={inputClass} rows={4} value={data.inclusions.join('\n')} onChange={(e) => setData('inclusions', e.target.value.split('\n'))} placeholder="Makeup and hair look\nSkin preparation\nPremium lashes" />
-                <InputError message={errors.inclusions} />
-            </label>}
-            {quantityLimitsApply && <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Minimum quantity
-                    <input className={inputClass} type="number" min="1" max="50" step="1" value={data.add_on_min_quantity} onChange={(e) => setData('add_on_min_quantity', Number(e.target.value))} required />
-                    <InputError message={errors.add_on_min_quantity} />
+            {kind === 'package' && (
+                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
+                    Package inclusions (one per line)
+                    <textarea
+                        className={inputClass}
+                        rows={4}
+                        value={data.inclusions.join('\n')}
+                        onChange={(e) =>
+                            setData('inclusions', e.target.value.split('\n'))
+                        }
+                        placeholder="Makeup and hair look\nSkin preparation\nPremium lashes"
+                    />
+                    <InputError message={errors.inclusions} />
                 </label>
-                <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">Maximum quantity
-                    <input className={inputClass} type="number" min={data.add_on_min_quantity} max="50" step="1" value={data.add_on_max_quantity} onChange={(e) => setData('add_on_max_quantity', Number(e.target.value))} required />
-                    <InputError message={errors.add_on_max_quantity} />
-                </label>
-            </div>}
-            <button disabled={processing} className="w-fit rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{processing ? 'Saving…' : offering ? 'Save changes' : `Add ${kind === 'package' ? 'package' : 'add-on'}`}</button>
+            )}
+            {quantityLimitsApply && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
+                        Minimum quantity
+                        <input
+                            className={inputClass}
+                            type="number"
+                            min="1"
+                            max="50"
+                            step="1"
+                            value={data.add_on_min_quantity}
+                            onChange={(e) =>
+                                setData(
+                                    'add_on_min_quantity',
+                                    Number(e.target.value),
+                                )
+                            }
+                            required
+                        />
+                        <InputError message={errors.add_on_min_quantity} />
+                    </label>
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#4a4a4a]">
+                        Maximum quantity
+                        <input
+                            className={inputClass}
+                            type="number"
+                            min={data.add_on_min_quantity}
+                            max="50"
+                            step="1"
+                            value={data.add_on_max_quantity}
+                            onChange={(e) =>
+                                setData(
+                                    'add_on_max_quantity',
+                                    Number(e.target.value),
+                                )
+                            }
+                            required
+                        />
+                        <InputError message={errors.add_on_max_quantity} />
+                    </label>
+                </div>
+            )}
+            <button
+                disabled={processing}
+                className="w-fit rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+                {processing
+                    ? 'Saving…'
+                    : offering
+                      ? 'Save changes'
+                      : `Add ${kind === 'package' ? 'package' : 'add-on'}`}
+            </button>
         </form>
     );
 }
@@ -351,21 +458,90 @@ function OfferingForm({
 function OfferingCard({ offering }: { offering: Offering }) {
     const { patch, delete: destroy, processing } = useForm();
     const [editing, setEditing] = useState(false);
-    const priceLabel = offering.pricing_type === 'quote_required'
-        ? 'Price confirmed after booking'
-        : `${offering.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(offering.price ?? 0).toLocaleString('en-PH')}`;
-    return <article className="rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-serif text-xl font-bold text-[#1a1a1a]">{offering.name}</h3><p className="mt-1 font-semibold text-[#8a6a2f]">{priceLabel}{offering.kind === 'add_on' ? ' each' : ''}</p>{offering.kind === 'add_on' && usesQuantityLimits(offering.name) && <p className="mt-1 text-xs text-[#4a4a4a]">Client quantity: {offering.add_on_min_quantity}–{offering.add_on_max_quantity}</p>}{offering.description && <p className="mt-2 text-sm text-[#4a4a4a]">{offering.description}</p>}{offering.inclusions?.length > 0 && <ul className="mt-3 list-inside list-disc text-sm text-[#4a4a4a]">{offering.inclusions.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>}</div><span className="rounded-full bg-[#faf7f4] px-3 py-1 text-xs font-semibold">{offering.is_active ? 'Active' : 'Hidden'}</span></div>
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-[#F0E5EA] pt-4">
-            <button type="button" disabled={processing} onClick={() => patch(`/artist/offerings/${offering.id}/toggle`)} className="rounded-full border border-[#d7c0a2] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f]">{offering.is_active ? 'Hide from clients' : 'Make active'}</button>
-            <button type="button" onClick={() => setEditing((v) => !v)} className="rounded-full border border-[#d7c0a2] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f]">{editing ? 'Close editor' : 'Edit'}</button>
-            <button type="button" disabled={processing} onClick={() => window.confirm(`Delete ${offering.name}?`) && destroy(`/artist/offerings/${offering.id}`)} className="rounded-full border border-[#D9A5A5] px-4 py-1.5 text-xs font-semibold text-[#A13F3F]">Delete</button>
-        </div>
-        {editing && <div className="mt-4"><OfferingForm kind={offering.kind} offering={offering} /></div>}
-    </article>;
+    const priceLabel =
+        offering.pricing_type === 'quote_required'
+            ? 'Price confirmed after booking'
+            : `${offering.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(offering.price ?? 0).toLocaleString('en-PH')}`;
+
+    return (
+        <article className="rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h3 className="font-serif text-xl font-bold text-[#1a1a1a]">
+                        {offering.name}
+                    </h3>
+                    <p className="mt-1 font-semibold text-[#8a6a2f]">
+                        {priceLabel}
+                        {offering.kind === 'add_on' ? ' each' : ''}
+                    </p>
+                    {offering.kind === 'add_on' &&
+                        usesQuantityLimits(offering.name) && (
+                            <p className="mt-1 text-xs text-[#4a4a4a]">
+                                Client quantity: {offering.add_on_min_quantity}–
+                                {offering.add_on_max_quantity}
+                            </p>
+                        )}
+                    {offering.description && (
+                        <p className="mt-2 text-sm text-[#4a4a4a]">
+                            {offering.description}
+                        </p>
+                    )}
+                    {offering.inclusions?.length > 0 && (
+                        <ul className="mt-3 list-inside list-disc text-sm text-[#4a4a4a]">
+                            {offering.inclusions.map((item, index) => (
+                                <li key={`${index}-${item}`}>{item}</li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+                <span className="rounded-full bg-[#faf7f4] px-3 py-1 text-xs font-semibold">
+                    {offering.is_active ? 'Active' : 'Hidden'}
+                </span>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-[#F0E5EA] pt-4">
+                <button
+                    type="button"
+                    disabled={processing}
+                    onClick={() =>
+                        patch(`/artist/offerings/${offering.id}/toggle`)
+                    }
+                    className="rounded-full border border-[#d7c0a2] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f]"
+                >
+                    {offering.is_active ? 'Hide from clients' : 'Make active'}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setEditing((v) => !v)}
+                    className="rounded-full border border-[#d7c0a2] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f]"
+                >
+                    {editing ? 'Close editor' : 'Edit'}
+                </button>
+                <button
+                    type="button"
+                    disabled={processing}
+                    onClick={() =>
+                        window.confirm(`Delete ${offering.name}?`) &&
+                        destroy(`/artist/offerings/${offering.id}`)
+                    }
+                    className="rounded-full border border-[#D9A5A5] px-4 py-1.5 text-xs font-semibold text-[#A13F3F]"
+                >
+                    Delete
+                </button>
+            </div>
+            {editing && (
+                <div className="mt-4">
+                    <OfferingForm kind={offering.kind} offering={offering} />
+                </div>
+            )}
+        </article>
+    );
 }
 
-export default function ServicesIndex({ services, packages = [], addOns = [] }: Props) {
+export default function ServicesIndex({
+    services,
+    packages = [],
+    addOns = [],
+}: Props) {
     const [serviceFormOpen, setServiceFormOpen] = useState(false);
     const [packageFormOpen, setPackageFormOpen] = useState(false);
     const [addOnFormOpen, setAddOnFormOpen] = useState(false);
@@ -407,10 +583,14 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
                         className="inline-flex w-fit items-center gap-2 rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#735829]"
                     >
                         <Plus className="h-4 w-4" />
-                        {serviceFormOpen ? 'Close service form' : 'Add a service'}
+                        {serviceFormOpen
+                            ? 'Close service form'
+                            : 'Add a service'}
                     </button>
                     {serviceFormOpen && (
-                        <ServiceFields onSaved={() => setServiceFormOpen(false)} />
+                        <ServiceFields
+                            onSaved={() => setServiceFormOpen(false)}
+                        />
                     )}
                     <section className="grid gap-4">
                         <div>
@@ -431,7 +611,18 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
                         )}
                     </section>
                     <section className="grid gap-4">
-                        <div><p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">Artist menu</p><h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">Packages ({packages.length})</h2><p className="mt-1 text-sm text-[#4a4a4a]">Use “Starting at” when the final price depends on the requested looks or retouching.</p></div>
+                        <div>
+                            <p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
+                                Artist menu
+                            </p>
+                            <h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">
+                                Packages ({packages.length})
+                            </h2>
+                            <p className="mt-1 text-sm text-[#4a4a4a]">
+                                Use “Starting at” when the final price depends
+                                on the requested looks or retouching.
+                            </p>
+                        </div>
                         <button
                             type="button"
                             aria-expanded={packageFormOpen}
@@ -439,7 +630,9 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
                             className="inline-flex w-fit items-center gap-2 rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#735829]"
                         >
                             <Plus className="h-4 w-4" />
-                            {packageFormOpen ? 'Close package form' : 'Add a package'}
+                            {packageFormOpen
+                                ? 'Close package form'
+                                : 'Add a package'}
                         </button>
                         {packageFormOpen && (
                             <OfferingForm
@@ -447,10 +640,26 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
                                 onSaved={() => setPackageFormOpen(false)}
                             />
                         )}
-                        {packages.map((offering) => <OfferingCard key={offering.id} offering={offering} />)}
+                        {packages.map((offering) => (
+                            <OfferingCard
+                                key={offering.id}
+                                offering={offering}
+                            />
+                        ))}
                     </section>
                     <section className="grid gap-4">
-                        <div><p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">Optional extras</p><h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">Add-ons ({addOns.length})</h2><p className="mt-1 text-sm text-[#4a4a4a]">Clients can add these extras to a service or package when booking.</p></div>
+                        <div>
+                            <p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
+                                Optional extras
+                            </p>
+                            <h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">
+                                Add-ons ({addOns.length})
+                            </h2>
+                            <p className="mt-1 text-sm text-[#4a4a4a]">
+                                Clients can add these extras to a service or
+                                package when booking.
+                            </p>
+                        </div>
                         <button
                             type="button"
                             aria-expanded={addOnFormOpen}
@@ -458,7 +667,9 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
                             className="inline-flex w-fit items-center gap-2 rounded-full bg-[#8a6a2f] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#735829]"
                         >
                             <Plus className="h-4 w-4" />
-                            {addOnFormOpen ? 'Close add-on form' : 'Add an add-on'}
+                            {addOnFormOpen
+                                ? 'Close add-on form'
+                                : 'Add an add-on'}
                         </button>
                         {addOnFormOpen && (
                             <OfferingForm
@@ -466,7 +677,12 @@ export default function ServicesIndex({ services, packages = [], addOns = [] }: 
                                 onSaved={() => setAddOnFormOpen(false)}
                             />
                         )}
-                        {addOns.map((offering) => <OfferingCard key={offering.id} offering={offering} />)}
+                        {addOns.map((offering) => (
+                            <OfferingCard
+                                key={offering.id}
+                                offering={offering}
+                            />
+                        ))}
                     </section>
                 </main>
             </div>
