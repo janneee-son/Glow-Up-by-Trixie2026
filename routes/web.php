@@ -139,11 +139,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/admin/gallery/{image}', [ArtistGalleryController::class, 'destroy'])
         ->name('admin.gallery.destroy');
 
-    Route::inertia('/about', 'about')->name('about');
-    Route::inertia('/admission', 'admission')->name('admission');
-    Route::inertia('/academe', 'academe')->name('academe');
-    Route::inertia('/studentsalumni', 'studentsalumni')->name('studentsalumni');
-    Route::inertia('/researchextension', 'researchextension')->name('researchextension');
 });
 
 require __DIR__.'/settings.php';

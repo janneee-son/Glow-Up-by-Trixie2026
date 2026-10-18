@@ -514,6 +514,7 @@ TERMS;
             'deposit_reference' => null,
             'deposit_proof_path' => null,
             'deposit_received_at' => null,
+            'deposit_amount' => null,
             'transportation_fee_pending' => true,
         ]);
 
@@ -607,10 +608,14 @@ TERMS;
         abort_unless($booking->artist_id === $request->user()->id, 403);
         abort_unless($booking->status === 'pending', 422, 'This booking is no longer awaiting deposit verification.');
         abort_unless($booking->deposit_status === 'submitted', 422, 'The client has not marked the deposit as sent.');
+        abort_unless($booking->quote_accepted_at !== null && $booking->estimated_total !== null, 422, 'The accepted booking total is unavailable.');
+
+        $depositAmount = round((float) $booking->estimated_total / 2, 2);
 
         $booking->update([
             'deposit_status' => 'received',
             'deposit_received_at' => now(),
+            'deposit_amount' => $depositAmount,
         ]);
 
         $booking->loadMissing('client', 'artist');

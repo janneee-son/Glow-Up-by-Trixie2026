@@ -27,6 +27,7 @@ type Booking = {
     terms_accepted_at?: string | null;
     terms_version?: string | null;
     deposit_status?: 'not_due' | 'due' | 'submitted' | 'received';
+    deposit_amount?: number | string | null;
     deposit_method?: 'gcash' | 'bank_transfer' | 'cash' | null;
     deposit_reference?: string | null;
     deposit_proof_url?: string | null;
@@ -650,7 +651,15 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                             <div className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4 text-sm">
                                                 <p className="font-semibold text-[#1a1a1a]">
                                                     Client marked the deposit as
-                                                    sent
+                                                    sent · ₱
+                                                    {(
+                                                        Number(
+                                                            booking.estimated_total ??
+                                                                0,
+                                                        ) / 2
+                                                    ).toLocaleString('en-PH', {
+                                                        minimumFractionDigits: 2,
+                                                    })}
                                                 </p>
                                                 <p className="mt-1 text-[#4a4a4a]">
                                                     Payment method:{' '}
@@ -693,7 +702,35 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                             'received' && (
                                             <p className="mt-3 rounded-xl border border-[#b7d5bb] bg-[#f1f7f1] px-4 py-3 text-sm font-medium text-[#426948]">
                                                 50% deposit received. You can
-                                                now confirm the booking.
+                                                now confirm the booking. Amount
+                                                recorded: ₱
+                                                {Number(
+                                                    booking.deposit_amount ??
+                                                        Number(
+                                                            booking.estimated_total ??
+                                                                0,
+                                                        ) / 2,
+                                                ).toLocaleString('en-PH', {
+                                                    minimumFractionDigits: 2,
+                                                })}
+                                                . Remaining balance: ₱
+                                                {Math.max(
+                                                    0,
+                                                    Number(
+                                                        booking.estimated_total ??
+                                                            0,
+                                                    ) -
+                                                        Number(
+                                                            booking.deposit_amount ??
+                                                                Number(
+                                                                    booking.estimated_total ??
+                                                                        0,
+                                                                ) / 2,
+                                                        ),
+                                                ).toLocaleString('en-PH', {
+                                                    minimumFractionDigits: 2,
+                                                })}
+                                                .
                                             </p>
                                         )}
 
