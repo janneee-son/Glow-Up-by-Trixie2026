@@ -2,23 +2,91 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Models\ServiceArea;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class ArtistAvailabilityController extends Controller
 {
-    public function edit(Request $request)
+    /** @return list<string> */
+    private function normalizedBlockedDates(mixed $dates): array
+    {
+        if (! is_array($dates)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($dates as $date) {
+            if (is_string($date)) {
+                $normalized[] = $date;
+            }
+        }
+
+        $normalized = array_values(array_unique($normalized));
+        sort($normalized);
+
+        return $normalized;
+    }
+
+    /** @return list<array{date: string, start_time: string, end_time: string, note: string}> */
+    private function normalizedBlockedTimes(mixed $blockedTimes): array
+    {
+        if (! is_array($blockedTimes)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($blockedTimes as $blockedTime) {
+            if (! is_array($blockedTime)
+                || ! is_string($blockedTime['date'] ?? null)
+                || ! is_string($blockedTime['start_time'] ?? null)
+                || ! is_string($blockedTime['end_time'] ?? null)) {
+                continue;
+            }
+
+            $normalized[] = [
+                'date' => $blockedTime['date'],
+                'start_time' => $blockedTime['start_time'],
+                'end_time' => $blockedTime['end_time'],
+                'note' => is_string($blockedTime['note'] ?? null) ? trim($blockedTime['note']) : '',
+            ];
+        }
+
+        usort($normalized, static fn (array $left, array $right): int => [$left['date'], $left['start_time']] <=> [$right['date'], $right['start_time']]);
+
+        return $normalized;
+    }
+
+    private function hasBookableServiceArea(mixed $serviceAreas): bool
+    {
+        if (! is_array($serviceAreas)) {
+            return false;
+        }
+
+        foreach ($serviceAreas as $serviceArea) {
+            if (is_array($serviceArea) && ($serviceArea['level'] ?? null) !== 'not_served') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function edit(Request $request): Response
     {
         $artist = $this->managedArtist($request);
 
         return Inertia::render('artist/booking-settings', [
             'blockedDates' => $artist->blocked_booking_dates ?? [],
+            'blockedTimes' => $artist->blocked_booking_times ?? [],
             'serviceAreas' => $artist->serviceAreas()
                 ->orderBy('fee_group')
                 ->orderBy('name')
@@ -28,13 +96,17 @@ class ArtistAvailabilityController extends Controller
 
     private function managedArtist(Request $request): User
     {
-        abort_unless(in_array($request->user()->role, ['artist', 'admin'], true), 403);
+        $user = $request->user();
+        abort_unless(
+            $user instanceof User && in_array($user->role, ['artist', 'admin'], true),
+            403,
+        );
 
-        $artist = $request->user()->role === 'artist'
-            ? $request->user()
-            : User::artist();
+        $artist = $user->role === 'artist' ? $user : User::artist();
 
-        abort_unless($artist, 404, 'The studio artist account has not been set up yet.');
+        if ($artist === null) {
+            abort(404, 'The studio artist account has not been set up yet.');
+        }
 
         return $artist;
     }
@@ -46,11 +118,52 @@ class ArtistAvailabilityController extends Controller
         $validated = $request->validate([
             'blocked_dates' => ['present', 'array', 'max:100'],
             'blocked_dates.*' => ['required', 'date_format:Y-m-d', 'distinct', 'after_or_equal:today'],
+            'blocked_times' => ['present', 'array', 'max:100'],
+            'blocked_times.*.date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'blocked_times.*.start_time' => ['required', 'date_format:H:i'],
+            'blocked_times.*.end_time' => ['required', 'date_format:H:i'],
+            'blocked_times.*.note' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $artist->update([
-            'blocked_booking_dates' => collect($validated['blocked_dates'])->unique()->sort()->values()->all(),
-        ]);
+        foreach ($validated['blocked_times'] as $index => $blockedTime) {
+            if (Carbon::createFromFormat('!H:i', $blockedTime['end_time']) <= Carbon::createFromFormat('!H:i', $blockedTime['start_time'])) {
+                throw ValidationException::withMessages([
+                    "blocked_times.{$index}.end_time" => 'The end time must be later than the start time.',
+                ]);
+            }
+        }
+
+        DB::transaction(function () use ($artist, $validated): void {
+            User::query()->whereKey($artist->id)->lockForUpdate()->firstOrFail();
+
+            foreach ($validated['blocked_times'] as $index => $blockedTime) {
+                $blockedStart = Carbon::parse("{$blockedTime['date']} {$blockedTime['start_time']}");
+                $blockedEnd = Carbon::parse("{$blockedTime['date']} {$blockedTime['end_time']}");
+                $overlapsBooking = Booking::query()
+                    ->where('artist_id', $artist->id)
+                    ->whereDate('booking_date', $blockedTime['date'])
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->get(['booking_date', 'booking_time', 'service'])
+                    ->contains(function (Booking $booking) use ($blockedStart, $blockedEnd): bool {
+                        $bookingStart = Carbon::parse("{$booking->booking_date} {$booking->booking_time}");
+                        $durationMinutes = preg_match('/bridal|wedding/i', $booking->service) === 1 ? 180 : 90;
+                        $bookingEnd = $bookingStart->copy()->addMinutes($durationMinutes);
+
+                        return $bookingStart->lt($blockedEnd) && $bookingEnd->gt($blockedStart);
+                    });
+
+                if ($overlapsBooking) {
+                    throw ValidationException::withMessages([
+                        "blocked_times.{$index}" => 'This period overlaps a pending or confirmed booking. Reschedule or cancel the booking first.',
+                    ]);
+                }
+            }
+
+            $artist->update([
+                'blocked_booking_dates' => $this->normalizedBlockedDates($validated['blocked_dates'] ?? null),
+                'blocked_booking_times' => $this->normalizedBlockedTimes($validated['blocked_times'] ?? null),
+            ]);
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Availability saved.']);
 
@@ -71,7 +184,7 @@ class ArtistAvailabilityController extends Controller
             'service_areas.*.note' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if (! collect($validated['service_areas'])->contains(fn (array $area): bool => $area['level'] !== 'not_served')) {
+        if (! $this->hasBookableServiceArea($validated['service_areas'] ?? null)) {
             return back()->withErrors([
                 'service_areas' => 'Keep at least one location set to Covered or On request.',
             ]);

@@ -25,10 +25,12 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
  * @property string|null $remember_token
+ * @property array<int, string>|null $blocked_booking_dates
+ * @property array<int, array{date: string, start_time: string, end_time: string, note?: string}>|null $blocked_booking_times
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['avatar', 'name', 'email', 'password', 'role', 'phone', 'specialty', 'years_experience', 'bio', 'street_address', 'barangay', 'city', 'province', 'postal_code', 'metro_manila_travel_fee', 'out_of_town_travel_fee', 'blocked_booking_dates'])]
+#[Fillable(['avatar', 'name', 'email', 'password', 'role', 'phone', 'specialty', 'years_experience', 'bio', 'street_address', 'barangay', 'city', 'province', 'postal_code', 'metro_manila_travel_fee', 'out_of_town_travel_fee', 'blocked_booking_dates', 'blocked_booking_times'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -47,9 +49,11 @@ class User extends Authenticatable implements PasskeyUser
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'blocked_booking_dates' => 'array',
+            'blocked_booking_times' => 'array',
         ];
     }
 
+    /** @return HasMany<ServiceArea, $this> */
     public function serviceAreas(): HasMany
     {
         return $this->hasMany(ServiceArea::class, 'artist_id');

@@ -13,12 +13,16 @@ use App\Notifications\ArtistBookingUpdate;
 use App\Notifications\NewBookingRequest;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BookingController extends Controller
 {
@@ -118,14 +122,42 @@ TERMS;
 
     private function dateBlocked(User $artist, string $date): bool
     {
-        return in_array($date, $artist->blocked_booking_dates ?? [], true);
+        $blockedDates = $artist->blocked_booking_dates;
+
+        return in_array($date, $blockedDates ?? [], true);
     }
 
-    public function create(Request $request)
+    private function timeBlocked(User $artist, string $date, string $time, string $serviceName): bool
     {
+        $bookingStart = Carbon::parse("{$date} {$time}");
+        $bookingEnd = $bookingStart->copy()->addMinutes($this->sessionDurationMinutes($serviceName));
+
+        $blockedTimes = $artist->blocked_booking_times;
+
+        foreach ($blockedTimes ?? [] as $blockedTime) {
+            if ($blockedTime['date'] !== $date) {
+                continue;
+            }
+
+            $blockedStart = Carbon::parse("{$date} {$blockedTime['start_time']}");
+            $blockedEnd = Carbon::parse("{$date} {$blockedTime['end_time']}");
+
+            if ($bookingStart->lt($blockedEnd) && $bookingEnd->gt($blockedStart)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function create(Request $request): InertiaResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $user->role === 'client', 403);
+
         $artist = $this->theArtist();
 
-        $inspoImages = InspoImage::where('user_id', $request->user()->id)
+        $inspoImages = InspoImage::where('user_id', $user->id)
             ->latest()
             ->get()
             ->map(fn ($img) => [
@@ -169,7 +201,7 @@ TERMS;
             'artist' => $artist
                 ? $artist->only('id', 'name', 'specialty', 'years_experience', 'bio')
                 : null,
-            'savedAddress' => $request->user()->only(
+            'savedAddress' => $user->only(
                 'street_address',
                 'barangay',
                 'city',
@@ -185,8 +217,8 @@ TERMS;
             'rushBookingCutoffDate' => Carbon::today()->addDays(self::RUSH_BOOKING_DAYS)->toDateString(),
             'rushBookingFee' => self::RUSH_BOOKING_FEE,
             'earlyCallTimeFee' => self::EARLY_CALL_TIME_FEE,
-            'metroManilaTravelFee' => (int) ($artist?->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE),
-            'outOfTownTravelFee' => (int) ($artist?->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE),
+            'metroManilaTravelFee' => (int) ($artist->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE),
+            'outOfTownTravelFee' => (int) ($artist->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE),
             'serviceCities' => $this->serviceCities($artist),
             'serviceAreas' => $artist?->serviceAreas()->get(['name', 'fee_group', 'level', 'starting_fee', 'note']) ?? collect(),
             'bookingTerms' => [
@@ -198,6 +230,9 @@ TERMS;
 
     public function checkAvailability(Request $request): JsonResponse
     {
+        $user = $request->user();
+        abort_unless($user instanceof User && $user->role === 'client', 403);
+
         $artist = $this->theArtist();
 
         if (! $artist) {
@@ -231,7 +266,7 @@ TERMS;
             ? ArtistService::where('user_id', $artist->id)->where('name', $validated['service'])->first()
             : null;
         $package = filled($validated['package_id'] ?? null)
-            ? ArtistOffering::where('user_id', $artist->id)->find($validated['package_id'])
+            ? ArtistOffering::where('user_id', $artist->id)->whereKey($request->integer('package_id'))->first()
             : null;
 
         if (($service === null) === ($package === null)) {
@@ -241,7 +276,7 @@ TERMS;
             ]);
         }
 
-        $serviceName = $package?->name ?? $service->name;
+        $serviceName = $package instanceof ArtistOffering ? $package->name : $service->name;
 
         if ($this->dateBlocked($artist, $validated['booking_date'])) {
             return response()->json([
@@ -271,6 +306,13 @@ TERMS;
                     'message' => 'That time conflicts with another booking. Please choose a different time.',
                 ]);
             }
+
+            if ($this->timeBlocked($artist, $validated['booking_date'], $validated['booking_time'], $serviceName)) {
+                return response()->json([
+                    'available' => false,
+                    'message' => 'That time overlaps with a time Trixie has blocked. Please choose another time.',
+                ]);
+            }
         }
 
         return response()->json([
@@ -281,11 +323,16 @@ TERMS;
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($user instanceof User && $user->role === 'client', 403);
+
         $artist = $this->theArtist();
 
-        abort_unless($artist, 422, 'Bookings are not open yet.');
+        if ($artist === null) {
+            abort(422, 'Bookings are not open yet.');
+        }
 
         $validated = $request->validate([
             'terms_accepted' => ['required', 'accepted'],
@@ -325,7 +372,7 @@ TERMS;
             'notes' => ['nullable', 'string', 'max:500'],
             'inspo_image_id' => [
                 'nullable',
-                Rule::exists('inspo_images', 'id')->where('user_id', $request->user()->id),
+                Rule::exists('inspo_images', 'id')->where('user_id', $user->id),
             ],
             'new_inspo_image' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
         ]);
@@ -340,7 +387,7 @@ TERMS;
 
         $addressVerification = $request->session()->get('booking_address_verification');
         $expectedAddressHash = BookingAddressVerificationController::addressHash(
-            $request->user()->id,
+            $user->id,
             $validated['service_province'],
             $validated['service_city'],
             $validated['venue_barangay'],
@@ -368,15 +415,15 @@ TERMS;
         }
 
         $package = $hasPackage
-            ? ArtistOffering::where('user_id', $artist->id)->findOrFail($validated['package_id'])
+            ? ArtistOffering::where('user_id', $artist->id)->whereKey($request->integer('package_id'))->firstOrFail()
             : null;
         $service = $hasService
             ? ArtistService::where('user_id', $artist->id)->where('name', $validated['service'])->firstOrFail()
             : null;
-        $basePrice = $package?->price !== null
+        $basePrice = $package instanceof ArtistOffering && $package->price !== null
             ? (float) $package->price
             : ($service ? (float) $service->price : null);
-        $basePriceType = $package?->pricing_type ?? 'fixed';
+        $basePriceType = $package instanceof ArtistOffering ? $package->pricing_type : 'fixed';
 
         $requestedQuantities = $validated['add_on_quantities'] ?? [];
         $selectedAddOnModels = ArtistOffering::where('user_id', $artist->id)
@@ -436,7 +483,7 @@ TERMS;
             ]);
         }
 
-        $serviceName = $package?->name ?? $service->name;
+        $serviceName = $package instanceof ArtistOffering ? $package->name : $service->name;
 
         $inspoId = $validated['inspo_image_id'] ?? null;
 
@@ -444,7 +491,7 @@ TERMS;
             $path = $request->file('new_inspo_image')->store('inspo');
 
             $inspo = InspoImage::create([
-                'user_id' => $request->user()->id,
+                'user_id' => $user->id,
                 'path' => $path,
             ]);
 
@@ -453,7 +500,7 @@ TERMS;
 
         $booking = DB::transaction(function () use (
             $artist,
-            $request,
+            $user,
             $validated,
             $serviceName,
             $package,
@@ -474,12 +521,14 @@ TERMS;
                 ]);
             }
 
-            $feeGroup = $serviceArea?->fee_group ?? ($this->isMetroManilaProvince($validated['service_province']) ? 'metro_manila' : 'nearby_province');
-            $areaLevel = $serviceArea?->level ?? 'on_request';
+            $feeGroup = $serviceArea !== null
+                ? $serviceArea->fee_group
+                : ($this->isMetroManilaProvince($validated['service_province']) ? 'metro_manila' : 'nearby_province');
+            $areaLevel = $serviceArea !== null ? $serviceArea->level : 'on_request';
             $defaultTravelFee = $feeGroup === 'nearby_province'
                 ? (int) ($artist->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE)
                 : (int) ($artist->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE);
-            $travelFee = (int) ($serviceArea?->starting_fee ?? $defaultTravelFee);
+            $travelFee = (int) ($serviceArea !== null ? $serviceArea->starting_fee : $defaultTravelFee);
             $bookingFees = $this->withBookingFees(
                 $selectedAddOns,
                 $estimatedTotal,
@@ -508,6 +557,12 @@ TERMS;
                 ]);
             }
 
+            if ($this->timeBlocked($artist, $validated['booking_date'], $validated['booking_time'], $serviceName)) {
+                throw ValidationException::withMessages([
+                    'booking_time' => 'That time overlaps with a time Trixie has blocked. Please choose another time.',
+                ]);
+            }
+
             if ($this->slotTaken($artist->id, $validated['booking_date'], $validated['booking_time'], $serviceName)) {
                 throw ValidationException::withMessages([
                     'booking_time' => 'That time is already taken. Please choose a different time.',
@@ -515,7 +570,7 @@ TERMS;
             }
 
             return Booking::create([
-                'client_id' => $request->user()->id,
+                'client_id' => $user->id,
                 'artist_id' => $artist->id,
                 'service' => $serviceName,
                 'package_id' => $package?->id,
@@ -524,8 +579,8 @@ TERMS;
                 'estimated_total' => $bookingTotal,
                 'selected_add_ons' => $bookingAddOns,
                 'requires_quote' => $requiresQuote,
-                'quote_accepted_at' => $requiresQuote ? null : now(),
-                'deposit_status' => $requiresQuote ? 'not_due' : 'due',
+                'quote_accepted_at' => null,
+                'deposit_status' => 'not_due',
                 'booking_date' => $validated['booking_date'],
                 'booking_time' => $validated['booking_time'],
                 'location_type' => $feeGroup,
@@ -555,7 +610,7 @@ TERMS;
         return redirect('/dashboard');
     }
 
-    public function accept(Request $request, Booking $booking)
+    public function accept(Request $request, Booking $booking): RedirectResponse
     {
         abort_unless($booking->artist_id === $request->user()->id, 403);
 
@@ -598,7 +653,7 @@ TERMS;
         return back();
     }
 
-    public function updateTransportationFee(Request $request, Booking $booking)
+    public function updateTransportationFee(Request $request, Booking $booking): RedirectResponse
     {
         $request->merge([
             'final_makeup_price' => $booking->final_makeup_price ?? $booking->base_price ?? 0,
@@ -608,12 +663,12 @@ TERMS;
         return $this->saveQuote($request, $booking);
     }
 
-    public function sendQuote(Request $request, Booking $booking)
+    public function sendQuote(Request $request, Booking $booking): RedirectResponse
     {
         return $this->saveQuote($request, $booking);
     }
 
-    private function saveQuote(Request $request, Booking $booking)
+    private function saveQuote(Request $request, Booking $booking): RedirectResponse
     {
         abort_unless($booking->artist_id === $request->user()->id, 403);
         abort_unless($booking->status === 'pending', 422, 'Only pending booking requests can be quoted.');
@@ -694,12 +749,12 @@ TERMS;
         return back();
     }
 
-    public function acceptTransportationFee(Request $request, Booking $booking)
+    public function acceptTransportationFee(Request $request, Booking $booking): RedirectResponse
     {
         return $this->acceptQuote($request, $booking);
     }
 
-    public function acceptQuote(Request $request, Booking $booking)
+    public function acceptQuote(Request $request, Booking $booking): RedirectResponse
     {
         abort_unless($booking->client_id === $request->user()->id, 403);
         abort_unless($booking->status === 'pending', 422, 'This booking is no longer pending.');
@@ -724,7 +779,7 @@ TERMS;
         return back();
     }
 
-    public function submitDeposit(Request $request, Booking $booking)
+    public function submitDeposit(Request $request, Booking $booking): RedirectResponse
     {
         abort_unless($booking->client_id === $request->user()->id, 403);
         abort_unless($booking->status === 'pending', 422, 'This booking is no longer awaiting a deposit.');
@@ -755,7 +810,7 @@ TERMS;
         return back();
     }
 
-    public function showDepositProof(Request $request, Booking $booking)
+    public function showDepositProof(Request $request, Booking $booking): StreamedResponse
     {
         abort_unless(in_array($request->user()->id, [$booking->client_id, $booking->artist_id], true), 403);
         abort_unless($booking->deposit_proof_path && Storage::disk('local')->exists($booking->deposit_proof_path), 404);
@@ -767,7 +822,7 @@ TERMS;
         );
     }
 
-    public function markDepositReceived(Request $request, Booking $booking)
+    public function markDepositReceived(Request $request, Booking $booking): RedirectResponse
     {
         abort_unless($booking->artist_id === $request->user()->id, 403);
         abort_unless($booking->status === 'pending', 422, 'This booking is no longer awaiting deposit verification.');
@@ -790,7 +845,7 @@ TERMS;
         return back();
     }
 
-    public function recordBalancePayment(Request $request, Booking $booking)
+    public function recordBalancePayment(Request $request, Booking $booking): RedirectResponse
     {
         abort_unless($booking->artist_id === $request->user()->id, 403);
 
@@ -849,7 +904,7 @@ TERMS;
         return back();
     }
 
-    public function decline(Request $request, Booking $booking)
+    public function decline(Request $request, Booking $booking): RedirectResponse
     {
         abort_unless($booking->artist_id === $request->user()->id, 403);
 
@@ -876,7 +931,7 @@ TERMS;
         return back();
     }
 
-    public function cancel(Request $request, Booking $booking)
+    public function cancel(Request $request, Booking $booking): RedirectResponse
     {
         $userId = $request->user()->id;
 
@@ -913,7 +968,7 @@ TERMS;
      * Client asks for a new date/time. The booking goes back to "pending"
      * so the artist has to approve the new slot.
      */
-    public function reschedule(Request $request, Booking $booking)
+    public function reschedule(Request $request, Booking $booking): RedirectResponse
     {
         abort_unless($booking->client_id === $request->user()->id, 403);
 
@@ -949,6 +1004,12 @@ TERMS;
                 ]);
             }
 
+            if ($this->timeBlocked($artist, $validated['booking_date'], $validated['booking_time'], $booking->service)) {
+                throw ValidationException::withMessages([
+                    'booking_time' => 'That time overlaps with a time Trixie has blocked. Please choose another time.',
+                ]);
+            }
+
             if ($this->slotTaken($booking->artist_id, $validated['booking_date'], $validated['booking_time'], $booking->service, $booking->id)) {
                 throw ValidationException::withMessages([
                     'booking_time' => 'That time is already taken. Please choose a different time.',
@@ -967,8 +1028,8 @@ TERMS;
                     in_array($booking->location_type, ['metro_manila', 'nearby_province'], true)
                         ? $booking->location_type
                         : 'metro_manila',
-                    (int) ($booking->artist?->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE),
-                    (int) ($booking->artist?->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE),
+                    (int) ($booking->artist->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE),
+                    (int) ($booking->artist->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE),
                     $booking->service_area_level === 'on_request',
                 ),
                 // the old message belonged to the old slot
@@ -980,7 +1041,7 @@ TERMS;
     }
 
     /** Artist marks a confirmed session as done. */
-    public function complete(Request $request, Booking $booking)
+    public function complete(Request $request, Booking $booking): RedirectResponse
     {
         abort_unless($booking->artist_id === $request->user()->id, 403);
 
@@ -1014,6 +1075,7 @@ TERMS;
         }
     }
 
+    /** @return array{metroManila: Collection<int, ServiceArea>, nearbyProvince: Collection<int, ServiceArea>} */
     private function serviceCities(?User $artist = null): array
     {
         $areas = $artist?->serviceAreas()
@@ -1051,6 +1113,10 @@ TERMS;
         return mb_substr(implode(', ', $parts), 0, 1000);
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $selectedAddOns
+     * @return array{selected_add_ons: array<int, array<string, mixed>>, estimated_total: float|null}
+     */
     private function withBookingFees(
         array $selectedAddOns,
         ?float $estimatedTotal,
@@ -1110,6 +1176,7 @@ TERMS;
         ];
     }
 
+    /** @return array{id: null, name: string, price: int, quantity: int, line_total: int, pricing_type: string, is_system_fee: true} */
     private function systemFeeSnapshot(string $name, int $amount): array
     {
         return [

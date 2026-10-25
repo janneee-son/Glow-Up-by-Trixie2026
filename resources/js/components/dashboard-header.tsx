@@ -204,6 +204,8 @@ export default function DashboardHeader({
                 ? 'bg-[#f4e9e5] text-[#8a6a2f]'
                 : 'text-[#4a4a4a] hover:bg-[#f4e9e5]/60 hover:text-[#8a6a2f]'
         }`;
+    const headerTooltipClass =
+        'pointer-events-none absolute top-full right-0 z-50 mt-2 w-max rounded-lg bg-[#292521] px-3 py-2 text-xs font-medium leading-5 text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100';
 
     return (
         <header className="sticky top-0 z-20 border-b border-[#e8d7cf] bg-[#faf7f4] sm:bg-[#faf7f4]/90 sm:backdrop-blur">
@@ -214,14 +216,17 @@ export default function DashboardHeader({
                     onClick={() => setMenuOpen(false)}
                 >
                     <AppLogoIcon className="h-10 w-10 object-contain" />
-                    <span className="whitespace-nowrap font-display text-sm font-bold text-[#1A1A1A] sm:text-lg">
+                    <span className="font-display text-sm font-bold whitespace-nowrap text-[#1A1A1A] sm:text-lg">
                         Glow Up by Trixie
                     </span>
                 </Link>
 
                 <nav className="hidden items-center gap-2 sm:flex">
                     {navItems
-                        .filter(({ key }) => key !== 'profile' && key !== 'booking-settings')
+                        .filter(
+                            ({ key }) =>
+                                key !== 'profile' && key !== 'booking-settings',
+                        )
                         .map(({ key, label, href, icon: Icon }) => (
                             <Link
                                 key={key}
@@ -243,10 +248,18 @@ export default function DashboardHeader({
                                     setNotificationsOpen((open) => !open)
                                 }
                                 aria-label="Notifications"
+                                aria-describedby="notification-tooltip"
                                 aria-expanded={notificationsOpen}
-                                className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[#c9a66b] text-[#8a6a2f] transition hover:bg-[#f4e9e5]"
+                                className="group relative flex h-9 w-9 items-center justify-center rounded-full border border-[#c9a66b] text-[#8a6a2f] transition hover:bg-[#f4e9e5]"
                             >
                                 <Bell className="h-4 w-4" />
+                                <span
+                                    id="notification-tooltip"
+                                    role="tooltip"
+                                    className={headerTooltipClass}
+                                >
+                                    Notifications
+                                </span>
                                 {unreadCount > 0 && (
                                     <span className="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#8a6a2f] px-1 text-[10px] font-bold text-white">
                                         {unreadCount > 9 ? '9+' : unreadCount}
@@ -307,7 +320,7 @@ export default function DashboardHeader({
                                                         className={`block w-full border-b border-[#f3eee9] px-4 py-3 text-left transition hover:bg-[#fdf8f4] ${notification.read_at ? 'bg-white' : 'bg-[#f7ece8]'}`}
                                                     >
                                                         <span className="flex items-center justify-between gap-3">
-                                                            <span className="min-w-0 break-words text-sm font-semibold text-[#1a1a1a]">
+                                                            <span className="min-w-0 text-sm font-semibold break-words text-[#1a1a1a]">
                                                                 {
                                                                     notification.title
                                                                 }
@@ -316,7 +329,7 @@ export default function DashboardHeader({
                                                                 <span className="h-2 w-2 rounded-full bg-[#8a6a2f]" />
                                                             )}
                                                         </span>
-                                                        <span className="mt-1 block break-words text-sm text-[#4a4a4a]">
+                                                        <span className="mt-1 block text-sm break-words text-[#4a4a4a]">
                                                             {userRole ===
                                                             'artist'
                                                                 ? notification.client_name
@@ -326,13 +339,13 @@ export default function DashboardHeader({
                                                                 notification.service
                                                             }
                                                         </span>
-                                                        <span className="mt-1 block break-words text-xs text-[#6b625a]">
+                                                        <span className="mt-1 block text-xs break-words text-[#6b625a]">
                                                             {new Date(
                                                                 `${notification.booking_date}T${notification.booking_time}`,
                                                             ).toLocaleString()}
                                                         </span>
                                                         {notification.artist_message && (
-                                                            <span className="mt-1 block break-words text-xs text-[#4a4a4a]">
+                                                            <span className="mt-1 block text-xs break-words text-[#4a4a4a]">
                                                                 “
                                                                 {
                                                                     notification.artist_message
@@ -341,7 +354,7 @@ export default function DashboardHeader({
                                                             </span>
                                                         )}
                                                         {notification.detail && (
-                                                            <span className="mt-1 block break-words text-xs font-medium text-[#8a6a2f]">
+                                                            <span className="mt-1 block text-xs font-medium break-words text-[#8a6a2f]">
                                                                 {
                                                                     notification.detail
                                                                 }
@@ -360,18 +373,29 @@ export default function DashboardHeader({
                         <Link
                             href="/artist/booking-settings"
                             aria-label="Booking Settings"
-                            title="Booking Settings"
-                            aria-current={active === 'booking-settings' ? 'page' : undefined}
-                            className={`flex h-9 w-9 items-center justify-center rounded-full border border-[#c9a66b] transition hover:bg-[#f4e9e5] ${active === 'booking-settings' ? 'bg-[#f4e9e5] text-[#8a6a2f]' : 'text-[#8a6a2f]'}`}
+                            aria-describedby="booking-settings-tooltip"
+                            aria-current={
+                                active === 'booking-settings'
+                                    ? 'page'
+                                    : undefined
+                            }
+                            className={`group relative flex h-9 w-9 items-center justify-center rounded-full border border-[#c9a66b] transition hover:bg-[#f4e9e5] focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/50 focus-visible:outline-none ${active === 'booking-settings' ? 'bg-[#f4e9e5] text-[#8a6a2f]' : 'text-[#8a6a2f]'}`}
                         >
                             <Settings2 className="h-4 w-4" />
+                            <span
+                                id="booking-settings-tooltip"
+                                role="tooltip"
+                                className={headerTooltipClass}
+                            >
+                                Booking Settings
+                            </span>
                         </Link>
                     )}
                     <Link
                         href="/profile"
                         aria-label={`Profile for ${userName}`}
-                        title="Profile"
-                        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[#c9a66b] bg-white transition hover:bg-[#f4e9e5]"
+                        aria-describedby="profile-tooltip"
+                        className="group relative flex h-9 w-9 items-center justify-center overflow-visible rounded-full border border-[#c9a66b] bg-white transition hover:bg-[#f4e9e5]"
                         aria-current={active === 'profile' ? 'page' : undefined}
                     >
                         {auth?.user?.avatar_url ? (
@@ -381,8 +405,20 @@ export default function DashboardHeader({
                                 className="h-full w-full rounded-full object-cover"
                             />
                         ) : (
-                            <span aria-hidden="true" className="font-semibold text-[#8a6a2f]">{userName.trim().charAt(0).toUpperCase()}</span>
+                            <span
+                                aria-hidden="true"
+                                className="font-semibold text-[#8a6a2f]"
+                            >
+                                {userName.trim().charAt(0).toUpperCase()}
+                            </span>
                         )}
+                        <span
+                            id="profile-tooltip"
+                            role="tooltip"
+                            className={headerTooltipClass}
+                        >
+                            Profile
+                        </span>
                     </Link>
 
                     <Link
@@ -413,25 +449,27 @@ export default function DashboardHeader({
 
             {menuOpen && (
                 <nav className="flex flex-col gap-1 border-t border-[#e8d7cf] bg-[#faf7f4] px-4 py-3 sm:hidden">
-                    {navItems.filter(({ key }) => key !== 'booking-settings').map(({ key, label, href, icon: Icon }) => (
-                        <Link
-                            key={key}
-                            href={href}
-                            className={mobileLinkClass(key)}
-                            onClick={() => setMenuOpen(false)}
-                        >
-                            {key === 'profile' && auth?.user?.avatar_url ? (
-                                <img
-                                    src={auth.user.avatar_url}
-                                    alt=""
-                                    className="h-6 w-6 rounded-full object-cover ring-1 ring-[#c9a66b]"
-                                />
-                            ) : (
-                                <Icon className="h-4 w-4" />
-                            )}
-                            {label}
-                        </Link>
-                    ))}
+                    {navItems
+                        .filter(({ key }) => key !== 'booking-settings')
+                        .map(({ key, label, href, icon: Icon }) => (
+                            <Link
+                                key={key}
+                                href={href}
+                                className={mobileLinkClass(key)}
+                                onClick={() => setMenuOpen(false)}
+                            >
+                                {key === 'profile' && auth?.user?.avatar_url ? (
+                                    <img
+                                        src={auth.user.avatar_url}
+                                        alt=""
+                                        className="h-6 w-6 rounded-full object-cover ring-1 ring-[#c9a66b]"
+                                    />
+                                ) : (
+                                    <Icon className="h-4 w-4" />
+                                )}
+                                {label}
+                            </Link>
+                        ))}
 
                     <Link
                         href="/logout"

@@ -3,8 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * @property array<int, array<string, mixed>>|null $selected_add_ons
+ * @property User|null $client
+ * @property User|null $artist
+ */
 class Booking extends Model
 {
     protected $fillable = [
@@ -68,31 +75,37 @@ class Booking extends Model
         ];
     }
 
-    public function client()
+    /** @return BelongsTo<User, $this> */
+    public function client(): BelongsTo
     {
         return $this->belongsTo(User::class, 'client_id');
     }
 
-    public function artist()
+    /** @return BelongsTo<User, $this> */
+    public function artist(): BelongsTo
     {
         return $this->belongsTo(User::class, 'artist_id');
     }
 
-    public function inspoImage()
+    /** @return BelongsTo<InspoImage, $this> */
+    public function inspoImage(): BelongsTo
     {
         return $this->belongsTo(InspoImage::class);
     }
 
-    public function package()
+    /** @return BelongsTo<ArtistOffering, $this> */
+    public function package(): BelongsTo
     {
         return $this->belongsTo(ArtistOffering::class, 'package_id');
     }
 
-    public function review()
+    /** @return HasOne<Review, $this> */
+    public function review(): HasOne
     {
         return $this->hasOne(Review::class);
     }
 
+    /** @return HasMany<BookingBalancePayment, $this> */
     public function balancePayments(): HasMany
     {
         return $this->hasMany(BookingBalancePayment::class)->orderBy('paid_at')->orderBy('id');

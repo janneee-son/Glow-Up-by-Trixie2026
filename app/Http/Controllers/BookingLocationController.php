@@ -12,6 +12,8 @@ class BookingLocationController extends Controller
 {
     public function options(Request $request): JsonResponse
     {
+        abort_unless($request->user()?->role === 'client', 403);
+
         $validated = $request->validate([
             'level' => ['required', 'in:provinces,cities,barangays'],
             'parent_code' => ['nullable', 'regex:/^\d{10}$/'],
@@ -52,6 +54,8 @@ class BookingLocationController extends Controller
 
     public function mapCenter(Request $request): JsonResponse
     {
+        abort_unless($request->user()?->role === 'client', 403);
+
         $validated = $request->validate([
             'service_city' => ['required', 'string', 'max:100'],
             'service_province' => ['required', 'string', 'max:100'],
@@ -82,7 +86,18 @@ class BookingLocationController extends Controller
                     throw new RuntimeException('The city could not be located right now. Please try again.');
                 }
 
-                return collect($response->json('results', []))->first() ?? [];
+                $results = $response->json('results', []);
+                if (! is_array($results)) {
+                    return [];
+                }
+
+                foreach ($results as $result) {
+                    if (is_array($result)) {
+                        return $result;
+                    }
+                }
+
+                return [];
             });
         } catch (\Throwable $exception) {
             return response()->json(['message' => $exception instanceof RuntimeException ? $exception->getMessage() : 'The city could not be located right now. Please try again.'], 503);
