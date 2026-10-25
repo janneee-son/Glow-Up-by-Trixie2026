@@ -6,11 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
  * @property array<int, array<string, mixed>>|null $selected_add_ons
  * @property User|null $client
  * @property User|null $artist
+ * @property Carbon|null $appointment_reminder_sent_at
+ * @property Carbon|null $deposit_reminder_sent_at
  */
 class Booking extends Model
 {
@@ -54,6 +57,8 @@ class Booking extends Model
         'terms_version',
         'terms_text',
         'terms_accepted_at',
+        'appointment_reminder_sent_at',
+        'deposit_reminder_sent_at',
     ];
 
     protected function casts(): array
@@ -72,6 +77,8 @@ class Booking extends Model
             'quote_accepted_at' => 'datetime',
             'deposit_received_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
+            'appointment_reminder_sent_at' => 'datetime',
+            'deposit_reminder_sent_at' => 'datetime',
         ];
     }
 

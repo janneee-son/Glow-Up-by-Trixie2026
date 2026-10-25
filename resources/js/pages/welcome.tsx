@@ -23,6 +23,7 @@ type Artist = {
     city: string | null;
     province: string | null;
     postal_code: string | null;
+    trust_verified: boolean;
 };
 
 type Service = {
@@ -383,7 +384,7 @@ export default function Welcome({
 
                             <ul className="mt-10 grid gap-2.5 text-sm text-[#4A4A4A]">
                                 <li className="flex items-center gap-2">
-                                    <BadgeCheck className="h-4 w-4 text-[#8A6A2F]" />
+                                    <Sparkles className="h-4 w-4 text-[#8A6A2F]" />
                                     Professional makeup artist
                                 </li>
                                 <li className="flex items-center gap-2">
@@ -715,6 +716,15 @@ export default function Welcome({
                                     <h3 className="mt-2 font-display text-4xl leading-tight font-bold sm:text-5xl">
                                         {artist.name}
                                     </h3>
+                                    {artist.trust_verified && (
+                                        <p
+                                            title="A site admin checked the artist’s identity and payment account."
+                                            className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#eaf4ea] px-3 py-1.5 text-xs font-semibold text-[#2e6d43]"
+                                        >
+                                            <BadgeCheck className="h-4 w-4" />
+                                            Identity and payment account checked
+                                        </p>
+                                    )}
                                     <p className="mt-2 text-lg text-[#8A6A2F]">
                                         {artist.specialty ?? 'Makeup artist'}
                                     </p>

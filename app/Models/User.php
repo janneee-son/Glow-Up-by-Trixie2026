@@ -20,6 +20,9 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
+ * @property Carbon|null $identity_verified_at
+ * @property Carbon|null $payment_account_verified_at
+ * @property Carbon|null $trust_reviewed_at
  * @property string $password
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
@@ -46,6 +49,9 @@ class User extends Authenticatable implements PasskeyUser
     {
         return [
             'email_verified_at' => 'datetime',
+            'identity_verified_at' => 'datetime',
+            'payment_account_verified_at' => 'datetime',
+            'trust_reviewed_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'blocked_booking_dates' => 'array',
@@ -62,5 +68,11 @@ class User extends Authenticatable implements PasskeyUser
     public static function artist(): ?self
     {
         return static::where('role', 'artist')->orderBy('id')->first();
+    }
+
+    public function hasVerifiedTrustProfile(): bool
+    {
+        return $this->identity_verified_at !== null
+            && $this->payment_account_verified_at !== null;
     }
 }

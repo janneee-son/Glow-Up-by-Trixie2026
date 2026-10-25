@@ -142,6 +142,15 @@ export default function CreateBooking({
     const serviceAreas = Array.isArray(serviceAreasProp)
         ? serviceAreasProp
         : [];
+    const [
+        termsIntroduction = '',
+        termsPayment = '',
+        termsNotes = '',
+        ...termsClosing
+    ] = bookingTerms.text.split(/\r?\n\s*\r?\n/);
+    const paymentLines = termsPayment.split(/\r?\n/).filter(Boolean);
+    const noteLines = termsNotes.split(/\r?\n/).filter(Boolean);
+    const closingText = termsClosing.join('\n\n');
 
     const { auth } = usePage<{
         auth?: {
@@ -1472,7 +1481,6 @@ export default function CreateBooking({
                         <div className="grid gap-3">
                             <Button
                                 type="button"
-                                variant="outline"
                                 onClick={locateVenueOnMap}
                                 disabled={
                                     !data.service_city ||
@@ -1481,7 +1489,7 @@ export default function CreateBooking({
                                     data.venue_street.trim().length < 3 ||
                                     addressCheck.state === 'locating'
                                 }
-                                className="min-h-12 w-full border-[#b99763] text-[#76551e] sm:w-fit"
+                                className="min-h-12 w-full bg-[#8a6a2f] text-white hover:bg-[#725625] sm:w-fit"
                             >
                                 <MapPin className="mr-2 h-4 w-4" />
                                 {addressCheck.state === 'locating'
@@ -1642,16 +1650,64 @@ export default function CreateBooking({
                             </p>
                         )}
 
-                        <p className="rounded-xl bg-[#fffcf8] px-3 py-2 text-xs leading-5 text-[#4a4a4a]">
-                            Regular sessions take about 1½ hours; bridal and
-                            wedding bookings reserve up to 3 hours. The artist
-                            usually accepts up to two bookings per day, while
-                            photo and event bookings depend on availability.
-                            Bookings made less than 7 days ahead are subject to
-                            availability and include a ₱{rushBookingFee} rush
-                            fee. Start times from 1:00 AM to 5:00 AM include a ₱
-                            {earlyCallTimeFee} early call-time fee.
-                        </p>
+                        <section
+                            className="grid gap-3 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4 sm:p-5"
+                            aria-labelledby="booking-schedule-notes-heading"
+                        >
+                            <h2
+                                id="booking-schedule-notes-heading"
+                                className="flex items-center gap-2 text-sm font-semibold text-[#1a1a1a]"
+                            >
+                                <Clock className="h-4 w-4 text-[#8a6a2f]" />
+                                Scheduling notes
+                            </h2>
+                            <div className="grid gap-2.5 sm:grid-cols-2">
+                                <div className="rounded-xl border border-[#eee4d7] bg-white p-3">
+                                    <h3 className="text-xs font-semibold tracking-wide text-[#8a6a2f] uppercase">
+                                        Session length
+                                    </h3>
+                                    <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">
+                                        Regular sessions take about 1½ hours.
+                                        Bridal and wedding bookings reserve up
+                                        to 3 hours.
+                                    </p>
+                                </div>
+                                <div className="rounded-xl border border-[#eee4d7] bg-white p-3">
+                                    <h3 className="text-xs font-semibold tracking-wide text-[#8a6a2f] uppercase">
+                                        Daily availability
+                                    </h3>
+                                    <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">
+                                        The artist usually accepts up to two
+                                        bookings per day. Photo and event
+                                        bookings depend on availability.
+                                    </p>
+                                </div>
+                                <div className="rounded-xl border border-[#eee4d7] bg-white p-3">
+                                    <h3 className="text-xs font-semibold tracking-wide text-[#8a6a2f] uppercase">
+                                        Rush bookings
+                                    </h3>
+                                    <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">
+                                        Bookings made less than 7 days ahead are
+                                        subject to availability and include a ₱
+                                        {rushBookingFee.toLocaleString('en-PH')}{' '}
+                                        rush fee.
+                                    </p>
+                                </div>
+                                <div className="rounded-xl border border-[#eee4d7] bg-white p-3">
+                                    <h3 className="text-xs font-semibold tracking-wide text-[#8a6a2f] uppercase">
+                                        Early call time
+                                    </h3>
+                                    <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">
+                                        Start times from 1:00 AM to 5:00 AM
+                                        include a ₱
+                                        {earlyCallTimeFee.toLocaleString(
+                                            'en-PH',
+                                        )}{' '}
+                                        early call-time fee.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
 
                         {isRushBooking && (
                             <p
@@ -1810,7 +1866,7 @@ export default function CreateBooking({
                         </div>
 
                         <section
-                            className="grid gap-3 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4"
+                            className="grid gap-4 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4 sm:p-5"
                             aria-labelledby="booking-terms-heading"
                         >
                             <h2
@@ -1819,16 +1875,70 @@ export default function CreateBooking({
                             >
                                 Booking terms and conditions
                             </h2>
-                            <p className="text-sm leading-6 whitespace-pre-line text-[#4a4a4a]">
-                                {bookingTerms.text}
-                            </p>
-                            <p className="text-xs leading-5 text-[#4a4a4a]">
-                                Bank transfer is also accepted. Contact the
-                                artist for bank account details.
-                            </p>
+                            <div className="grid items-start gap-3 sm:grid-cols-2 sm:gap-4">
+                                <div className="grid content-start gap-3">
+                                    <p className="text-sm leading-6 text-[#4a4a4a]">
+                                        {termsIntroduction}
+                                    </p>
+                                    <div className="rounded-xl border border-[#eadcc7] bg-white p-3 sm:p-4">
+                                        <h3 className="text-xs font-semibold tracking-wide text-[#8a6a2f] uppercase">
+                                            Payment details
+                                        </h3>
+                                        <p className="mt-2 text-sm font-medium text-[#1a1a1a]">
+                                            {paymentLines[0]?.replace(
+                                                /^Mode of payment:\s*/i,
+                                                '',
+                                            )}
+                                        </p>
+                                        {paymentLines.length > 1 && (
+                                            <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">
+                                                {paymentLines
+                                                    .slice(1)
+                                                    .join(' ')}
+                                            </p>
+                                        )}
+                                        <p className="mt-2 border-t border-[#eee4d7] pt-2 text-xs leading-5 text-[#6b625a]">
+                                            Bank transfer is also accepted.
+                                            Contact the artist for bank account
+                                            details.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="grid content-start gap-3">
+                                    <div className="rounded-xl bg-[#f7f1e8] p-3 sm:p-4">
+                                        <h3 className="text-sm font-semibold text-[#1a1a1a]">
+                                            {noteLines[0]?.replace(/:$/, '')}
+                                        </h3>
+                                        <ul className="mt-2 grid gap-2 text-sm leading-5 text-[#4a4a4a]">
+                                            {noteLines.slice(1).map((note) => (
+                                                <li
+                                                    key={note}
+                                                    className="flex items-start gap-2"
+                                                >
+                                                    <span
+                                                        aria-hidden="true"
+                                                        className="mt-0.5 text-[#8a6a2f]"
+                                                    >
+                                                        •
+                                                    </span>
+                                                    <span>
+                                                        {note.replace(
+                                                            /^•\s*/,
+                                                            '',
+                                                        )}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <p className="text-sm leading-6 whitespace-pre-line text-[#4a4a4a]">
+                                        {closingText}
+                                    </p>
+                                </div>
+                            </div>
                             <label
                                 htmlFor="terms_accepted"
-                                className="flex cursor-pointer items-start gap-2 text-sm leading-5 text-[#1a1a1a]"
+                                className="flex cursor-pointer items-start gap-2 border-t border-[#eadcc7] pt-3 text-sm leading-5 text-[#1a1a1a]"
                             >
                                 <input
                                     id="terms_accepted"

@@ -1,6 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     BriefcaseBusiness,
+    BadgeCheck,
     Bell,
     CalendarPlus,
     ChartNoAxesColumnIncreasing,
@@ -26,7 +27,8 @@ type Props = {
         | 'services'
         | 'booking-settings'
         | 'gallery'
-        | 'analytics';
+        | 'analytics'
+        | 'trust-review';
 };
 
 type DashboardNotification = {
@@ -70,6 +72,18 @@ function buildNavItems(userRole: Props['userRole']) {
             icon: UserIcon,
         },
     ];
+
+    if (userRole === 'admin') {
+        return [
+            {
+                key: 'trust-review' as const,
+                label: 'Trust Review',
+                href: '/admin/trust-review',
+                icon: BadgeCheck,
+            },
+            items.find((item) => item.key === 'profile')!,
+        ];
+    }
 
     if (userRole === 'artist') {
         return [
@@ -301,7 +315,7 @@ export default function DashboardHeader({
                                             </button>
                                         )}
                                     </div>
-                                    <div className="max-h-[min(24rem,calc(100dvh-10rem))] overflow-y-auto">
+                                    <div className="warm-thin-scrollbar max-h-[min(24rem,calc(100dvh-10rem))] overflow-y-auto">
                                         {notifications.length === 0 ? (
                                             <p className="p-4 text-sm text-[#6b625a]">
                                                 No booking updates yet.

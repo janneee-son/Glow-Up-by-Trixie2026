@@ -734,6 +734,7 @@ TERMS;
             'deposit_proof_path' => null,
             'deposit_received_at' => null,
             'deposit_amount' => null,
+            'deposit_reminder_sent_at' => null,
             'transportation_fee_pending' => true,
         ]);
 
@@ -765,6 +766,7 @@ TERMS;
             'quote_accepted_at' => now(),
             'transportation_fee_pending' => false,
             'deposit_status' => 'due',
+            'deposit_reminder_sent_at' => null,
         ]);
 
         $booking->loadMissing('client', 'artist');
@@ -1020,6 +1022,7 @@ TERMS;
                 'booking_date' => $validated['booking_date'],
                 'booking_time' => $validated['booking_time'],
                 'status' => 'pending',
+                'appointment_reminder_sent_at' => null,
                 ...$this->withBookingFees(
                     $booking->selected_add_ons ?? [],
                     $booking->estimated_total === null ? null : (float) $booking->estimated_total,

@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     AlertCircle,
+    BadgeCheck,
     CalendarPlus,
     CalendarDays,
     Check,
@@ -83,6 +84,7 @@ type Booking = {
 
 type Props = {
     bookings: Booking[];
+    artistTrustVerified: boolean;
 };
 
 const STATUS_STYLES: Record<Booking['status'], string> = {
@@ -251,7 +253,10 @@ function dismissId(id: number) {
     sessionStorage.setItem(DISMISSED_KEY, JSON.stringify([...current, id]));
 }
 
-export default function ClientDashboard({ bookings }: Props) {
+export default function ClientDashboard({
+    bookings,
+    artistTrustVerified,
+}: Props) {
     const { auth } = usePage<{
         auth?: {
             user?: { name?: string; role?: 'client' | 'artist' | 'admin' };
@@ -771,7 +776,7 @@ export default function ClientDashboard({ bookings }: Props) {
                     onClick={closeDetails}
                 >
                     <div
-                        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6"
+                        className="warm-thin-scrollbar max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="mb-4 flex items-start justify-between gap-3">
@@ -1047,12 +1052,45 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 (due on the service day).
                                             </p>
                                             <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">
-                                                Choose how you paid. Upload a
-                                                screenshot or photo of the
-                                                successful transaction for GCash
-                                                or bank transfer so Trixie can
-                                                verify the deposit.
+                                                For GCash or bank transfer, pay
+                                                only to the details in the
+                                                booking terms and upload your
+                                                transaction proof. For cash,
+                                                hand the deposit directly to
+                                                Trixie in person; selecting cash
+                                                alone does not count as payment.
+                                                The app does not hold funds.
                                             </p>
+                                            <div className="mt-3 rounded-lg bg-[#f7f3ef] p-3 text-xs leading-5 text-[#4a4a4a]">
+                                                {artistTrustVerified ? (
+                                                    <p className="flex items-start gap-2">
+                                                        <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#2e6d43]" />
+                                                        <span>
+                                                            A site admin checked
+                                                            Trixie’s identity and
+                                                            the payment account
+                                                            listed in the booking
+                                                            terms.
+                                                        </span>
+                                                    </p>
+                                                ) : (
+                                                    <p>
+                                                        Trixie’s identity and
+                                                        payment account have not
+                                                        yet been checked by a
+                                                        site admin. Confirm the
+                                                        recipient directly
+                                                        before paying.
+                                                    </p>
+                                                )}
+                                                <p className="mt-2">
+                                                    Keep your receipt and
+                                                    booking messages. The
+                                                    deposit is recorded as paid
+                                                    only after Trixie marks it
+                                                    received.
+                                                </p>
+                                            </div>
                                             <label
                                                 htmlFor={`deposit-method-${selectedBooking.id}`}
                                                 className="mt-3 block text-xs font-medium text-[#4a4a4a]"
@@ -1099,7 +1137,7 @@ export default function ClientDashboard({ bookings }: Props) {
                                                     Bank transfer
                                                 </option>
                                                 <option value="cash">
-                                                    Cash
+                                                    Cash (in person with Trixie)
                                                 </option>
                                             </select>
                                             <label
@@ -1203,7 +1241,11 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 {feeDecisionBusyId ===
                                                 selectedBooking.id
                                                     ? 'Submitting…'
-                                                    : 'I sent the deposit'}
+                                                    : depositMethod[
+                                                            selectedBooking.id
+                                                        ] === 'cash'
+                                                      ? 'I handed cash to Trixie'
+                                                      : 'I sent the deposit'}
                                             </button>
                                         </section>
                                     )}
@@ -1211,23 +1253,23 @@ export default function ClientDashboard({ bookings }: Props) {
                                     'submitted' && (
                                     <section className="mb-4 rounded-xl border border-[#c9a66b] bg-[#fffcf8] p-4 text-sm">
                                         <p className="font-semibold text-[#1a1a1a]">
-                                            Deposit marked as sent
+                                            {selectedBooking.deposit_method ===
+                                            'cash'
+                                                ? 'Cash handover reported'
+                                                : 'Deposit submitted for verification'}
                                         </p>
                                         <p className="mt-1 text-[#4a4a4a]">
-                                            Trixie will verify your{' '}
-                                            {selectedBooking.deposit_method?.replace(
-                                                '_',
-                                                ' ',
-                                            )}{' '}
-                                            payment
+                                            {selectedBooking.deposit_method ===
+                                            'cash'
+                                                ? 'Trixie can confirm cash only after she has received it in person.'
+                                                : 'Trixie will check your uploaded proof and payment reference against the transaction.'}
                                             {selectedBooking.deposit_reference
                                                 ? ` · Reference: ${selectedBooking.deposit_reference}`
                                                 : ''}
-                                            .
                                         </p>
                                         <p className="mt-2 font-medium text-[#4a4a4a]">
-                                            Deposit sent (awaiting
-                                            verification): ₱
+                                            Deposit awaiting Trixie’s
+                                            confirmation: ₱
                                             {(
                                                 Number(
                                                     selectedBooking.estimated_total ??
@@ -1241,8 +1283,11 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 0,
                                                 Number(selectedBooking.estimated_total ?? 0) / 2,
                                             ).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                                            . Trixie will confirm the balance
-                                            after verifying the deposit.
+                                            . This payment goes directly to
+                                            Trixie; the app does not hold it.
+                                            Keep your receipt and booking
+                                            messages. The deposit is recorded
+                                            only after Trixie marks it received.
                                         </p>
                                         {selectedBooking.deposit_proof_url && (
                                             <img

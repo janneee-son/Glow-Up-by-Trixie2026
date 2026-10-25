@@ -2,6 +2,7 @@
 
 return [
     'max_advance_months' => 24,
+    'timezone' => env('BOOKING_TIMEZONE', 'Asia/Manila'),
 
     /*
     |--------------------------------------------------------------------------

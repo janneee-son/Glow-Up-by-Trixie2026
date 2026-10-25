@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Review;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -12,6 +13,10 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+
+        if ($user->role === 'admin') {
+            return to_route('admin.trust-review.index');
+        }
 
         // Attach the inspiration image URL to each booking.
         $withInspoUrl = function ($booking) use ($user) {
@@ -50,6 +55,7 @@ class DashboardController extends Controller
 
             return Inertia::render('dashboard/client', [
                 'bookings' => $bookings,
+                'artistTrustVerified' => User::artist()?->hasVerifiedTrustProfile() ?? false,
             ]);
         }
 
@@ -72,10 +78,6 @@ class DashboardController extends Controller
                 'bookings' => $bookings,
                 'reviews' => $reviews,
             ]);
-        }
-
-        if ($user->role === 'admin') {
-            return Inertia::render('dashboard/admin');
         }
 
         return Inertia::render('dashboard');

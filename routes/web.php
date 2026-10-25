@@ -5,6 +5,7 @@ use App\Http\Controllers\ArtistAvailabilityController;
 use App\Http\Controllers\ArtistGalleryController;
 use App\Http\Controllers\ArtistNotificationController;
 use App\Http\Controllers\ArtistOfferingController;
+use App\Http\Controllers\ArtistTrustReviewController;
 use App\Http\Controllers\BookingAddressVerificationController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingLocationController;
@@ -62,17 +63,20 @@ Route::get('/', function () {
 
     return Inertia::render('welcome', [
         'artist' => $artist
-            ? $artist->only(
-                'name',
-                'specialty',
-                'years_experience',
-                'bio',
-                'street_address',
-                'barangay',
-                'city',
-                'province',
-                'postal_code',
-            )
+            ? [
+                ...$artist->only(
+                    'name',
+                    'specialty',
+                    'years_experience',
+                    'bio',
+                    'street_address',
+                    'barangay',
+                    'city',
+                    'province',
+                    'postal_code',
+                ),
+                'trust_verified' => $artist->hasVerifiedTrustProfile(),
+            ]
             : null,
         'services' => $services,
         'packages' => $offerings->where('kind', 'package')->values(),
@@ -87,6 +91,10 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/admin/trust-review', [ArtistTrustReviewController::class, 'index'])->name('admin.trust-review.index');
+    Route::post('/admin/trust-review/verify', [ArtistTrustReviewController::class, 'verify'])->name('admin.trust-review.verify');
+    Route::delete('/admin/trust-review/verify', [ArtistTrustReviewController::class, 'revoke'])->name('admin.trust-review.revoke');
+
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/artist/analytics', [ArtistAnalyticsController::class, 'index'])->name('artist.analytics');
     Route::get('/artist/booking-settings', [ArtistAvailabilityController::class, 'edit'])->name('artist.booking-settings.edit');

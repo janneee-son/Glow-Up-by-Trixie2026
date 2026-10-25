@@ -170,7 +170,10 @@ class BookingAddressVerificationController extends Controller
                 ]),
                 'filter' => 'countrycode:ph',
                 'format' => 'json',
-                'limit' => 1,
+                // Geocoders may return a nearby but less precise result first.
+                // Inspect several candidates before deciding that the address
+                // cannot be matched.
+                'limit' => 5,
                 'lang' => 'en',
                 'apiKey' => $key,
             ]);
@@ -183,66 +186,139 @@ class BookingAddressVerificationController extends Controller
         }
 
         $results = $response->json('results', []);
-        if (! is_array($results)) {
-            return response()->json(['verified' => false, 'message' => 'We could not check this pin. Move it slightly and try again.']);
-        }
-
-        $result = null;
-        foreach ($results as $candidate) {
-            if (is_array($candidate)) {
-                $result = $candidate;
-                break;
-            }
-        }
-
-        if ($result === null) {
-            return response()->json(['verified' => false, 'message' => 'We could not check this pin. Move it slightly and try again.']);
-        }
-
+        $results = is_array($results) ? $results : [];
         $selectedCity = $this->normalizeArea($validated['service_city']);
-        $areaNames = array_filter([
-            $result['city'] ?? null,
-            $result['county'] ?? null,
-        ]);
-        $areaMatches = in_array($selectedCity, array_map(fn (?string $name): string => $this->normalizeArea($name), $areaNames), true);
-        $isPhilippines = ($result['country_code'] ?? null) === 'ph';
         $normalizeProvince = fn (?string $name): string => match ($this->normalizeArea($name)) {
             'ncr', 'national capital region' => 'metro manila',
             default => $this->normalizeArea($name),
         };
         $selectedProvince = $normalizeProvince($validated['service_province']);
-        $resultProvinces = array_filter([
-            $result['state'] ?? null,
-            $result['state_code'] ?? null,
-        ]);
-        $provinceMatches = $resultProvinces === [] || in_array($selectedProvince, array_map($normalizeProvince, $resultProvinces), true);
+        $hasCityMatch = false;
+        $hasStreetMatch = false;
+        $pinIsTooFar = false;
+        $result = null;
 
-        if (! $isPhilippines || ! $areaMatches || ! $provinceMatches) {
-            return response()->json(['verified' => false, 'message' => 'We could not match this address to the selected city. Check the address and try again.']);
+        foreach ($results as $candidate) {
+            if (! is_array($candidate)) {
+                continue;
+            }
+
+            $areaNames = array_filter([
+                $candidate['city'] ?? null,
+                $candidate['county'] ?? null,
+            ]);
+            $areaMatches = in_array($selectedCity, array_map(fn (?string $name): string => $this->normalizeArea($name), $areaNames), true);
+            $resultProvinces = array_filter([
+                $candidate['county'] ?? null,
+                $candidate['state'] ?? null,
+                $candidate['state_code'] ?? null,
+            ]);
+            $provinceMatches = $resultProvinces === [] || in_array($selectedProvince, array_map($normalizeProvince, $resultProvinces), true);
+
+            if (($candidate['country_code'] ?? null) !== 'ph' || ! $areaMatches || ! $provinceMatches) {
+                continue;
+            }
+
+            $hasCityMatch = true;
+            $rank = $candidate['rank'] ?? [];
+            $confidence = $rank['confidence'] ?? null;
+            $streetConfidence = $rank['confidence_street_level'] ?? null;
+            $matchedStreet = $this->normalizeStreet($candidate['street'] ?? $candidate['address_line1'] ?? '');
+            $enteredStreet = $this->normalizeStreet($validated['venue_street']);
+            $streetMatches = $matchedStreet !== '' && str_contains($enteredStreet, $matchedStreet);
+
+            if (! in_array($candidate['result_type'] ?? null, ['building', 'street'], true)
+                || ! is_numeric($confidence)
+                || (float) $confidence < 0.7
+                || (is_numeric($streetConfidence) && (float) $streetConfidence < 0.7)
+                || ! $streetMatches) {
+                continue;
+            }
+
+            $hasStreetMatch = true;
+            $resultLatitude = $candidate['lat'] ?? null;
+            $resultLongitude = $candidate['lon'] ?? null;
+            if (! is_numeric($resultLatitude) || ! is_numeric($resultLongitude)) {
+                continue;
+            }
+
+            if ($this->distanceMeters($lat, $lng, (float) $resultLatitude, (float) $resultLongitude) > 250) {
+                $pinIsTooFar = true;
+
+                continue;
+            }
+
+            $result = $candidate;
+            break;
         }
 
-        $resultType = $result['result_type'] ?? null;
-        $rank = $result['rank'] ?? [];
-        $confidence = $rank['confidence'] ?? null;
-        $streetConfidence = $rank['confidence_street_level'] ?? null;
-        $matchedStreet = $this->normalizeStreet($result['street'] ?? $result['address_line1'] ?? '');
-        $enteredStreet = $this->normalizeStreet($validated['venue_street']);
-        $streetMatches = $matchedStreet !== '' && str_contains($enteredStreet, $matchedStreet);
-
-        if (! in_array($resultType, ['building', 'street'], true)
-            || ! is_numeric($confidence)
-            || (float) $confidence < 0.7
-            || ! is_numeric($streetConfidence)
-            || (float) $streetConfidence < 0.7
-            || ! $streetMatches) {
-            return response()->json(['verified' => false, 'message' => 'We could not verify this street or building. Check the address or choose a matching address suggestion.']);
-        }
-
-        $resultLatitude = $result['lat'] ?? null;
-        $resultLongitude = $result['lon'] ?? null;
-        if (! is_numeric($resultLatitude) || ! is_numeric($resultLongitude)
-            || $this->distanceMeters($lat, $lng, (float) $resultLatitude, (float) $resultLongitude) > 250) {
+        if ($result === null && $pinIsTooFar) {
             return response()->json(['verified' => false, 'message' => 'The map pin is too far from the address Geoapify found. Move it closer to the address and try again.']);
+        }
+
+        $verifiedByPin = false;
+        if ($result === null) {
+            // Many Philippine streets and house numbers are missing from map
+            // data. If text lookup cannot match them, verify the manually placed
+            // pin against the selected city instead of blocking the booking.
+            if (! $this->reserveDailyGeoapifyRequest()) {
+                return response()->json([
+                    'verified' => false,
+                    'message' => 'Today’s address-check limit has been reached. Please try again tomorrow or contact Trixie.',
+                ], 429);
+            }
+
+            try {
+                $pinResponse = Http::timeout(8)->get('https://api.geoapify.com/v1/geocode/reverse', [
+                    'lat' => $lat,
+                    'lon' => $lng,
+                    'format' => 'json',
+                    'limit' => 1,
+                    'lang' => 'en',
+                    'apiKey' => $key,
+                ]);
+            } catch (\Throwable) {
+                return response()->json(['verified' => false, 'message' => 'The map pin could not be checked right now. Please try again.'], 503);
+            }
+
+            if (! $pinResponse->successful()) {
+                return response()->json(['verified' => false, 'message' => 'The map pin could not be checked right now. Please try again.'], 503);
+            }
+
+            $pinResults = $pinResponse->json('results', []);
+            foreach (is_array($pinResults) ? $pinResults : [] as $candidate) {
+                if (! is_array($candidate) || ($candidate['country_code'] ?? null) !== 'ph') {
+                    continue;
+                }
+
+                $areaNames = array_filter([
+                    $candidate['city'] ?? null,
+                    $candidate['county'] ?? null,
+                ]);
+                $areaMatches = in_array($selectedCity, array_map(fn (?string $name): string => $this->normalizeArea($name), $areaNames), true);
+                $resultProvinces = array_filter([
+                    $candidate['county'] ?? null,
+                    $candidate['state'] ?? null,
+                    $candidate['state_code'] ?? null,
+                ]);
+                $provinceMatches = $resultProvinces === [] || in_array($selectedProvince, array_map($normalizeProvince, $resultProvinces), true);
+
+                if (! $areaMatches || ! $provinceMatches) {
+                    continue;
+                }
+
+                $result = $candidate;
+                $verifiedByPin = true;
+                break;
+            }
+
+            if ($result === null) {
+                $message = $hasCityMatch || $hasStreetMatch
+                    ? 'We could not verify this street or building. Check the address or choose a matching address suggestion.'
+                    : 'We could not match this pin to the selected city. Check the address and try again.';
+
+                return response()->json(['verified' => false, 'message' => $message]);
+            }
         }
 
         $addressHash = self::addressHash(
@@ -275,7 +351,9 @@ class BookingAddressVerificationController extends Controller
             'formatted_address' => $formattedAddress,
             'map_url' => 'https://www.openstreetmap.org/?mlat='.$lat.'&mlon='.$lng.'#map=18/'.$lat.'/'.$lng,
             'service_area_level' => $serviceArea->level ?? 'on_request',
-            'message' => 'The address matches the selected city and map pin. Your address is ready to use.',
+            'message' => $verifiedByPin
+                ? 'The pin is in the selected city. Please make sure it marks the exact venue, since this street may not be listed on the map.'
+                : 'The address matches the selected city and map pin. Your address is ready to use.',
         ]);
     }
 
