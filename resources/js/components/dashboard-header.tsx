@@ -8,11 +8,12 @@ import {
     LayoutDashboard,
     LogOut,
     Menu,
-    Sparkles,
+    Settings2,
     User as UserIcon,
     X,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import AppLogoIcon from '@/components/app-logo-icon';
 
 type Props = {
     userName: string;
@@ -23,6 +24,7 @@ type Props = {
         | 'inspo'
         | 'profile'
         | 'services'
+        | 'booking-settings'
         | 'gallery'
         | 'analytics';
 };
@@ -74,6 +76,12 @@ function buildNavItems(userRole: Props['userRole']) {
             ...items.filter(
                 (item) => item.key === 'dashboard' || item.key === 'profile',
             ),
+            {
+                key: 'booking-settings' as const,
+                label: 'Booking Settings',
+                href: '/artist/booking-settings',
+                icon: Settings2,
+            },
             {
                 key: 'services' as const,
                 label: 'Services',
@@ -198,22 +206,22 @@ export default function DashboardHeader({
         }`;
 
     return (
-        <header className="sticky top-0 z-20 border-b border-[#e8d7cf] bg-[#faf7f4]/90 backdrop-blur">
-            <div className="flex items-center justify-between px-6 py-4 md:px-12">
+        <header className="sticky top-0 z-20 border-b border-[#e8d7cf] bg-[#faf7f4] sm:bg-[#faf7f4]/90 sm:backdrop-blur">
+            <div className="flex items-center justify-between gap-2 px-3 py-3 sm:px-6 sm:py-4 md:px-12">
                 <Link
                     href="/dashboard"
-                    className="flex items-center gap-2"
+                    className="flex min-w-0 items-center gap-2"
                     onClick={() => setMenuOpen(false)}
                 >
-                    <Sparkles className="h-5 w-5 text-[#8a6a2f]" />
-                    <span className="font-bold text-[#8a6a2f]">
+                    <AppLogoIcon className="h-10 w-10 object-contain" />
+                    <span className="whitespace-nowrap font-display text-sm font-bold text-[#1A1A1A] sm:text-lg">
                         Glow Up by Trixie
                     </span>
                 </Link>
 
                 <nav className="hidden items-center gap-2 sm:flex">
                     {navItems
-                        .filter(({ key }) => key !== 'profile')
+                        .filter(({ key }) => key !== 'profile' && key !== 'booking-settings')
                         .map(({ key, label, href, icon: Icon }) => (
                             <Link
                                 key={key}
@@ -226,7 +234,7 @@ export default function DashboardHeader({
                         ))}
                 </nav>
 
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
                     {(userRole === 'artist' || userRole === 'client') && (
                         <div className="relative">
                             <button
@@ -246,7 +254,7 @@ export default function DashboardHeader({
                                 )}
                             </button>
                             {notificationsOpen && (
-                                <div className="absolute right-0 z-50 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#e8d7cf] bg-white shadow-xl">
+                                <div className="fixed top-16 right-3 left-3 z-50 mx-auto max-h-[calc(100dvh-5rem)] w-auto max-w-md overflow-hidden rounded-2xl border border-[#e8d7cf] bg-white shadow-xl sm:absolute sm:top-auto sm:right-0 sm:left-auto sm:mt-3 sm:w-[22rem] sm:max-w-[calc(100vw-2rem)]">
                                     <div className="flex items-center justify-between border-b border-[#e8d7cf] px-4 py-3">
                                         <div>
                                             <p className="font-semibold text-[#1a1a1a]">
@@ -280,7 +288,7 @@ export default function DashboardHeader({
                                             </button>
                                         )}
                                     </div>
-                                    <div className="max-h-96 overflow-y-auto">
+                                    <div className="max-h-[min(24rem,calc(100dvh-10rem))] overflow-y-auto">
                                         {notifications.length === 0 ? (
                                             <p className="p-4 text-sm text-[#6b625a]">
                                                 No booking updates yet.
@@ -299,7 +307,7 @@ export default function DashboardHeader({
                                                         className={`block w-full border-b border-[#f3eee9] px-4 py-3 text-left transition hover:bg-[#fdf8f4] ${notification.read_at ? 'bg-white' : 'bg-[#f7ece8]'}`}
                                                     >
                                                         <span className="flex items-center justify-between gap-3">
-                                                            <span className="text-sm font-semibold text-[#1a1a1a]">
+                                                            <span className="min-w-0 break-words text-sm font-semibold text-[#1a1a1a]">
                                                                 {
                                                                     notification.title
                                                                 }
@@ -308,7 +316,7 @@ export default function DashboardHeader({
                                                                 <span className="h-2 w-2 rounded-full bg-[#8a6a2f]" />
                                                             )}
                                                         </span>
-                                                        <span className="mt-1 block text-sm text-[#4a4a4a]">
+                                                        <span className="mt-1 block break-words text-sm text-[#4a4a4a]">
                                                             {userRole ===
                                                             'artist'
                                                                 ? notification.client_name
@@ -318,13 +326,13 @@ export default function DashboardHeader({
                                                                 notification.service
                                                             }
                                                         </span>
-                                                        <span className="mt-1 block text-xs text-[#6b625a]">
+                                                        <span className="mt-1 block break-words text-xs text-[#6b625a]">
                                                             {new Date(
                                                                 `${notification.booking_date}T${notification.booking_time}`,
                                                             ).toLocaleString()}
                                                         </span>
                                                         {notification.artist_message && (
-                                                            <span className="mt-1 block text-xs text-[#4a4a4a]">
+                                                            <span className="mt-1 block break-words text-xs text-[#4a4a4a]">
                                                                 “
                                                                 {
                                                                     notification.artist_message
@@ -333,7 +341,7 @@ export default function DashboardHeader({
                                                             </span>
                                                         )}
                                                         {notification.detail && (
-                                                            <span className="mt-1 block text-xs font-medium text-[#8a6a2f]">
+                                                            <span className="mt-1 block break-words text-xs font-medium text-[#8a6a2f]">
                                                                 {
                                                                     notification.detail
                                                                 }
@@ -348,22 +356,33 @@ export default function DashboardHeader({
                             )}
                         </div>
                     )}
+                    {userRole === 'artist' && (
+                        <Link
+                            href="/artist/booking-settings"
+                            aria-label="Booking Settings"
+                            title="Booking Settings"
+                            aria-current={active === 'booking-settings' ? 'page' : undefined}
+                            className={`flex h-9 w-9 items-center justify-center rounded-full border border-[#c9a66b] transition hover:bg-[#f4e9e5] ${active === 'booking-settings' ? 'bg-[#f4e9e5] text-[#8a6a2f]' : 'text-[#8a6a2f]'}`}
+                        >
+                            <Settings2 className="h-4 w-4" />
+                        </Link>
+                    )}
                     <Link
                         href="/profile"
                         aria-label={`Profile for ${userName}`}
-                        className={linkClass('profile')}
+                        title="Profile"
+                        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[#c9a66b] bg-white transition hover:bg-[#f4e9e5]"
                         aria-current={active === 'profile' ? 'page' : undefined}
                     >
                         {auth?.user?.avatar_url ? (
                             <img
                                 src={auth.user.avatar_url}
                                 alt=""
-                                className="h-5 w-5 rounded-full object-cover ring-1 ring-[#c9a66b]"
+                                className="h-full w-full rounded-full object-cover"
                             />
                         ) : (
-                            <UserIcon className="h-4 w-4" />
+                            <span aria-hidden="true" className="font-semibold text-[#8a6a2f]">{userName.trim().charAt(0).toUpperCase()}</span>
                         )}
-                        Profile
                     </Link>
 
                     <Link
@@ -394,7 +413,7 @@ export default function DashboardHeader({
 
             {menuOpen && (
                 <nav className="flex flex-col gap-1 border-t border-[#e8d7cf] bg-[#faf7f4] px-4 py-3 sm:hidden">
-                    {navItems.map(({ key, label, href, icon: Icon }) => (
+                    {navItems.filter(({ key }) => key !== 'booking-settings').map(({ key, label, href, icon: Icon }) => (
                         <Link
                             key={key}
                             href={href}

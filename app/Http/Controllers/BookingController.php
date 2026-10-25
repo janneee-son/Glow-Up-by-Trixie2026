@@ -7,6 +7,7 @@ use App\Models\ArtistService;
 use App\Models\Booking;
 use App\Models\BookingBalancePayment;
 use App\Models\InspoImage;
+use App\Models\ServiceArea;
 use App\Models\User;
 use App\Notifications\ArtistBookingUpdate;
 use App\Notifications\NewBookingRequest;
@@ -54,14 +55,6 @@ Once the downpayment is received, your appointment will be officially secured.
 Thank you and we look forward to glamming you!
 HMUA: GlowUpByTrixie
 TERMS;
-
-    private const METRO_MANILA_CITIES = [
-        'Caloocan', 'Las Piñas', 'Makati', 'Malabon', 'Mandaluyong', 'Manila',
-        'Marikina', 'Muntinlupa', 'Navotas', 'Parañaque', 'Pasay', 'Pasig',
-        'Quezon City', 'San Juan', 'Taguig', 'Valenzuela', 'Pateros',
-    ];
-
-    private const NEARBY_PROVINCE_DESTINATIONS = ['Cavite', 'Tagaytay', 'Bulacan'];
 
     /** The one artist (and admin) of the studio. */
     private function theArtist(): ?User
@@ -121,6 +114,11 @@ TERMS;
             ->whereIn('status', ['pending', 'confirmed', 'completed'])
             ->when($ignoreBookingId, fn ($q) => $q->where('id', '!=', $ignoreBookingId))
             ->count() >= self::MAX_DAILY_BOOKINGS;
+    }
+
+    private function dateBlocked(User $artist, string $date): bool
+    {
+        return in_array($date, $artist->blocked_booking_dates ?? [], true);
     }
 
     public function create(Request $request)
@@ -183,15 +181,14 @@ TERMS;
             'packages' => $offerings->where('kind', 'package')->values(),
             'addOns' => $offerings->where('kind', 'add_on')->values(),
             'minimumBookingDate' => Carbon::today()->toDateString(),
+            'maximumBookingDate' => $this->maximumBookingDate(),
             'rushBookingCutoffDate' => Carbon::today()->addDays(self::RUSH_BOOKING_DAYS)->toDateString(),
             'rushBookingFee' => self::RUSH_BOOKING_FEE,
             'earlyCallTimeFee' => self::EARLY_CALL_TIME_FEE,
             'metroManilaTravelFee' => (int) ($artist?->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE),
             'outOfTownTravelFee' => (int) ($artist?->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE),
-            'serviceCities' => [
-                'metroManila' => self::METRO_MANILA_CITIES,
-                'nearbyProvince' => self::NEARBY_PROVINCE_DESTINATIONS,
-            ],
+            'serviceCities' => $this->serviceCities($artist),
+            'serviceAreas' => $artist?->serviceAreas()->get(['name', 'fee_group', 'level', 'starting_fee', 'note']) ?? collect(),
             'bookingTerms' => [
                 'version' => self::BOOKING_TERMS_VERSION,
                 'text' => self::BOOKING_TERMS,
@@ -211,7 +208,7 @@ TERMS;
         }
 
         $validated = $request->validate([
-            'booking_date' => ['required', 'date', 'after_or_equal:today'],
+            'booking_date' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:'.$this->maximumBookingDate()],
             'booking_time' => ['nullable', 'date_format:H:i,H:i:s'],
             'service' => [
                 'nullable',
@@ -245,6 +242,13 @@ TERMS;
         }
 
         $serviceName = $package?->name ?? $service->name;
+
+        if ($this->dateBlocked($artist, $validated['booking_date'])) {
+            return response()->json([
+                'available' => false,
+                'message' => 'The artist is unavailable on this date. Please choose another day.',
+            ]);
+        }
 
         if ($this->dailyCapacityReached($artist->id, $validated['booking_date'], $serviceName)) {
             return response()->json([
@@ -307,13 +311,17 @@ TERMS;
                 'required',
                 'date',
                 'after_or_equal:today',
+                'before_or_equal:'.$this->maximumBookingDate(),
             ],
             'booking_time' => ['required', 'date_format:H:i,H:i:s'],
-            'service_city' => ['required', 'string', Rule::in(array_merge(
-                self::METRO_MANILA_CITIES,
-                self::NEARBY_PROVINCE_DESTINATIONS,
-            ))],
-            'venue_address' => ['required', 'string', 'max:1000'],
+            'service_city' => ['required', 'string', 'max:100'],
+            'service_province' => ['required', 'string', 'max:100'],
+            'venue_barangay' => ['required', 'string', 'max:150'],
+            'venue_street' => ['required', 'string', 'min:3', 'max:500'],
+            'venue_landmark' => ['nullable', 'string', 'max:255'],
+            'venue_latitude' => ['required', 'numeric', 'between:-90,90'],
+            'venue_longitude' => ['required', 'numeric', 'between:-180,180'],
+            'address_confirmed' => ['required', 'accepted'],
             'notes' => ['nullable', 'string', 'max:500'],
             'inspo_image_id' => [
                 'nullable',
@@ -321,6 +329,33 @@ TERMS;
             ],
             'new_inspo_image' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
         ]);
+
+        $serviceArea = ServiceArea::resolveForAddress($artist, $validated['service_city'], $validated['service_province']);
+
+        if ($serviceArea?->level === 'not_served') {
+            throw ValidationException::withMessages([
+                'service_city' => 'This location is no longer accepting booking requests. Choose another area or contact Trixie.',
+            ]);
+        }
+
+        $addressVerification = $request->session()->get('booking_address_verification');
+        $expectedAddressHash = BookingAddressVerificationController::addressHash(
+            $request->user()->id,
+            $validated['service_province'],
+            $validated['service_city'],
+            $validated['venue_barangay'],
+            $validated['venue_street'],
+            $validated['venue_landmark'] ?? '',
+            (float) $validated['venue_latitude'],
+            (float) $validated['venue_longitude'],
+        );
+        if (! is_array($addressVerification)
+            || ! hash_equals((string) ($addressVerification['hash'] ?? ''), $expectedAddressHash)
+            || ($addressVerification['verified_at'] ?? 0) < now()->subMinutes(15)->timestamp) {
+            throw ValidationException::withMessages([
+                'address_confirmed' => 'Confirm the pin on the map again before sending your booking request.',
+            ]);
+        }
 
         $hasService = filled($validated['service'] ?? null);
         $hasPackage = filled($validated['package_id'] ?? null);
@@ -392,23 +427,8 @@ TERMS;
             ->values()
             ->all();
 
-        $requiresQuote = $basePriceType === 'quote_required'
-            || collect($selectedAddOns)->contains(fn (array $addOn) => $addOn['pricing_type'] === 'quote_required')
-            || $validated['service_city'] !== '';
         $estimatedTotal = ($basePrice ?? 0)
             + collect($selectedAddOns)->sum(fn (array $addOn) => $addOn['line_total'] ?? 0);
-
-        $bookingFees = $this->withBookingFees(
-            $selectedAddOns,
-            $estimatedTotal,
-            $validated['booking_date'],
-            $validated['booking_time'],
-            $this->travelAreaForCity($validated['service_city']),
-            (int) ($artist->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE),
-            (int) ($artist->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE),
-        );
-        $selectedAddOns = $bookingFees['selected_add_ons'];
-        $estimatedTotal = $bookingFees['estimated_total'] ?? $estimatedTotal;
 
         if (Carbon::parse("{$validated['booking_date']} {$validated['booking_time']}")->isPast()) {
             throw ValidationException::withMessages([
@@ -417,18 +437,6 @@ TERMS;
         }
 
         $serviceName = $package?->name ?? $service->name;
-
-        if ($this->dailyCapacityReached($artist->id, $validated['booking_date'], $serviceName)) {
-            throw ValidationException::withMessages([
-                'booking_date' => 'The artist has reached the usual limit of two bookings for this day. Please choose another date.',
-            ]);
-        }
-
-        if ($this->slotTaken($artist->id, $validated['booking_date'], $validated['booking_time'], $serviceName)) {
-            throw ValidationException::withMessages([
-                'booking_time' => 'That time is already taken. Please choose a different time.',
-            ]);
-        }
 
         $inspoId = $validated['inspo_image_id'] ?? null;
 
@@ -443,31 +451,106 @@ TERMS;
             $inspoId = $inspo->id;
         }
 
-        $booking = Booking::create([
-            'client_id' => $request->user()->id,
-            'artist_id' => $artist->id,
-            'service' => $serviceName,
-            'package_id' => $package?->id,
-            'base_price' => $basePrice,
-            'base_price_type' => $basePriceType,
-            'estimated_total' => $estimatedTotal,
-            'selected_add_ons' => $selectedAddOns,
-            'requires_quote' => $requiresQuote,
-            'booking_date' => $validated['booking_date'],
-            'booking_time' => $validated['booking_time'],
-            'location_type' => $this->travelAreaForCity($validated['service_city']),
-            'venue_address' => $validated['service_city'].' — '.$validated['venue_address'],
-            'notes' => $validated['notes'] ?? null,
-            'inspo_image_id' => $inspoId,
-            'status' => 'pending',
-            'terms_version' => self::BOOKING_TERMS_VERSION,
-            'terms_text' => self::BOOKING_TERMS,
-            'terms_accepted_at' => now(),
-        ]);
+        $booking = DB::transaction(function () use (
+            $artist,
+            $request,
+            $validated,
+            $serviceName,
+            $package,
+            $basePrice,
+            $basePriceType,
+            $estimatedTotal,
+            $selectedAddOns,
+            $inspoId,
+        ): Booking {
+            User::query()->whereKey($artist->id)->lockForUpdate()->firstOrFail();
+
+            $artist->refresh();
+            $serviceArea = ServiceArea::resolveForAddress($artist, $validated['service_city'], $validated['service_province'], true);
+
+            if ($serviceArea?->level === 'not_served') {
+                throw ValidationException::withMessages([
+                    'service_city' => 'This location is no longer accepting booking requests. Choose another area or contact Trixie.',
+                ]);
+            }
+
+            $feeGroup = $serviceArea?->fee_group ?? ($this->isMetroManilaProvince($validated['service_province']) ? 'metro_manila' : 'nearby_province');
+            $areaLevel = $serviceArea?->level ?? 'on_request';
+            $defaultTravelFee = $feeGroup === 'nearby_province'
+                ? (int) ($artist->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE)
+                : (int) ($artist->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE);
+            $travelFee = (int) ($serviceArea?->starting_fee ?? $defaultTravelFee);
+            $bookingFees = $this->withBookingFees(
+                $selectedAddOns,
+                $estimatedTotal,
+                $validated['booking_date'],
+                $validated['booking_time'],
+                $feeGroup,
+                $travelFee,
+                $travelFee,
+                $areaLevel === 'on_request',
+            );
+            $bookingAddOns = $bookingFees['selected_add_ons'];
+            $bookingTotal = $bookingFees['estimated_total'] ?? $estimatedTotal;
+            // Every booking needs the artist's final makeup and travel quote
+            // before the client can accept the quote and submit a deposit.
+            $requiresQuote = true;
+
+            if ($this->dateBlocked($artist, $validated['booking_date'])) {
+                throw ValidationException::withMessages([
+                    'booking_date' => 'The artist is unavailable on this date. Please choose another day.',
+                ]);
+            }
+
+            if ($this->dailyCapacityReached($artist->id, $validated['booking_date'], $serviceName)) {
+                throw ValidationException::withMessages([
+                    'booking_date' => 'The artist has reached the usual limit of two bookings for this day. Please choose another date.',
+                ]);
+            }
+
+            if ($this->slotTaken($artist->id, $validated['booking_date'], $validated['booking_time'], $serviceName)) {
+                throw ValidationException::withMessages([
+                    'booking_time' => 'That time is already taken. Please choose a different time.',
+                ]);
+            }
+
+            return Booking::create([
+                'client_id' => $request->user()->id,
+                'artist_id' => $artist->id,
+                'service' => $serviceName,
+                'package_id' => $package?->id,
+                'base_price' => $basePrice,
+                'base_price_type' => $basePriceType,
+                'estimated_total' => $bookingTotal,
+                'selected_add_ons' => $bookingAddOns,
+                'requires_quote' => $requiresQuote,
+                'quote_accepted_at' => $requiresQuote ? null : now(),
+                'deposit_status' => $requiresQuote ? 'not_due' : 'due',
+                'booking_date' => $validated['booking_date'],
+                'booking_time' => $validated['booking_time'],
+                'location_type' => $feeGroup,
+                'service_area_level' => $areaLevel,
+                'service_province' => $validated['service_province'],
+                'venue_address' => $this->formatVenueAddress($validated),
+                'venue_barangay' => $validated['venue_barangay'],
+                'venue_street' => $validated['venue_street'],
+                'venue_landmark' => $validated['venue_landmark'] ?? null,
+                'venue_latitude' => $validated['venue_latitude'],
+                'venue_longitude' => $validated['venue_longitude'],
+                'notes' => $validated['notes'] ?? null,
+                'inspo_image_id' => $inspoId,
+                'status' => 'pending',
+                'terms_version' => self::BOOKING_TERMS_VERSION,
+                'terms_text' => self::BOOKING_TERMS,
+                'terms_accepted_at' => now(),
+            ]);
+        });
 
         $artist->notify(new NewBookingRequest($booking));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Saved!']);
+
+        $request->session()->forget('booking_address_verification');
 
         return redirect('/dashboard');
     }
@@ -843,7 +926,7 @@ TERMS;
         abort_unless($allowed, 422, 'This booking can no longer be rescheduled.');
 
         $validated = $request->validate([
-            'booking_date' => ['required', 'date', 'after_or_equal:today'],
+            'booking_date' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:'.$this->maximumBookingDate()],
             'booking_time' => ['required', 'date_format:H:i,H:i:s'],
         ]);
 
@@ -851,36 +934,47 @@ TERMS;
 
         abort_if($newStart->isPast(), 422, 'Please pick a time in the future.');
 
-        if ($this->dailyCapacityReached($booking->artist_id, $validated['booking_date'], $booking->service, $booking->id)) {
-            throw ValidationException::withMessages([
-                'booking_date' => 'The artist has reached the usual limit of two bookings for this day. Please choose another date.',
-            ]);
-        }
+        DB::transaction(function () use ($booking, $validated): void {
+            $artist = User::query()->whereKey($booking->artist_id)->lockForUpdate()->firstOrFail();
 
-        if ($this->slotTaken($booking->artist_id, $validated['booking_date'], $validated['booking_time'], $booking->service, $booking->id)) {
-            throw ValidationException::withMessages([
-                'booking_time' => 'That time is already taken. Please choose a different time.',
-            ]);
-        }
+            if ($this->dateBlocked($artist, $validated['booking_date'])) {
+                throw ValidationException::withMessages([
+                    'booking_date' => 'The artist is unavailable on this date. Please choose another day.',
+                ]);
+            }
 
-        $booking->update([
-            'booking_date' => $validated['booking_date'],
-            'booking_time' => $validated['booking_time'],
-            'status' => 'pending',
-            ...$this->withBookingFees(
-                $booking->selected_add_ons ?? [],
-                $booking->estimated_total === null ? null : (float) $booking->estimated_total,
-                $validated['booking_date'],
-                $validated['booking_time'],
-                in_array($booking->location_type, ['metro_manila', 'nearby_province'], true)
-                    ? $booking->location_type
-                    : 'metro_manila',
-                (int) ($booking->artist?->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE),
-                (int) ($booking->artist?->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE),
-            ),
-            // the old message belonged to the old slot
-            'artist_message' => null,
-        ]);
+            if ($this->dailyCapacityReached($booking->artist_id, $validated['booking_date'], $booking->service, $booking->id)) {
+                throw ValidationException::withMessages([
+                    'booking_date' => 'The artist has reached the usual limit of two bookings for this day. Please choose another date.',
+                ]);
+            }
+
+            if ($this->slotTaken($booking->artist_id, $validated['booking_date'], $validated['booking_time'], $booking->service, $booking->id)) {
+                throw ValidationException::withMessages([
+                    'booking_time' => 'That time is already taken. Please choose a different time.',
+                ]);
+            }
+
+            $booking->update([
+                'booking_date' => $validated['booking_date'],
+                'booking_time' => $validated['booking_time'],
+                'status' => 'pending',
+                ...$this->withBookingFees(
+                    $booking->selected_add_ons ?? [],
+                    $booking->estimated_total === null ? null : (float) $booking->estimated_total,
+                    $validated['booking_date'],
+                    $validated['booking_time'],
+                    in_array($booking->location_type, ['metro_manila', 'nearby_province'], true)
+                        ? $booking->location_type
+                        : 'metro_manila',
+                    (int) ($booking->artist?->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE),
+                    (int) ($booking->artist?->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE),
+                    $booking->service_area_level === 'on_request',
+                ),
+                // the old message belonged to the old slot
+                'artist_message' => null,
+            ]);
+        });
 
         return back();
     }
@@ -920,11 +1014,41 @@ TERMS;
         }
     }
 
-    private function travelAreaForCity(string $city): string
+    private function serviceCities(?User $artist = null): array
     {
-        return in_array($city, self::NEARBY_PROVINCE_DESTINATIONS, true)
-            ? 'nearby_province'
-            : 'metro_manila';
+        $areas = $artist?->serviceAreas()
+            ->whereIn('level', ['covered', 'on_request'])
+            ->orderBy('name')
+            ->get(['name', 'fee_group', 'level', 'starting_fee', 'note']) ?? collect();
+
+        return [
+            'metroManila' => $areas->where('fee_group', 'metro_manila')->values(),
+            'nearbyProvince' => $areas->where('fee_group', 'nearby_province')->values(),
+        ];
+    }
+
+    private function maximumBookingDate(): string
+    {
+        return Carbon::today()->addMonths((int) config('booking.max_advance_months', 24))->toDateString();
+    }
+
+    private function isMetroManilaProvince(string $province): bool
+    {
+        return in_array(mb_strtolower(trim($province)), ['metro manila', 'national capital region', 'ncr'], true);
+    }
+
+    /** @param array<string, mixed> $address */
+    private function formatVenueAddress(array $address): string
+    {
+        $parts = array_filter([
+            $address['venue_street'] ?? null,
+            $address['venue_barangay'] ?? null,
+            $address['service_city'] ?? null,
+            $address['service_province'] ?? null,
+            filled($address['venue_landmark'] ?? null) ? 'Landmark: '.$address['venue_landmark'] : null,
+        ]);
+
+        return mb_substr(implode(', ', $parts), 0, 1000);
     }
 
     private function withBookingFees(
@@ -935,6 +1059,7 @@ TERMS;
         string $travelArea,
         int $metroManilaTravelFee,
         int $outOfTownTravelFee,
+        bool $onRequestArea = false,
     ): array {
         $existingSystemFees = 0.0;
         $regularAddOns = [];
@@ -969,9 +1094,11 @@ TERMS;
         }
 
         $regularAddOns[] = $this->systemFeeSnapshot(
-            $travelArea === 'nearby_province'
-                ? 'Nearby-province transportation (starting fee)'
-                : 'Metro Manila transportation (starting fee)',
+            $onRequestArea
+                ? 'On-request area transportation (starting fee)'
+                : ($travelArea === 'nearby_province'
+                    ? 'Nearby-province transportation (starting fee)'
+                    : 'Metro Manila transportation (starting fee)'),
             $travelFee,
         );
 

@@ -13,6 +13,7 @@ import {
     X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import BookingItemizedPricing from '@/components/booking-itemized-pricing';
 import BookingPaymentBreakdown from '@/components/booking-payment-breakdown';
 import DashboardHeader from '@/components/dashboard-header';
 import RequiredAsterisk from '@/components/required-asterisk';
@@ -60,6 +61,8 @@ type Booking = {
     booking_time: string;
     location_type?: string | null;
     venue_address?: string | null;
+    venue_latitude?: number | string | null;
+    venue_longitude?: number | string | null;
     package?: {
         description: string | null;
         inclusions: string[] | null;
@@ -171,6 +174,66 @@ function needsContactToCancel(booking: Booking) {
 
 function isArtistDeclined(booking: Booking) {
     return booking.status === 'cancelled' && booking.cancelled_by === 'artist';
+}
+
+function getBookingNextStep(booking: Booking) {
+    if (booking.status === 'cancelled') {
+        return {
+            owner: 'No action needed',
+            message: isArtistDeclined(booking)
+                ? 'The artist declined this request. Open the booking details to read their message.'
+                : 'This booking was cancelled.',
+        };
+    }
+
+    if (booking.status === 'completed') {
+        return {
+            owner: booking.review ? 'Complete' : 'Your turn',
+            message: booking.review
+                ? 'This appointment is complete.'
+                : 'Your appointment is complete. Share a review of your experience.',
+        };
+    }
+
+    if (booking.status === 'confirmed') {
+        return {
+            owner: 'No action needed',
+            message: 'Your appointment is confirmed. Open the details for the schedule and payment summary.',
+        };
+    }
+
+    if (booking.quote_pending || booking.transportation_fee_pending) {
+        return {
+            owner: 'Your turn',
+            message: 'Review and accept the updated quote to continue.',
+        };
+    }
+
+    if (booking.deposit_status === 'due') {
+        return {
+            owner: 'Your turn',
+            message: 'Submit the 50% deposit and payment details.',
+        };
+    }
+
+    if (booking.deposit_status === 'submitted') {
+        return {
+            owner: 'Waiting for the artist',
+            message: 'Your deposit details are submitted. The artist needs to verify the payment.',
+        };
+    }
+
+    if (booking.deposit_status === 'received') {
+        return {
+            owner: 'Waiting for the artist',
+            message: 'The deposit is verified. The artist needs to confirm your appointment.',
+        };
+    }
+
+    return {
+        owner: 'Waiting for the artist',
+        message: 'The artist is reviewing your request and preparing the final quote.',
+    };
 }
 
 const DISMISSED_KEY = 'dismissed_decline_notifs';
@@ -570,25 +633,6 @@ export default function ClientDashboard({ bookings }: Props) {
                                             <p className="font-serif text-lg font-bold text-[#1a1a1a]">
                                                 {booking.service}
                                             </p>
-                                            {booking.final_makeup_price !=
-                                            null ? (
-                                                <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
-                                                    Final makeup quote: ₱
-                                                    {Number(
-                                                        booking.final_makeup_price,
-                                                    ).toLocaleString('en-PH')}
-                                                </p>
-                                            ) : (
-                                                booking.base_price_type && (
-                                                    <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
-                                                        {booking.requires_quote ||
-                                                        booking.base_price_type ===
-                                                            'quote_required'
-                                                            ? 'Artist quote in progress'
-                                                            : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
-                                                    </p>
-                                                )
-                                            )}
                                             <p className="text-sm text-[#4a4a4a]">
                                                 with {booking.artist.name}
                                                 {booking.artist.specialty
@@ -603,6 +647,15 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 ? 'Declined'
                                                 : booking.status}
                                         </span>
+                                    </div>
+
+                                    <div className="mb-3 rounded-xl border border-[#e8d7cf] bg-[#faf7f4] px-3 py-2.5">
+                                        <p className="text-xs font-bold tracking-wide text-[#8a6a2f] uppercase">
+                                            {getBookingNextStep(booking).owner}
+                                        </p>
+                                        <p className="mt-0.5 text-sm text-[#1a1a1a]">
+                                            {getBookingNextStep(booking).message}
+                                        </p>
                                     </div>
 
                                     {!!booking.selected_add_ons?.length && (
@@ -624,6 +677,19 @@ export default function ClientDashboard({ bookings }: Props) {
                                                 ? 'Nearby province'
                                                 : 'Metro Manila'}{' '}
                                             · {booking.venue_address}
+                                            {booking.venue_latitude != null && booking.venue_longitude != null && (
+                                                <>
+                                                    {' · '}
+                                                    <a
+                                                        href={`https://www.openstreetmap.org/?mlat=${booking.venue_latitude}&mlon=${booking.venue_longitude}#map=18/${booking.venue_latitude}/${booking.venue_longitude}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="font-medium text-[#76551e] underline underline-offset-2"
+                                                    >
+                                                        Open map pin
+                                                    </a>
+                                                </>
+                                            )}
                                         </p>
                                     )}
                                     {booking.estimated_total != null && booking.quote_accepted_at ? (
@@ -633,17 +699,6 @@ export default function ClientDashboard({ bookings }: Props) {
                                             depositAmount={booking.deposit_amount}
                                             remainingBalance={booking.remaining_balance}
                                         />
-                                    ) : booking.estimated_total != null ? (
-                                        <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">
-                                            {booking.quote_pending ||
-                                            booking.transportation_fee_pending
-                                                ? 'Quote total for your approval'
-                                                : 'Starting estimate'}
-                                            : ₱
-                                            {Number(
-                                                booking.estimated_total,
-                                            ).toLocaleString('en-PH')}
-                                        </p>
                                     ) : null}
                                     {(booking.quote_pending ||
                                         booking.transportation_fee_pending) && (
@@ -756,6 +811,15 @@ export default function ClientDashboard({ bookings }: Props) {
                                     : selectedBooking.status}
                             </span>
                         </div>
+
+                        <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-[#faf7f4] p-4" aria-live="polite">
+                            <p className="text-xs font-bold tracking-wide text-[#8a6a2f] uppercase">
+                                {getBookingNextStep(selectedBooking).owner}
+                            </p>
+                            <p className="mt-1 text-sm text-[#1a1a1a]">
+                                {getBookingNextStep(selectedBooking).message}
+                            </p>
+                        </section>
 
                         {selectedBooking.terms_accepted_at && (
                             <p className="mt-2 text-xs text-[#4a4a4a]">
@@ -891,98 +955,23 @@ export default function ClientDashboard({ bookings }: Props) {
                                     )}
                                 </div>
 
-                                {(selectedBooking.base_price != null ||
-                                    selectedBooking.final_makeup_price !=
-                                        null ||
-                                    !!selectedBooking.selected_add_ons
-                                        ?.length ||
-                                    selectedBooking.estimated_total !=
-                                        null) && (
-                                    <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-white p-4">
-                                        <h3 className="mb-3 text-sm font-semibold text-[#1a1a1a]">
-                                            Price breakdown
-                                        </h3>
-                                        <div className="grid gap-2 text-sm text-[#4a4a4a]">
-                                            {selectedBooking.final_makeup_price !=
-                                            null ? (
-                                                <div className="flex justify-between gap-3">
-                                                    <span>
-                                                        Final makeup price
-                                                    </span>
-                                                    <span className="shrink-0">
-                                                        ₱
-                                                        {Number(
-                                                            selectedBooking.final_makeup_price,
-                                                        ).toLocaleString(
-                                                            'en-PH',
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                selectedBooking.base_price !=
-                                                    null && (
-                                                    <div className="flex justify-between gap-3">
-                                                        <span>
-                                                            {
-                                                                selectedBooking.service
-                                                            }
-                                                            {selectedBooking.base_price_type ===
-                                                            'starting_at'
-                                                                ? ' (starting price)'
-                                                                : ''}
-                                                        </span>
-                                                        <span className="shrink-0">
-                                                            {selectedBooking.base_price_type ===
-                                                            'quote_required'
-                                                                ? 'Quote'
-                                                                : `₱${Number(selectedBooking.base_price).toLocaleString('en-PH')}`}
-                                                        </span>
-                                                    </div>
-                                                )
-                                            )}
-                                            {selectedBooking.selected_add_ons?.map(
-                                                (item, index) => (
-                                                    <div
-                                                        key={`${item.name}-${index}`}
-                                                        className="flex justify-between gap-3"
-                                                    >
-                                                        <span>
-                                                            {item.name}
-                                                            {item.quantity > 1
-                                                                ? ` × ${item.quantity}`
-                                                                : ''}
-                                                        </span>
-                                                        <span className="shrink-0">
-                                                            {item.line_total ==
-                                                            null
-                                                                ? 'Quote'
-                                                                : `₱${Number(item.line_total).toLocaleString('en-PH')}`}
-                                                        </span>
-                                                    </div>
-                                                ),
-                                            )}
-                                            {selectedBooking.estimated_total !=
-                                                null && (
-                                                <div className="flex justify-between gap-3 border-t border-[#e8d7cf] pt-2 font-semibold text-[#1a1a1a]">
-                                                    <span>
-                                                        {selectedBooking.quote_accepted_at
-                                                            ? 'Total service fee'
-                                                              : selectedBooking.quote_pending ||
-                                                                  selectedBooking.transportation_fee_pending
-                                                                ? 'Total for your approval'
-                                                                : 'Starting estimate'}
-                                                    </span>
-                                                    <span className="shrink-0">
-                                                        ₱
-                                                        {Number(
-                                                            selectedBooking.estimated_total,
-                                                        ).toLocaleString(
-                                                            'en-PH',
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
+                                <BookingItemizedPricing
+                                    basePrice={selectedBooking.base_price}
+                                    basePriceType={selectedBooking.base_price_type}
+                                    finalMakeupPrice={selectedBooking.final_makeup_price}
+                                    addOns={selectedBooking.selected_add_ons}
+                                    total={selectedBooking.estimated_total}
+                                    quoteAccepted={selectedBooking.quote_accepted_at}
+                                    quotePending={Boolean(selectedBooking.quote_pending || selectedBooking.transportation_fee_pending)}
+                                    depositStatus={selectedBooking.deposit_status}
+                                    depositAmount={selectedBooking.deposit_amount}
+                                    remainingBalance={selectedBooking.remaining_balance}
+                                />
+
+                                {selectedBooking.notes && (
+                                    <section className="mb-4 rounded-xl border border-[#e8d7cf] bg-[#faf7f4] p-4">
+                                        <h3 className="mb-2 text-sm font-semibold text-[#1a1a1a]">Your makeup preferences</h3>
+                                        <p className="text-sm whitespace-pre-line text-[#4a4a4a]">{selectedBooking.notes}</p>
                                     </section>
                                 )}
 
@@ -1349,6 +1338,16 @@ export default function ClientDashboard({ bookings }: Props) {
                                         <p className="mt-1 whitespace-pre-line text-[#1a1a1a]">
                                             {selectedBooking.venue_address}
                                         </p>
+                                        {selectedBooking.venue_latitude != null && selectedBooking.venue_longitude != null && (
+                                            <a
+                                                href={`https://www.openstreetmap.org/?mlat=${selectedBooking.venue_latitude}&mlon=${selectedBooking.venue_longitude}#map=18/${selectedBooking.venue_latitude}/${selectedBooking.venue_longitude}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="mt-2 inline-block min-h-11 py-3 font-medium text-[#76551e] underline underline-offset-2"
+                                            >
+                                                Open venue map pin
+                                            </a>
+                                        )}
                                     </section>
                                 )}
 

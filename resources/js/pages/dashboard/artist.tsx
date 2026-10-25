@@ -1,16 +1,16 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Check,
+    CalendarDays,
     Clock,
     ImageIcon,
-    MapPin,
     MessageSquare,
     Phone,
     Sparkles,
     X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import BookingPaymentBreakdown from '@/components/booking-payment-breakdown';
+import BookingItemizedPricing from '@/components/booking-itemized-pricing';
 import DashboardHeader from '@/components/dashboard-header';
 import RequiredAsterisk from '@/components/required-asterisk';
 
@@ -50,7 +50,10 @@ type Booking = {
     booking_date: string;
     booking_time: string;
     location_type?: string | null;
+    service_area_level?: 'covered' | 'on_request';
     venue_address?: string | null;
+    venue_latitude?: number | string | null;
+    venue_longitude?: number | string | null;
     status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
     notes: string | null;
     artist_message: string | null;
@@ -157,6 +160,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
     const [busyId, setBusyId] = useState<number | null>(null);
     const [viewingUrl, setViewingUrl] = useState<string | null>(null);
     const [messages, setMessages] = useState<Record<number, string>>({});
+    const [messageOpen, setMessageOpen] = useState<Record<number, boolean>>({});
     const [makeupPrices, setMakeupPrices] = useState<Record<number, string>>(
         {},
     );
@@ -173,16 +177,10 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
     const [balanceDates, setBalanceDates] = useState<Record<number, string>>({});
     const [balanceErrors, setBalanceErrors] = useState<Record<number, string>>({});
     const [reviewBusyId, setReviewBusyId] = useState<number | null>(null);
-
     const pending = useMemo(
         () => bookings.filter((b) => b.status === 'pending'),
         [bookings],
     );
-    const completedCount = useMemo(
-        () => bookings.filter((b) => b.status === 'completed').length,
-        [bookings],
-    );
-
     const { upcoming, past } = useMemo(() => {
         const upcoming: Booking[] = [];
         const past: Booking[] = [];
@@ -341,7 +339,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                         <div className="pointer-events-none absolute -top-12 -right-10 h-48 w-48 rounded-full bg-[#e8d7cf]/50 blur-2xl" />
                         <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
                             <div>
-                                <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#e8d7cf] bg-white/80 px-3 py-1.5 text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
+                                <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#e8d7cf] bg-white/80 px-3 py-1.5 text-sm font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
                                     <Sparkles className="h-3.5 w-3.5" /> Artist
                                     studio
                                 </span>
@@ -364,131 +362,12 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                         </div>
                     </section>
 
-                    <section className="mb-8 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm sm:p-6">
-                        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                            <div>
-                                <p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
-                                    Client feedback
-                                </p>
-                                <h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">
-                                    Reviews
-                                </h2>
-                            </div>
-                            <span className="rounded-full bg-[#f4e9e5] px-3 py-1 text-sm font-semibold text-[#8a6a2f]">
-                                {
-                                    reviews.filter(
-                                        (review) => !review.is_approved,
-                                    ).length
-                                }{' '}
-                                awaiting approval
-                            </span>
-                        </div>
-                        {reviews.length === 0 ? (
-                            <p className="text-sm text-[#4a4a4a]">
-                                Reviews from completed sessions will appear
-                                here.
-                            </p>
-                        ) : (
-                            <div className="grid gap-3">
-                                {reviews.map((review) => (
-                                    <article
-                                        key={review.id}
-                                        className="rounded-2xl border border-[#f0e2dd] bg-[#fffcf8] p-4"
-                                    >
-                                        <div className="flex flex-wrap items-start justify-between gap-3">
-                                            <div>
-                                                <p className="font-semibold text-[#1a1a1a]">
-                                                    {'★'.repeat(review.rating)}
-                                                    {'☆'.repeat(
-                                                        5 - review.rating,
-                                                    )}{' '}
-                                                    <span className="ml-1 text-sm font-medium text-[#4a4a4a]">
-                                                        {review.client.name} ·{' '}
-                                                        {review.booking.service}
-                                                    </span>
-                                                </p>
-                                                <p className="mt-2 text-sm leading-6 whitespace-pre-line text-[#4a4a4a]">
-                                                    {review.comment}
-                                                </p>
-                                                <p className="mt-2 text-xs text-[#6b625a]">
-                                                    Session on{' '}
-                                                    {formatDate(
-                                                        review.booking
-                                                            .booking_date,
-                                                    )}
-                                                </p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                disabled={
-                                                    reviewBusyId === review.id
-                                                }
-                                                onClick={() =>
-                                                    setReviewApproval(
-                                                        review.id,
-                                                        !review.is_approved,
-                                                    )
-                                                }
-                                                className="shrink-0 rounded-full border border-[#c9a66b] px-4 py-2 text-xs font-semibold text-[#8a6a2f] disabled:opacity-50"
-                                            >
-                                                {reviewBusyId === review.id
-                                                    ? 'Saving…'
-                                                    : review.is_approved
-                                                      ? 'Hide from homepage'
-                                                      : 'Approve & publish'}
-                                            </button>
-                                        </div>
-                                    </article>
-                                ))}
-                            </div>
-                        )}
-                    </section>
-
-                    <section
-                        aria-label="Booking summary"
-                        className="mb-8 grid gap-3 sm:grid-cols-3"
-                    >
-                        <div className="rounded-2xl border border-[#e8d7cf] bg-white p-4 shadow-sm shadow-[#c9a66b]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#4a4a4a] uppercase">
-                                Needs your reply
-                            </p>
-                            <p className="mt-2 font-serif text-3xl font-bold text-[#8a6a2f]">
-                                {pending.length}
-                            </p>
-                            <p className="mt-1 text-xs text-[#4a4a4a]">
-                                Pending client requests
-                            </p>
-                        </div>
-                        <div className="rounded-2xl border border-[#e8d7cf] bg-white p-4 shadow-sm shadow-[#c9a66b]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#4a4a4a] uppercase">
-                                On your schedule
-                            </p>
-                            <p className="mt-2 font-serif text-3xl font-bold text-[#8a6a2f]">
-                                {upcoming.length}
-                            </p>
-                            <p className="mt-1 text-xs text-[#4a4a4a]">
-                                Upcoming sessions
-                            </p>
-                        </div>
-                        <div className="rounded-2xl border border-[#e8d7cf] bg-white p-4 shadow-sm shadow-[#c9a66b]/10">
-                            <p className="text-xs font-semibold tracking-wider text-[#4a4a4a] uppercase">
-                                Beautifully done
-                            </p>
-                            <p className="mt-2 font-serif text-3xl font-bold text-[#718B72]">
-                                {completedCount}
-                            </p>
-                            <p className="mt-1 text-xs text-[#4a4a4a]">
-                                Completed bookings
-                            </p>
-                        </div>
-                    </section>
-
                     {/* pending requests */}
                     {pending.length > 0 && (
                         <div className="mb-9">
                             <div className="mb-3 flex items-end justify-between gap-3">
                                 <div>
-                                    <p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
+                                    <p className="text-sm font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
                                         Your inbox
                                     </p>
                                     <h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">
@@ -509,23 +388,27 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                         <BookingHeader
                                             booking={booking}
                                             onViewInspo={setViewingUrl}
-                                        />
+                                        >
 
+                                        {booking.deposit_status !== 'submitted' && booking.deposit_status !== 'received' && (
                                         <div className="mt-4 rounded-2xl border border-[#e8d7cf] bg-[#fffcf8] p-4">
                                             <h3 className="text-sm font-semibold text-[#1a1a1a]">
-                                                Prepare the final quote
+                                                {booking.quote_accepted_at ? 'Revise the accepted quote' : booking.quote_pending ? 'Update the itemized quote' : booking.service_area_level === 'on_request' ? 'Review this on-request area' : 'Prepare the final quote'}
                                             </h3>
-                                            <p className="mt-1 text-xs leading-5 text-[#4a4a4a]">
-                                                Review the inspiration and
-                                                address, then send one itemized
-                                                makeup and transportation price
-                                                for the client to approve.
+                                            <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">
+                                                {booking.quote_accepted_at
+                                                    ? 'The client accepted this quote. Sending a revision will ask them to approve the new itemized total before the deposit can be submitted.'
+                                                    : booking.quote_pending
+                                                      ? 'This quote is waiting for the client. Adjust the makeup or transportation price if needed, then send the updated itemization.'
+                                                      : booking.service_area_level === 'on_request'
+                                                    ? 'Decide whether you can serve this location. Send an itemized travel-fee quote to approve the request, or decline if the area is not workable.'
+                                                    : 'Review the inspiration and address, then send one itemized makeup and transportation price for the client to approve.'}
                                             </p>
                                             <div className="mt-3 grid gap-3 sm:grid-cols-2">
                                                 <div>
                                                     <label
                                                         htmlFor={`makeup-price-${booking.id}`}
-                                                        className="mb-1 block text-xs font-medium text-[#4a4a4a]"
+                                                        className="mb-1 block text-sm font-medium text-[#4a4a4a]"
                                                     >
                                                         Final makeup price (₱)<RequiredAsterisk />
                                                     </label>
@@ -563,7 +446,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                 <div>
                                                     <label
                                                         htmlFor={`travel-fee-${booking.id}`}
-                                                        className="mb-1 block text-xs font-medium text-[#4a4a4a]"
+                                                        className="mb-1 block text-sm font-medium text-[#4a4a4a]"
                                                     >
                                                         Transportation fee (₱)<RequiredAsterisk />
                                                     </label>
@@ -600,7 +483,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                             <div className="mt-3">
                                                 <label
                                                     htmlFor={`quote-reason-${booking.id}`}
-                                                    className="mb-1 block text-xs font-medium text-[#4a4a4a]"
+                                                    className="mb-1 block text-sm font-medium text-[#4a4a4a]"
                                                 >
                                                     Reason for a price above the
                                                     starting price
@@ -656,21 +539,27 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                 onClick={() =>
                                                     sendQuote(booking)
                                                 }
-                                                className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
+                                                className="mt-3 rounded-full bg-[#8a6a2f] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
                                             >
                                                 {busyId === booking.id
                                                     ? 'Sending…'
-                                                    : 'Send itemized quote'}
+                                                    : booking.quote_accepted_at
+                                                      ? 'Send revised quote'
+                                                      : booking.quote_pending
+                                                        ? 'Update itemized quote'
+                                                        : 'Send itemized quote'}
                                             </button>
                                             {quoteErrors[booking.id] && (
                                                 <p
                                                     role="alert"
-                                                    className="mt-2 text-xs text-[#A13F3F]"
+                                                    className="mt-2 text-sm text-[#A13F3F]"
                                                 >
                                                     {quoteErrors[booking.id]}
                                                 </p>
                                             )}
                                         </div>
+                                        )}
+                                        </BookingHeader>
 
                                         {(booking.quote_pending ||
                                             booking.transportation_fee_pending) && (
@@ -741,7 +630,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                             booking,
                                                         )
                                                     }
-                                                    className="mt-3 rounded-full bg-[#2E7D46] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
+                                                    className="mt-3 rounded-full bg-[#2E7D46] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
                                                 >
                                                     {busyId === booking.id
                                                         ? 'Saving…'
@@ -783,15 +672,15 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                             Number(booking.remaining_balance ?? 0) > 0 && (
                                                 <div className="mt-3 rounded-xl border border-[#e8d7cf] bg-white p-4">
                                                     <h3 className="font-semibold text-[#1a1a1a]">Record a balance payment</h3>
-                                                    <p className="mt-1 text-xs text-[#6b625e]">
+                                                    <p className="mt-1 text-sm text-[#6b625e]">
                                                         Up to ₱{Number(booking.remaining_balance).toLocaleString('en-PH', { minimumFractionDigits: 2 })} remaining.
                                                     </p>
                                                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                                                        <label className="grid gap-1 text-xs font-medium text-[#4a4a4a]">
+                                                        <label className="grid gap-1 text-sm font-medium text-[#4a4a4a]">
                                                             Amount (₱)<RequiredAsterisk />
                                                             <input type="number" min="0.01" max={Number(booking.remaining_balance)} step="0.01" value={balanceAmounts[booking.id] ?? ''} onChange={(event) => setBalanceAmounts((current) => ({ ...current, [booking.id]: event.target.value }))} className="rounded-lg border border-[#d8c8c1] px-3 py-2 text-sm" />
                                                         </label>
-                                                        <label className="grid gap-1 text-xs font-medium text-[#4a4a4a]">
+                                                        <label className="grid gap-1 text-sm font-medium text-[#4a4a4a]">
                                                             Payment method<RequiredAsterisk />
                                                             <select value={balanceMethods[booking.id] ?? 'cash'} onChange={(event) => setBalanceMethods((current) => ({ ...current, [booking.id]: event.target.value }))} className="rounded-lg border border-[#d8c8c1] px-3 py-2 text-sm">
                                                                 <option value="cash">Cash</option>
@@ -800,54 +689,33 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                                 <option value="other">Other</option>
                                                             </select>
                                                         </label>
-                                                        <label className="grid gap-1 text-xs font-medium text-[#4a4a4a]">
+                                                        <label className="grid gap-1 text-sm font-medium text-[#4a4a4a]">
                                                             Date paid<RequiredAsterisk />
                                                             <input type="date" max={dateInputToday()} value={balanceDates[booking.id] ?? dateInputToday()} onChange={(event) => setBalanceDates((current) => ({ ...current, [booking.id]: event.target.value }))} className="rounded-lg border border-[#d8c8c1] px-3 py-2 text-sm" />
                                                         </label>
-                                                        <label className="grid gap-1 text-xs font-medium text-[#4a4a4a]">
+                                                        <label className="grid gap-1 text-sm font-medium text-[#4a4a4a]">
                                                             Reference <span className="font-normal">(optional)</span>
                                                             <input type="text" maxLength={120} value={balanceReferences[booking.id] ?? ''} onChange={(event) => setBalanceReferences((current) => ({ ...current, [booking.id]: event.target.value }))} className="rounded-lg border border-[#d8c8c1] px-3 py-2 text-sm" />
                                                         </label>
                                                     </div>
                                                     {balanceErrors[booking.id] && <p role="alert" className="mt-2 text-sm text-red-700">{balanceErrors[booking.id]}</p>}
-                                                    <button type="button" disabled={busyId === booking.id || !balanceAmounts[booking.id]} onClick={() => recordBalancePayment(booking)} className="mt-3 rounded-full bg-[#2E7D46] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50">
+                                                    <button type="button" disabled={busyId === booking.id || !balanceAmounts[booking.id]} onClick={() => recordBalancePayment(booking)} className="mt-3 rounded-full bg-[#2E7D46] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50">
                                                         {busyId === booking.id ? 'Saving…' : 'Record payment and notify client'}
                                                     </button>
                                                 </div>
                                             )}
 
-                                        {/* optional message to client */}
-                                        <div className="mt-4 grid gap-1.5">
-                                            <label
-                                                htmlFor={`msg-${booking.id}`}
-                                                className="flex items-center gap-1.5 text-xs font-medium text-[#4a4a4a]"
-                                            >
-                                                <MessageSquare className="h-3.5 w-3.5" />{' '}
-                                                Message to client{' '}
-                                                <span className="font-normal">
-                                                    (optional)
-                                                </span>
-                                            </label>
-                                            <textarea
-                                                id={`msg-${booking.id}`}
-                                                rows={2}
-                                                maxLength={300}
-                                                value={
-                                                    messages[booking.id] ?? ''
-                                                }
-                                                onChange={(e) =>
-                                                    setMessages((prev) => ({
-                                                        ...prev,
-                                                        [booking.id]:
-                                                            e.target.value,
-                                                    }))
-                                                }
-                                                placeholder="e.g. Looking forward to it! Please arrive 10 mins early."
-                                                className="w-full resize-none rounded-lg border border-[#c9a66b] bg-[#fffcf8] px-3 py-2 text-sm text-[#1a1a1a] placeholder:text-[#4a4a4a]/60 focus-visible:border-[#8a6a2f] focus-visible:outline-none"
-                                            />
-                                        </div>
-
                                         <div className="mt-3 flex gap-2">
+                                            <button
+                                                type="button"
+                                                aria-label={messageOpen[booking.id] ? 'Hide message to client' : 'Write a message to client'}
+                                                aria-expanded={Boolean(messageOpen[booking.id])}
+                                                title="Message client"
+                                                onClick={() => setMessageOpen((current) => ({ ...current, [booking.id]: !current[booking.id] }))}
+                                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition focus-visible:ring-2 focus-visible:ring-[#8a6a2f]/40 focus-visible:outline-none ${messageOpen[booking.id] || messages[booking.id] ? 'border-[#8a6a2f] bg-[#f4e9e5] text-[#704f1e]' : 'border-[#d7c0a2] bg-white text-[#704f1e] hover:bg-[#fffcf8]'}`}
+                                            >
+                                                <MessageSquare className="h-4 w-4" />
+                                            </button>
                                             <button
                                                 type="button"
                                                 disabled={
@@ -860,7 +728,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                 onClick={() =>
                                                     act(booking.id, 'accept')
                                                 }
-                                                className="flex items-center gap-1.5 rounded-full bg-[#2E7D46] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
+                                                className="flex items-center gap-1.5 rounded-full bg-[#2E7D46] px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
                                             >
                                                 <Check className="h-3.5 w-3.5" />{' '}
                                                 {booking.quote_pending ||
@@ -877,21 +745,118 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                 onClick={() =>
                                                     act(booking.id, 'decline')
                                                 }
-                                                className="flex items-center gap-1.5 rounded-full border border-[#A13F3F] px-4 py-1.5 text-xs font-semibold text-[#A13F3F] transition hover:bg-[#F5E0E0] disabled:opacity-50"
+                                                className="flex items-center gap-1.5 rounded-full border border-[#A13F3F] px-4 py-1.5 text-sm font-semibold text-[#A13F3F] transition hover:bg-[#F5E0E0] disabled:opacity-50"
                                             >
                                                 <X className="h-3.5 w-3.5" />{' '}
                                                 Decline
                                             </button>
                                         </div>
+                                        {messageOpen[booking.id] && (
+                                            <div className="mt-3">
+                                                <label htmlFor={`msg-${booking.id}`} className="mb-1.5 block text-sm font-medium text-[#4a4a4a]">
+                                                    Message to client <span className="font-normal">(optional)</span>
+                                                </label>
+                                                <textarea
+                                                    id={`msg-${booking.id}`}
+                                                    rows={3}
+                                                    maxLength={300}
+                                                    autoFocus
+                                                    value={messages[booking.id] ?? ''}
+                                                    onChange={(e) => setMessages((prev) => ({ ...prev, [booking.id]: e.target.value }))}
+                                                    placeholder="e.g. Looking forward to it! Please arrive 10 mins early."
+                                                    className="w-full resize-none rounded-lg border border-[#c9a66b] bg-[#fffcf8] px-3 py-2 text-sm text-[#1a1a1a] placeholder:text-[#4a4a4a]/60 focus-visible:border-[#8a6a2f] focus-visible:outline-none"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
 
+                    {reviews.length > 0 && <section className="mb-8 rounded-3xl border border-[#e8d7cf] bg-white p-5 shadow-sm sm:p-6">
+                        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                                <p className="text-sm font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
+                                    Client feedback
+                                </p>
+                                <h2 className="mt-1 font-serif text-2xl font-bold text-[#1a1a1a]">
+                                    Reviews
+                                </h2>
+                            </div>
+                            <span className="rounded-full bg-[#f4e9e5] px-3 py-1 text-sm font-semibold text-[#8a6a2f]">
+                                {
+                                    reviews.filter(
+                                        (review) => !review.is_approved,
+                                    ).length
+                                }{' '}
+                                awaiting approval
+                            </span>
+                        </div>
+                        {reviews.length === 0 ? (
+                            <p className="text-sm text-[#4a4a4a]">
+                                Reviews from completed sessions will appear
+                                here.
+                            </p>
+                        ) : (
+                            <div className="grid gap-3">
+                                {reviews.map((review) => (
+                                    <article
+                                        key={review.id}
+                                        className="rounded-2xl border border-[#f0e2dd] bg-[#fffcf8] p-4"
+                                    >
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div>
+                                                <p className="font-semibold text-[#1a1a1a]">
+                                                    {'★'.repeat(review.rating)}
+                                                    {'☆'.repeat(
+                                                        5 - review.rating,
+                                                    )}{' '}
+                                                    <span className="ml-1 text-sm font-medium text-[#4a4a4a]">
+                                                        {review.client.name} ·{' '}
+                                                        {review.booking.service}
+                                                    </span>
+                                                </p>
+                                                <p className="mt-2 text-sm leading-6 whitespace-pre-line text-[#4a4a4a]">
+                                                    {review.comment}
+                                                </p>
+                                                <p className="mt-2 text-sm text-[#6b625a]">
+                                                    Session on{' '}
+                                                    {formatDate(
+                                                        review.booking
+                                                            .booking_date,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={
+                                                    reviewBusyId === review.id
+                                                }
+                                                onClick={() =>
+                                                    setReviewApproval(
+                                                        review.id,
+                                                        !review.is_approved,
+                                                    )
+                                                }
+                                                className="shrink-0 rounded-full border border-[#c9a66b] px-4 py-2 text-sm font-semibold text-[#8a6a2f] disabled:opacity-50"
+                                            >
+                                                {reviewBusyId === review.id
+                                                    ? 'Saving…'
+                                                    : review.is_approved
+                                                      ? 'Hide from homepage'
+                                                      : 'Approve & publish'}
+                                            </button>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
+                    </section>}
+
                     {/* schedule */}
                     <div className="mb-5">
-                        <p className="text-xs font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
+                        <p className="text-sm font-semibold tracking-[0.16em] text-[#8a6a2f] uppercase">
                             Plan your day
                         </p>
                         <h2 className="mt-1 mb-4 font-serif text-2xl font-bold text-[#1a1a1a]">
@@ -953,7 +918,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                             onClick={() =>
                                                 act(booking.id, 'complete')
                                             }
-                                            className="mt-4 rounded-full border border-[#8a6a2f] px-4 py-1.5 text-xs font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5] disabled:opacity-50"
+                                            className="mt-4 rounded-full border border-[#8a6a2f] px-4 py-1.5 text-sm font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5] disabled:opacity-50"
                                         >
                                             Mark as Completed
                                         </button>
@@ -993,11 +958,19 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
 function BookingHeader({
     booking,
     onViewInspo,
+    children,
 }: {
     booking: Booking;
     onViewInspo: (url: string) => void;
+    children?: React.ReactNode;
 }) {
     const { occasion, text } = splitNotes(booking.notes);
+    const hasMoreDetails = Boolean(children) || Boolean(
+        booking.terms_accepted_at || booking.base_price != null || booking.final_makeup_price != null || booking.selected_add_ons?.length ||
+        booking.venue_address || booking.estimated_total != null ||
+        booking.quote_reason || booking.client.phone || occasion || text ||
+        booking.artist_message || booking.inspo_url,
+    );
 
     return (
         <>
@@ -1006,54 +979,59 @@ function BookingHeader({
                     <p className="font-serif text-lg font-bold text-[#1a1a1a]">
                         {booking.service}
                     </p>
-                    {booking.final_makeup_price != null ? (
-                        <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
-                            Final makeup quote: ₱
-                            {Number(booking.final_makeup_price).toLocaleString(
-                                'en-PH',
-                            )}
-                        </p>
-                    ) : (
-                        booking.base_price_type && (
-                            <p className="mt-1 text-sm font-semibold text-[#8a6a2f]">
-                                {booking.requires_quote ||
-                                booking.base_price_type === 'quote_required'
-                                    ? 'Artist quote needed'
-                                    : `${booking.base_price_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(booking.base_price ?? 0).toLocaleString('en-PH')}`}
-                            </p>
-                        )
-                    )}
                     <p className="text-sm text-[#4a4a4a]">
                         with {booking.client.name}
                     </p>
-                    {booking.terms_accepted_at && (
-                        <p className="mt-1 text-xs text-[#4a4a4a]">
-                            Booking terms accepted on{' '}
-                            {new Date(booking.terms_accepted_at).toLocaleString(
-                                'en-PH',
-                            )}
-                            .
-                        </p>
+                    {booking.service_area_level === 'on_request' && (
+                        <span className="mt-2 inline-flex max-w-full rounded-full bg-[#fff2d8] px-3 py-1 text-xs font-semibold text-[#76551e]">
+                            On request · review location and quote travel
+                        </span>
                     )}
                 </div>
                 <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[booking.status]}`}
+                    className={`rounded-full px-3 py-1 text-sm font-semibold capitalize ${STATUS_STYLES[booking.status]}`}
                 >
                     {booking.status}
                 </span>
             </div>
 
-            {!!booking.selected_add_ons?.length && (
-                <p className="mb-3 text-xs text-[#4a4a4a]">
-                    Client add-ons:{' '}
-                    {booking.selected_add_ons
-                        .map(
-                            (item) =>
-                                `${item.name} × ${item.quantity}${item.line_total == null ? '' : ` (₱${Number(item.line_total).toLocaleString('en-PH')})`}`,
-                        )
-                        .join(', ')}
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[#4a4a4a]">
+                <span className="flex items-center gap-1.5">
+                    <CalendarDays className="h-4 w-4 text-[#8a6a2f]" />
+                    {formatDate(booking.booking_date)}
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4 text-[#8a6a2f]" />
+                    {formatTime(booking.booking_time)}
+                </span>
+            </div>
+
+            {hasMoreDetails && <details className="group mt-3 rounded-xl bg-[#faf7f4] px-3 py-2">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[#704f1e] marker:hidden">
+                <span><span className="group-open:hidden">View booking details</span><span className="hidden group-open:inline">Hide booking details</span></span>
+                <span aria-hidden="true" className="text-lg leading-none transition-transform group-open:rotate-90">&gt;</span>
+            </summary>
+            <div className="pt-3">
+            {children}
+            {booking.terms_accepted_at && (
+                <p className="mb-3 text-sm text-[#4a4a4a]">
+                    Booking terms accepted on {new Date(booking.terms_accepted_at).toLocaleString('en-PH')}.
                 </p>
             )}
+            <BookingItemizedPricing
+                basePrice={booking.base_price}
+                basePriceType={booking.base_price_type}
+                finalMakeupPrice={booking.final_makeup_price}
+                addOns={booking.selected_add_ons}
+                total={booking.estimated_total}
+                quoteAccepted={booking.quote_accepted_at}
+                quotePending={Boolean(
+                    booking.quote_pending || booking.transportation_fee_pending,
+                )}
+                depositStatus={booking.deposit_status}
+                depositAmount={booking.deposit_amount}
+                remainingBalance={booking.remaining_balance}
+            />
             {booking.venue_address && (
                 <p className="mb-3 text-sm text-[#4a4a4a]">
                     Home service ·{' '}
@@ -1061,26 +1039,21 @@ function BookingHeader({
                         ? 'Nearby province'
                         : 'Metro Manila'}{' '}
                     · {booking.venue_address}
+                    {booking.venue_latitude != null && booking.venue_longitude != null && (
+                        <>
+                            {' · '}
+                            <a
+                                href={`https://www.openstreetmap.org/?mlat=${booking.venue_latitude}&mlon=${booking.venue_longitude}#map=18/${booking.venue_latitude}/${booking.venue_longitude}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-medium text-[#76551e] underline underline-offset-2"
+                            >
+                                Open map pin
+                            </a>
+                        </>
+                    )}
                 </p>
             )}
-            {booking.estimated_total != null && booking.quote_accepted_at ? (
-                <BookingPaymentBreakdown
-                    total={booking.estimated_total}
-                    depositStatus={booking.deposit_status}
-                    depositAmount={booking.deposit_amount}
-                    remainingBalance={booking.remaining_balance}
-                />
-            ) : booking.estimated_total != null ? (
-                <p className="mb-3 text-sm font-semibold text-[#1a1a1a]">
-                    {booking.quote_pending
-                        ? 'Quote sent for client approval'
-                        : 'Starting estimate'}
-                    : ₱
-                    {Number(
-                        booking.estimated_total,
-                    ).toLocaleString('en-PH')}
-                </p>
-            ) : null}
             {booking.quote_reason && (
                 <p className="mb-3 text-sm text-[#4a4a4a]">
                     Quote note: {booking.quote_reason}
@@ -1088,14 +1061,6 @@ function BookingHeader({
             )}
 
             <div className="flex flex-wrap gap-4 text-sm text-[#4a4a4a]">
-                <span className="flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 text-[#8a6a2f]" />{' '}
-                    {formatDate(booking.booking_date)}
-                </span>
-                <span className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4 text-[#8a6a2f]" />{' '}
-                    {formatTime(booking.booking_time)}
-                </span>
                 {booking.client.phone && (
                     <span className="flex items-center gap-1.5">
                         <Phone className="h-4 w-4 text-[#8a6a2f]" />{' '}
@@ -1103,58 +1068,29 @@ function BookingHeader({
                     </span>
                 )}
             </div>
-
-            {occasion && (
-                <div className="mt-3">
-                    <p className="mb-1 text-xs font-semibold text-[#4a4a4a]">
-                        Occasion
-                    </p>
-                    <span className="inline-block rounded-full bg-[#f4e9e5] px-3 py-1 text-xs font-semibold text-[#8a6a2f]">
-                        {occasion}
-                    </span>
-                </div>
+            {(occasion || text || booking.inspo_url) && (
+                <section className="mb-3 rounded-xl border border-[#e8d7cf] bg-white p-3">
+                    <h3 className="mb-2 text-sm font-semibold text-[#1a1a1a]">Client&apos;s makeup preferences</h3>
+                    {occasion && <p className="text-sm text-[#4a4a4a]"><span className="font-medium">Occasion:</span> {occasion}</p>}
+                    {text && <p className="mt-1 rounded-lg bg-[#faf7f4] px-3 py-2 text-sm whitespace-pre-line text-[#1a1a1a]">{text}</p>}
+                    {booking.inspo_url && (
+                        <button type="button" onClick={() => onViewInspo(booking.inspo_url!)} className="mt-2 flex min-h-12 items-center gap-2 rounded-lg border border-[#c9a66b] bg-[#fffcf8] p-2 transition hover:bg-[#f4e9e5]">
+                            <img src={booking.inspo_url} alt="Client makeup inspiration" className="h-10 w-10 rounded-md object-cover" />
+                            <span className="flex items-center gap-1 text-sm font-semibold text-[#8a6a2f]"><ImageIcon className="h-3.5 w-3.5" /> View makeup inspiration</span>
+                        </button>
+                    )}
+                </section>
             )}
-
-            {text && (
-                <div className="mt-3">
-                    <p className="mb-1 text-xs font-semibold text-[#4a4a4a]">
-                        Client's notes
-                    </p>
-                    <p className="rounded-lg bg-[#faf7f4] px-3 py-2 text-sm whitespace-pre-line text-[#1a1a1a]">
-                        {text}
-                    </p>
-                </div>
-            )}
-
             {booking.artist_message && (
                 <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-[#f4e9e5] px-3 py-2 text-sm text-[#8a6a2f]">
-                    <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" />{' '}
-                    {booking.artist_message}
+                    <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {booking.artist_message}
                 </p>
             )}
-
-            {booking.inspo_url && (
-                <button
-                    type="button"
-                    onClick={() => onViewInspo(booking.inspo_url!)}
-                    className="mt-3 flex items-center gap-2 rounded-lg border border-[#c9a66b] bg-[#fffcf8] p-2 transition hover:bg-[#f4e9e5]"
-                >
-                    <img
-                        src={booking.inspo_url}
-                        alt="Inspo"
-                        className="h-10 w-10 rounded-md object-cover"
-                    />
-                    <span className="flex items-center gap-1 text-xs font-semibold text-[#8a6a2f]">
-                        <ImageIcon className="h-3.5 w-3.5" /> View makeup inspo
-                    </span>
-                </button>
-            )}
-            <Link
-                href={`/artist/clients/${booking.client.id}/inspo`}
-                className="mt-3 inline-flex rounded-full border border-[#c9a66b] px-4 py-2 text-xs font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5]"
-            >
+            <Link href={`/artist/clients/${booking.client.id}/inspo`} className="mt-3 inline-flex rounded-full border border-[#c9a66b] px-4 py-2 text-sm font-semibold text-[#8a6a2f] transition hover:bg-[#f4e9e5]">
                 View client inspiration history
             </Link>
+            </div>
+            </details>}
         </>
     );
 }

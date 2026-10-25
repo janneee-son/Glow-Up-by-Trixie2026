@@ -1,5 +1,5 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { ImagePlus, Save, Trash2 } from 'lucide-react';
+import { Check, ImagePlus, Save, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import DashboardHeader from '@/components/dashboard-header';
@@ -43,6 +43,9 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
     });
     const [captions, setCaptions] = useState<Record<number, string>>({});
     const [stories, setStories] = useState<Record<number, string>>({});
+    const [savedFeedback, setSavedFeedback] = useState<Record<number, boolean>>(
+        {},
+    );
     const [savingImageId, setSavingImageId] = useState<number | null>(null);
 
     function submit(event: FormEvent<HTMLFormElement>) {
@@ -65,16 +68,31 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
     }
 
     function saveStory(image: GalleryImage) {
+        const caption = captions[image.id] ?? image.caption ?? '';
+        const story = stories[image.id] ?? image.story ?? '';
+
+        if (
+            caption === (image.caption ?? '') &&
+            story === (image.story ?? '')
+        ) {
+            return;
+        }
+
         setSavingImageId(image.id);
         router.patch(
             `/admin/gallery/${image.id}`,
             {
-                caption: captions[image.id] ?? image.caption ?? '',
-                story: stories[image.id] ?? image.story ?? '',
+                caption,
+                story,
             },
             {
                 preserveScroll: true,
                 onFinish: () => setSavingImageId(null),
+                onSuccess: () =>
+                    setSavedFeedback((current) => ({
+                        ...current,
+                        [image.id]: true,
+                    })),
             },
         );
     }
@@ -117,7 +135,8 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
                         </h2>
 
                         <label className="grid cursor-pointer gap-1.5 text-xs font-semibold text-[#4a4a4a]">
-                            Photo (JPG, PNG, or WebP; up to 5 MB)<RequiredAsterisk />
+                            Photo (JPG, PNG, or WebP; up to 5 MB)
+                            <RequiredAsterisk />
                             <input
                                 id="gallery-image"
                                 type="file"
@@ -167,7 +186,7 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
                                     setData('story', event.target.value)
                                 }
                                 placeholder="Share the occasion, inspiration, or details behind this makeup look."
-                                className={inputClass}
+                                className={`${inputClass} gallery-story-scrollbar`}
                             />
                             <InputError message={errors.story} />
                         </label>
@@ -199,62 +218,144 @@ export default function GalleryIndex({ images: imagesProp }: Props) {
                             </p>
                         ) : (
                             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                {images.map((image) => (
-                                    <article
-                                        key={image.id}
-                                        className="group overflow-hidden rounded-3xl border border-[#e8d7cf] bg-white shadow-sm shadow-[#c9a66b]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#c9a66b]/15"
-                                    >
-                                        <img
-                                            src={image.image_url}
-                                            alt={image.caption || 'Makeup work'}
-                                            className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
-                                        />
+                                {images.map((image) => {
+                                    const currentCaption =
+                                        captions[image.id] ??
+                                        image.caption ??
+                                        '';
+                                    const currentStory =
+                                        stories[image.id] ?? image.story ?? '';
+                                    const hasChanges =
+                                        currentCaption !==
+                                            (image.caption ?? '') ||
+                                        currentStory !== (image.story ?? '');
 
-                                        <div className="grid gap-3 p-3">
-                                            <label className="grid gap-1 text-xs font-semibold text-[#4a4a4a]">
-                                                Short caption
-                                                <input
-                                                    type="text"
-                                                    maxLength={160}
-                                                    value={captions[image.id] ?? image.caption ?? ''}
-                                                    onChange={(event) => setCaptions((current) => ({ ...current, [image.id]: event.target.value }))}
-                                                    placeholder="A short title for this look"
-                                                    className={inputClass}
-                                                />
-                                            </label>
-                                            <label className="grid gap-1 text-xs font-semibold text-[#4a4a4a]">
-                                                Story / description
-                                                <textarea
-                                                    rows={4}
-                                                    maxLength={3000}
-                                                    value={stories[image.id] ?? image.story ?? ''}
-                                                    onChange={(event) => setStories((current) => ({ ...current, [image.id]: event.target.value }))}
-                                                    placeholder="Add the occasion, inspiration, or details behind this look."
-                                                    className={inputClass}
-                                                />
-                                            </label>
-                                            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#e8d7cf] pt-3">
-                                                <button
-                                                    type="button"
-                                                    disabled={savingImageId === image.id}
-                                                    onClick={() => saveStory(image)}
-                                                    className="flex items-center gap-1.5 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
-                                                >
-                                                    <Save className="h-3.5 w-3.5" />
-                                                    {savingImageId === image.id ? 'Saving…' : 'Save story'}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => deleteImage(image)}
-                                                    className="flex shrink-0 items-center gap-1 rounded-full border border-[#D9A5A5] px-3 py-1.5 text-xs font-semibold text-[#A13F3F] hover:bg-[#FDEDED]"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                    Delete
-                                                </button>
+                                    return (
+                                        <article
+                                            key={image.id}
+                                            className="group overflow-hidden rounded-3xl border border-[#e8d7cf] bg-white shadow-sm shadow-[#c9a66b]/10 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#c9a66b]/15"
+                                        >
+                                            <img
+                                                src={image.image_url}
+                                                alt={
+                                                    image.caption ||
+                                                    'Makeup work'
+                                                }
+                                                className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                                            />
+
+                                            <div className="grid gap-3 p-3">
+                                                <label className="grid gap-1 text-xs font-semibold text-[#4a4a4a]">
+                                                    Short caption
+                                                    <input
+                                                        type="text"
+                                                        maxLength={160}
+                                                        value={
+                                                            captions[
+                                                                image.id
+                                                            ] ??
+                                                            image.caption ??
+                                                            ''
+                                                        }
+                                                        onChange={(event) => {
+                                                            setCaptions(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [image.id]:
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                }),
+                                                            );
+                                                            setSavedFeedback(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [image.id]: false,
+                                                                }),
+                                                            );
+                                                        }}
+                                                        placeholder="A short title for this look"
+                                                        className={inputClass}
+                                                    />
+                                                </label>
+                                                <label className="grid gap-1 text-xs font-semibold text-[#4a4a4a]">
+                                                    Story / description
+                                                    <textarea
+                                                        rows={4}
+                                                        maxLength={3000}
+                                                        value={
+                                                            stories[image.id] ??
+                                                            image.story ??
+                                                            ''
+                                                        }
+                                                        onChange={(event) => {
+                                                            setStories(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [image.id]:
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                }),
+                                                            );
+                                                            setSavedFeedback(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    [image.id]: false,
+                                                                }),
+                                                            );
+                                                        }}
+                                                        placeholder="Add the occasion, inspiration, or details behind this look."
+                                                        className={`${inputClass} gallery-story-scrollbar`}
+                                                    />
+                                                </label>
+                                                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#e8d7cf] pt-3">
+                                                    <button
+                                                        type="button"
+                                                        disabled={
+                                                            savingImageId ===
+                                                                image.id ||
+                                                            !hasChanges
+                                                        }
+                                                        onClick={() =>
+                                                            saveStory(image)
+                                                        }
+                                                        aria-live="polite"
+                                                        className="flex items-center gap-1.5 rounded-full bg-[#8a6a2f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6f5325] disabled:opacity-50"
+                                                    >
+                                                        {savedFeedback[
+                                                            image.id
+                                                        ] ? (
+                                                            <Check className="h-3.5 w-3.5" />
+                                                        ) : (
+                                                            <Save className="h-3.5 w-3.5" />
+                                                        )}
+                                                        {savingImageId ===
+                                                        image.id
+                                                            ? 'Saving…'
+                                                            : savedFeedback[
+                                                                    image.id
+                                                                ]
+                                                              ? 'Saved!'
+                                                              : image.story?.trim()
+                                                                ? 'Edit story'
+                                                                : 'Save story'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            deleteImage(image)
+                                                        }
+                                                        className="flex shrink-0 items-center gap-1 rounded-full border border-[#D9A5A5] px-3 py-1.5 text-xs font-semibold text-[#A13F3F] hover:bg-[#FDEDED]"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        Delete
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </article>
-                                ))}
+                                        </article>
+                                    );
+                                })}
                             </div>
                         )}
                     </section>

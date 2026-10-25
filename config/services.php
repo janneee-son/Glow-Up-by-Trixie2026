@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'geoapify' => [
+        'geocoding_key' => env('GEOAPIFY_API_KEY'),
+    ],
+
 ];

@@ -8,6 +8,7 @@ import {
     X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import AppLogoIcon from '@/components/app-logo-icon';
 import BehindTheGlow from '@/components/landing/BehindTheGlow';
 import SocialLinks from '@/components/landing/SocialLinks';
 import { dashboard, login, register } from '@/routes';
@@ -128,7 +129,7 @@ function SectionHeading({ title, sub }: { title: string; sub?: string }) {
 }
 
 const primaryBtn =
-    'inline-flex items-center justify-center rounded-full bg-[#9A7430] px-7 py-3 text-sm font-semibold text-white shadow-md shadow-[#9A7430]/30 transition duration-200 hover:bg-[#A8545C] hover:shadow-[0_0_22px_rgba(168,84,92,0.4)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8A6A2F]';
+    'inline-flex items-center justify-center rounded-full bg-[#9A7430] px-7 py-3 text-sm font-semibold text-white shadow-md shadow-[#9A7430]/30 transition duration-200 hover:shadow-[0_0_20px_rgba(201,166,107,0.5)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8A6A2F]';
 
 const secondaryBtn =
     'inline-flex items-center justify-center rounded-full border border-[#1A1A1A]/40 px-7 py-3 text-sm font-semibold text-[#1A1A1A] transition-colors duration-200 hover:bg-[#E8B4B8]/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A1A1A]';
@@ -263,10 +264,10 @@ export default function Welcome({
             <Head title="Glow Up by Trixie | Book Your Makeup Session" />
 
             <div className="flex min-h-screen flex-col bg-[#FAF7F4] text-[#1A1A1A]">
-                <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#E8B4B8]/50 bg-[#FAF7F4]/90 px-8 py-4 backdrop-blur">
-                    <a href="#top" className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-[#8A6A2F]" />
-                        <span className="font-display text-lg font-bold text-[#1A1A1A]">
+                <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-[#E8B4B8]/50 bg-[#FAF7F4]/90 px-4 py-3 backdrop-blur sm:px-8 sm:py-4">
+                    <a href="#top" className="flex min-w-0 items-center gap-2">
+                        <AppLogoIcon className="h-10 w-10 object-contain" />
+                        <span className="whitespace-nowrap font-display text-sm font-bold text-[#1A1A1A] sm:text-lg">
                             Glow Up by Trixie
                         </span>
                     </a>
@@ -293,11 +294,11 @@ export default function Welcome({
                         ))}
                     </nav>
 
-                    <div className="flex gap-3">
+                    <div className="flex shrink-0 gap-2 sm:gap-3">
                         {isLoggedIn ? (
                             <Link
                                 href={dashboard()}
-                                className="rounded-full bg-[#9A7430] px-4 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#A8545C]"
+                                className="whitespace-nowrap rounded-full bg-[#9A7430] px-3 py-1.5 text-xs font-semibold text-white transition-shadow duration-200 hover:shadow-[0_0_16px_rgba(201,166,107,0.5)] sm:px-4 sm:text-sm"
                             >
                                 Dashboard
                             </Link>
@@ -305,13 +306,13 @@ export default function Welcome({
                             <>
                                 <Link
                                     href={login()}
-                                    className="rounded-full border border-[#1A1A1A]/30 px-4 py-1.5 text-sm text-[#1A1A1A] transition-colors duration-200 hover:bg-[#E8B4B8]/25"
+                                    className="whitespace-nowrap rounded-full border border-[#1A1A1A]/30 px-3 py-1.5 text-xs text-[#1A1A1A] transition-colors duration-200 hover:bg-[#E8B4B8]/25 sm:px-4 sm:text-sm"
                                 >
                                     Log in
                                 </Link>
                                 <Link
                                     href={register()}
-                                    className="rounded-full bg-[#9A7430] px-4 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#A8545C]"
+                                    className="signup-glow whitespace-nowrap rounded-full bg-[#9A7430] px-3 py-1.5 text-xs font-semibold text-white sm:px-4 sm:text-sm"
                                 >
                                     Sign up
                                 </Link>
@@ -351,7 +352,7 @@ export default function Welcome({
                     <BehindTheGlow />
 
                     {/* First layout: text only, since the photos are already in the slideshow and Recent work */}
-                    <section className="mx-auto grid max-w-6xl items-center gap-14 px-8 py-16 lg:grid-cols-2 lg:py-24">
+                    <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 sm:gap-14 sm:px-8 sm:py-16 lg:grid-cols-2 lg:py-24">
                         <div>
                             <p className="mb-4 font-display text-xl text-[#8A6A2F] italic">
                                 Still you, just glowing.
@@ -423,7 +424,7 @@ export default function Welcome({
 
                     <section
                         id="services"
-                        className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16"
+                        className="scroll-mt-20 bg-[#E8B4B8]/15 px-4 py-12 sm:px-8 sm:py-16"
                     >
                         <div className="mx-auto max-w-5xl">
                             <SectionHeading
@@ -498,7 +499,7 @@ export default function Welcome({
                         </div>
                     </section>
 
-                    <section id="packages" className="scroll-mt-20 px-8 py-16">
+                    <section id="packages" className="scroll-mt-20 px-4 py-12 sm:px-8 sm:py-16">
                         <div className="mx-auto max-w-5xl">
                             <SectionHeading
                                 title="Packages"
@@ -562,7 +563,7 @@ export default function Welcome({
 
                     <section
                         id="how-it-works"
-                        className="scroll-mt-20 px-8 py-16"
+                        className="scroll-mt-20 px-4 py-12 sm:px-8 sm:py-16"
                     >
                         <div className="mx-auto max-w-5xl">
                             <SectionHeading title="From booking to glam in four steps" />
@@ -587,7 +588,7 @@ export default function Welcome({
 
                     <section
                         id="booking-details"
-                        className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16"
+                        className="scroll-mt-20 bg-[#E8B4B8]/15 px-4 py-12 sm:px-8 sm:py-16"
                     >
                         <div className="mx-auto max-w-5xl">
                             <SectionHeading
@@ -649,7 +650,7 @@ export default function Welcome({
                     {artist && (
                         <section
                             id="artist"
-                            className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-20"
+                            className="scroll-mt-20 bg-[#E8B4B8]/15 px-4 py-12 sm:px-8 sm:py-20"
                         >
                             <div className="mx-auto grid max-w-5xl items-center gap-14 md:grid-cols-[22rem_1fr]">
                                 <div className="relative mx-auto w-full max-w-sm">
@@ -798,10 +799,10 @@ export default function Welcome({
                         </section>
                     )}
 
-                    <section id="gallery" className="scroll-mt-20 px-8 py-16">
+                    <section id="gallery" className="scroll-mt-20 px-4 py-12 sm:px-8 sm:py-16">
                         <div className="mx-auto max-w-6xl">
                             <SectionHeading title="Recent work" />
-                            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4">
+                            <div className="gallery-carousel-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4">
                                 {galleryImages.map((image) => (
                                     <button
                                         key={image.id}
@@ -834,7 +835,7 @@ export default function Welcome({
                     {reviews.length > 0 && (
                         <section
                             id="reviews"
-                            className="scroll-mt-20 bg-[#E8B4B8]/15 px-8 py-16"
+                            className="scroll-mt-20 bg-[#E8B4B8]/15 px-4 py-12 sm:px-8 sm:py-16"
                         >
                             <div className="mx-auto max-w-6xl">
                                 <SectionHeading
@@ -871,20 +872,20 @@ export default function Welcome({
                         </section>
                     )}
 
-                    <section className="bg-[#1A1A1A] px-8 py-14 text-[#FAF7F4]">
+                    <section className="border-t border-[#E8D7CF] bg-[#F4E9E5] px-4 py-12 text-[#1A1A1A] sm:px-8 sm:py-14">
                         <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
                             <div>
                                 <h3 className="font-display text-3xl font-bold">
                                     Ready to book your session?
                                 </h3>
-                                <p className="mt-2 max-w-md text-[#FAF7F4]/85">
+                                <p className="mt-2 max-w-md text-[#4A4A4A]">
                                     It takes a minute. Your artist confirms the
                                     time with you.
                                 </p>
                             </div>
                             <Link
                                 href={bookHref}
-                                className="gl-btn whitespace-nowrap"
+                                className="gl-btn signup-glow whitespace-nowrap"
                             >
                                 {isLoggedIn
                                     ? 'Book a session'
@@ -894,15 +895,15 @@ export default function Welcome({
                     </section>
                 </main>
 
-                <footer className="flex flex-col gap-4 border-t border-[#C9A66B]/30 bg-[#1A1A1A] px-8 py-6 text-sm text-[#FAF7F4]/80 sm:flex-row sm:items-center sm:justify-between">
+                <footer className="flex flex-col gap-4 border-t border-[#E8D7CF] bg-[#FAF7F4] px-4 py-6 text-sm text-[#4A4A4A] sm:flex-row sm:items-center sm:justify-between sm:px-8">
                     <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-[#C9A66B]" />
-                        <span className="font-semibold text-[#FAF7F4]">
+                        <AppLogoIcon className="h-10 w-10 object-contain" />
+                        <span className="font-semibold text-[#1A1A1A]">
                             Glow Up by Trixie
                         </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                        <SocialLinks variant="dark" showPhone />
+                        <SocialLinks variant="light" showPhone />
                         <span>
                             © {new Date().getFullYear()} All rights reserved.
                         </span>

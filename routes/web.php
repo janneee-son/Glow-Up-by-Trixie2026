@@ -1,10 +1,13 @@
 <?php
 
 use App\Http\Controllers\ArtistAnalyticsController;
+use App\Http\Controllers\ArtistAvailabilityController;
 use App\Http\Controllers\ArtistGalleryController;
 use App\Http\Controllers\ArtistNotificationController;
 use App\Http\Controllers\ArtistOfferingController;
+use App\Http\Controllers\BookingAddressVerificationController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\BookingLocationController;
 use App\Http\Controllers\ClientNotificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InspoController;
@@ -86,6 +89,9 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/artist/analytics', [ArtistAnalyticsController::class, 'index'])->name('artist.analytics');
+    Route::get('/artist/booking-settings', [ArtistAvailabilityController::class, 'edit'])->name('artist.booking-settings.edit');
+    Route::patch('/artist/availability', [ArtistAvailabilityController::class, 'update'])->name('artist.availability.update');
+    Route::patch('/artist/service-areas', [ArtistAvailabilityController::class, 'updateServiceAreas'])->name('artist.service-areas.update');
     Route::get('/artist/notifications', [ArtistNotificationController::class, 'index'])->name('artist.notifications.index');
     Route::patch('/artist/notifications/{notification}/read', [ArtistNotificationController::class, 'markRead'])->name('artist.notifications.read');
     Route::patch('/artist/notifications/read-all', [ArtistNotificationController::class, 'markAllRead'])->name('artist.notifications.read-all');
@@ -94,6 +100,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/client/notifications/read-all', [ClientNotificationController::class, 'markAllRead'])->name('client.notifications.read-all');
 
     Route::get('/book', [BookingController::class, 'create'])->name('bookings.create');
+    Route::get('/book/locations', [BookingLocationController::class, 'options'])->middleware('throttle:60,1')->name('bookings.locations');
+    Route::get('/book/map-center', [BookingLocationController::class, 'mapCenter'])->middleware('throttle:20,1')->name('bookings.map-center');
+    Route::get('/book/address-suggestions', [BookingAddressVerificationController::class, 'suggest'])->middleware('throttle:30,1')->name('bookings.address-suggestions');
+    Route::post('/book/verify-address', [BookingAddressVerificationController::class, 'verify'])->middleware('throttle:10,1')->name('bookings.verify-address');
     Route::get('/book/availability', [BookingController::class, 'checkAvailability'])->name('bookings.availability');
     Route::post('/book', [BookingController::class, 'store'])->name('bookings.store');
     Route::patch('/book/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');

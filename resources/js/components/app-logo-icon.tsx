@@ -1,7 +1,5 @@
-import type { ImgHTMLAttributes } from 'react';
-
 export default function AppLogoIcon(
-    props: ImgHTMLAttributes<HTMLImageElement>,
+    props: React.ImgHTMLAttributes<HTMLImageElement>,
 ) {
-    return <img src="/acc-logo.png" alt="ACC Logo" {...props} />;
+    return <img src="/images/logo/glow-up-logo.png" alt="Glow Up by Trixie" {...props} />;
 }

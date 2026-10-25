@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -27,7 +28,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['avatar','name', 'email', 'password', 'role', 'phone', 'specialty', 'years_experience', 'bio', 'street_address', 'barangay', 'city', 'province', 'postal_code', 'metro_manila_travel_fee', 'out_of_town_travel_fee'])]
+#[Fillable(['avatar', 'name', 'email', 'password', 'role', 'phone', 'specialty', 'years_experience', 'bio', 'street_address', 'barangay', 'city', 'province', 'postal_code', 'metro_manila_travel_fee', 'out_of_town_travel_fee', 'blocked_booking_dates'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -45,10 +46,16 @@ class User extends Authenticatable implements PasskeyUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'blocked_booking_dates' => 'array',
         ];
     }
 
-        public static function artist(): ?self
+    public function serviceAreas(): HasMany
+    {
+        return $this->hasMany(ServiceArea::class, 'artist_id');
+    }
+
+    public static function artist(): ?self
     {
         return static::where('role', 'artist')->orderBy('id')->first();
     }

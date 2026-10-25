@@ -628,6 +628,7 @@ export default function EditProfile({ user }: Props) {
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
                         )}
 

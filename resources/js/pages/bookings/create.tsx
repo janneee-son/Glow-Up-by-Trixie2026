@@ -4,10 +4,11 @@ import {
     CalendarDays,
     Clock,
     ImagePlus,
+    MapPin,
     Sparkles,
     X,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import DashboardHeader from '@/components/dashboard-header';
 import InputError from '@/components/input-error';
@@ -15,6 +16,8 @@ import RequiredAsterisk from '@/components/required-asterisk';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+
+const BookingLocationMap = lazy(() => import('@/components/booking-location-map'));
 
 type Artist = {
     id: number;
@@ -48,6 +51,18 @@ type Offering = {
     add_on_max_quantity: number;
 };
 
+type ServiceAreaOption = {
+    name: string;
+    level: 'covered' | 'on_request' | 'not_served';
+    starting_fee: number | null;
+    note: string | null;
+};
+
+type LocationOption = {
+    code: string;
+    name: string;
+};
+
 type Props = {
     artist: Artist | null;
     savedAddress?: {
@@ -62,12 +77,13 @@ type Props = {
     packages?: Offering[] | null;
     addOns?: Offering[] | null;
     minimumBookingDate?: string | null;
+    maximumBookingDate?: string | null;
     rushBookingCutoffDate?: string | null;
     rushBookingFee?: number;
     earlyCallTimeFee?: number;
     metroManilaTravelFee?: number;
     outOfTownTravelFee?: number;
-    serviceCities?: { metroManila: string[]; nearbyProvince: string[] };
+    serviceAreas?: ServiceAreaOption[];
     bookingTerms: { version: string; text: string };
 };
 
@@ -82,6 +98,20 @@ function usesQuantityLimits(name: string): boolean {
     return /bridesmaid|flower\s+girl/i.test(name);
 }
 
+function localDateString(): string {
+    const date = new Date();
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    return date.toISOString().slice(0, 10);
+}
+
+function normalizeLocationName(name: string): string {
+    return name
+        .toLowerCase()
+        .replace(/^(city of|municipality of)\s+/, '')
+        .replace(/\s+(city|municipality)$/, '')
+        .trim();
+}
+
 export default function CreateBooking({
     artist,
     savedAddress,
@@ -90,12 +120,13 @@ export default function CreateBooking({
     packages: packagesProp,
     addOns: addOnsProp,
     minimumBookingDate,
+    maximumBookingDate,
     rushBookingCutoffDate,
     rushBookingFee = 500,
     earlyCallTimeFee = 500,
     metroManilaTravelFee = 500,
     outOfTownTravelFee = 1000,
-    serviceCities = { metroManila: [], nearbyProvince: [] },
+    serviceAreas: serviceAreasProp,
     bookingTerms,
 }: Props) {
     const inspoImages = Array.isArray(inspoImagesProp) ? inspoImagesProp : [];
@@ -103,28 +134,9 @@ export default function CreateBooking({
     const services = Array.isArray(servicesProp) ? servicesProp : [];
     const packages = Array.isArray(packagesProp) ? packagesProp : [];
     const addOns = Array.isArray(addOnsProp) ? addOnsProp : [];
-    const savedAddressText = [
-        savedAddress?.street_address,
-        savedAddress?.barangay,
-        savedAddress?.city,
-        savedAddress?.province,
-        savedAddress?.postal_code,
-    ]
-        .filter(Boolean)
-        .join(', ');
     const savedCity = savedAddress?.city?.trim() ?? '';
     const savedProvince = savedAddress?.province?.trim() ?? '';
-    const defaultServiceCity =
-        serviceCities.metroManila.find(
-            (city) => city.toLowerCase() === savedCity.toLowerCase(),
-        ) ??
-        serviceCities.nearbyProvince.find(
-            (city) => city.toLowerCase() === savedCity.toLowerCase(),
-        ) ??
-        serviceCities.nearbyProvince.find(
-            (city) => city.toLowerCase() === savedProvince.toLowerCase(),
-        ) ??
-        '';
+    const serviceAreas = Array.isArray(serviceAreasProp) ? serviceAreasProp : [];
 
     const { auth } = usePage<{
         auth?: {
@@ -142,14 +154,32 @@ export default function CreateBooking({
         state: 'idle' | 'checking' | 'available' | 'unavailable' | 'error';
         message: string;
     }>({ state: 'idle', message: '' });
+    const [addressCheck, setAddressCheck] = useState<{
+        state: 'idle' | 'locating' | 'located' | 'checking' | 'verified' | 'error';
+        message: string;
+        formattedAddress?: string;
+        mapUrl?: string;
+    }>({ state: 'idle', message: '' });
+    const [provinceOptions, setProvinceOptions] = useState<LocationOption[]>([]);
+    const [cityOptions, setCityOptions] = useState<LocationOption[]>([]);
+    const [barangayOptions, setBarangayOptions] = useState<LocationOption[]>([]);
+    const [locationsUnavailable, setLocationsUnavailable] = useState(false);
+    const [locationMessage, setLocationMessage] = useState('');
+    const [mapOpen, setMapOpen] = useState(false);
     const { data, setData, post, processing, errors } = useForm<{
         service: string;
         package_id: number | null;
         add_on_quantities: Record<number, number>;
         booking_date: string;
         booking_time: string;
+        service_province: string;
         service_city: string;
-        venue_address: string;
+        venue_barangay: string;
+        venue_street: string;
+        venue_landmark: string;
+        venue_latitude: number | null;
+        venue_longitude: number | null;
+        address_confirmed: boolean;
         notes: string;
         inspo_image_id: number | null;
         new_inspo_image: File | null;
@@ -161,8 +191,14 @@ export default function CreateBooking({
         add_on_quantities: {},
         booking_date: '',
         booking_time: '',
-        service_city: defaultServiceCity,
-        venue_address: savedAddressText,
+        service_province: savedProvince,
+        service_city: savedCity,
+        venue_barangay: savedAddress?.barangay ?? '',
+        venue_street: savedAddress?.street_address ?? '',
+        venue_landmark: '',
+        venue_latitude: null,
+        venue_longitude: null,
+        address_confirmed: false,
         notes: '',
         inspo_image_id: null,
         new_inspo_image: null,
@@ -187,15 +223,30 @@ export default function CreateBooking({
     const basePriceType = selectedPackage?.pricing_type ?? 'fixed';
     const basePrice =
         baseOffering?.price == null ? null : Number(baseOffering.price);
-    const isNearbyProvince = serviceCities.nearbyProvince.includes(
-        data.service_city,
+    const selectedServiceArea =
+        serviceAreas.find((area) => normalizeLocationName(area.name) === normalizeLocationName(data.service_city)) ??
+        serviceAreas.find((area) => normalizeLocationName(area.name) === normalizeLocationName(data.service_province));
+    const isNearbyProvince = !/^(metro manila|national capital region|ncr)$/i.test(
+        data.service_province.trim(),
+    );
+    const travelFee = selectedServiceArea?.starting_fee ??
+        (isNearbyProvince ? outOfTownTravelFee : metroManilaTravelFee);
+    const isOnRequestArea = Boolean(data.service_city) &&
+        (selectedServiceArea?.level ?? 'on_request') === 'on_request';
+    const isNotServedArea = selectedServiceArea?.level === 'not_served';
+    const firstBookableDate = minimumBookingDate || localDateString();
+    const lastBookableDate = maximumBookingDate || `${Number(firstBookableDate.slice(0, 4)) + 2}${firstBookableDate.slice(4)}`;
+    const isBookingDateOutOfRange = Boolean(
+        data.booking_date &&
+        (data.booking_date < firstBookableDate || data.booking_date > lastBookableDate),
     );
     const quoteRequired =
         basePriceType === 'quote_required' ||
-        selectedAddOns.some((item) => item.pricing_type === 'quote_required') ||
-        Boolean(data.service_city);
+        isOnRequestArea ||
+        selectedAddOns.some((item) => item.pricing_type === 'quote_required');
     const isRushBooking = Boolean(
         data.booking_date &&
+        !isBookingDateOutOfRange &&
         rushBookingCutoffDate &&
         data.booking_date < rushBookingCutoffDate,
     );
@@ -207,6 +258,16 @@ export default function CreateBooking({
 
     useEffect(() => {
         const controller = new AbortController();
+
+        if (data.booking_date && isBookingDateOutOfRange) {
+            setAvailability({
+                state: 'unavailable',
+                message: data.booking_date < firstBookableDate
+                    ? 'Past dates cannot be booked. Please choose today or a future date.'
+                    : 'This date is too far ahead to book. Please choose a date within the next two years.',
+            });
+            return () => controller.abort();
+        }
 
         if (!data.booking_date || (!data.service && !data.package_id)) {
             const timer = window.setTimeout(() => {
@@ -262,13 +323,111 @@ export default function CreateBooking({
             window.clearTimeout(timer);
             controller.abort();
         };
-    }, [data.booking_date, data.booking_time, data.package_id, data.service]);
+    }, [data.booking_date, data.booking_time, data.package_id, data.service, firstBookableDate, isBookingDateOutOfRange]);
 
-    const travelFee = !data.service_city
-        ? 0
-        : isNearbyProvince
-          ? outOfTownTravelFee
-          : metroManilaTravelFee;
+    useEffect(() => {
+        const controller = new AbortController();
+
+        fetch('/book/locations?level=provinces', {
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+        })
+            .then(async (response) => {
+                const result = await response.json() as { options?: LocationOption[]; message?: string };
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'Province list is unavailable. Please refresh and try again.');
+                }
+
+                return result.options ?? [];
+            })
+            .then(setProvinceOptions)
+            .catch((error: unknown) => {
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    return;
+                }
+
+                setLocationsUnavailable(true);
+                setLocationMessage('The location list is unavailable. Enter the location details manually; you will still need to confirm the map pin.');
+            });
+
+        return () => controller.abort();
+    }, []);
+
+    const selectedProvinceOption = provinceOptions.find(
+        (province) => province.name.toLowerCase() === data.service_province.toLowerCase(),
+    );
+    const selectedCityOption = cityOptions.find(
+        (city) => city.name.toLowerCase() === data.service_city.toLowerCase(),
+    );
+
+    useEffect(() => {
+        if (!selectedProvinceOption) {
+            return;
+        }
+
+        const controller = new AbortController();
+        const params = new URLSearchParams({ level: 'cities', parent_code: selectedProvinceOption.code });
+        fetch(`/book/locations?${params.toString()}`, {
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+        })
+            .then(async (response) => {
+                const result = await response.json() as { options?: LocationOption[]; message?: string };
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'City list is unavailable. Please try again.');
+                }
+
+                return result.options ?? [];
+            })
+            .then(setCityOptions)
+            .catch((error: unknown) => {
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    return;
+                }
+
+                setLocationsUnavailable(true);
+                setLocationMessage('The location list is unavailable. Enter the location details manually; you will still need to confirm the map pin.');
+            });
+
+        return () => controller.abort();
+    }, [selectedProvinceOption?.code]);
+
+    useEffect(() => {
+        if (!selectedCityOption) {
+            return;
+        }
+
+        const controller = new AbortController();
+        const params = new URLSearchParams({ level: 'barangays', parent_code: selectedCityOption.code });
+        fetch(`/book/locations?${params.toString()}`, {
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+        })
+            .then(async (response) => {
+                const result = await response.json() as { options?: LocationOption[]; message?: string };
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'Barangay list is unavailable. Please try again.');
+                }
+
+                return result.options ?? [];
+            })
+            .then(setBarangayOptions)
+            .catch((error: unknown) => {
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    return;
+                }
+
+                setLocationsUnavailable(true);
+                setLocationMessage('The location list is unavailable. Enter the location details manually; you will still need to confirm the map pin.');
+            });
+
+        return () => controller.abort();
+    }, [selectedCityOption?.code]);
+
+    const calculatedTravelFee = !data.service_city ? 0 : travelFee;
     const estimatedTotal =
         (basePrice ?? 0) +
         selectedAddOns.reduce(
@@ -281,7 +440,7 @@ export default function CreateBooking({
         ) +
         (isRushBooking ? rushBookingFee : 0) +
         (isEarlyCallTime ? earlyCallTimeFee : 0) +
-        travelFee;
+        calculatedTravelFee;
 
     function clearBridalPartyAddOns(quantities: Record<number, number>) {
         const bridalPartyIds = new Set(
@@ -354,7 +513,142 @@ export default function CreateBooking({
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
+        if (!data.address_confirmed) {
+            setAddressCheck((current) => ({
+                ...current,
+                state: current.state === 'verified' ? 'verified' : 'error',
+                message: 'Locate the address and confirm the map pin before sending your request.',
+            }));
+            document.getElementById('venue_street')?.focus();
+            return;
+        }
+
+        if (data.booking_date && isBookingDateOutOfRange) {
+            setAvailability({
+                state: 'unavailable',
+                message: data.booking_date < firstBookableDate
+                    ? 'Past dates cannot be booked. Please choose today or a future date.'
+                    : 'This date is too far ahead to book. Please choose a date within the next two years.',
+            });
+            document.getElementById('booking_date')?.focus();
+            return;
+        }
+
         post('/book', { forceFormData: true });
+    }
+
+    function resetVenueLocation() {
+        setData((previous) => ({
+            ...previous,
+            venue_latitude: null,
+            venue_longitude: null,
+            address_confirmed: false,
+        }));
+        setMapOpen(false);
+        setAddressCheck({ state: 'idle', message: '' });
+    }
+
+    async function locateVenueOnMap() {
+        if (!data.service_city || !data.service_province) {
+            return;
+        }
+
+        setData('address_confirmed', false);
+        setAddressCheck({ state: 'locating', message: 'Locating the selected city on the map…' });
+        try {
+            const params = new URLSearchParams({
+                service_city: data.service_city,
+                service_province: data.service_province,
+            });
+            const response = await fetch(`/book/map-center?${params.toString()}`, {
+                headers: { Accept: 'application/json' },
+            });
+            const result = await response.json() as {
+                latitude?: number;
+                longitude?: number;
+                message?: string;
+            };
+            if (!response.ok || result.latitude == null || result.longitude == null) {
+                throw new Error(result.message || 'We could not locate that city. Check the province and city.');
+            }
+
+            setData((previous) => ({
+                ...previous,
+                venue_latitude: result.latitude!,
+                venue_longitude: result.longitude!,
+                address_confirmed: false,
+            }));
+            setMapOpen(true);
+            setAddressCheck({ state: 'located', message: 'Drag the pin to the exact venue, then confirm its location.' });
+        } catch (error) {
+            setAddressCheck({
+                state: 'error',
+                message: error instanceof Error ? error.message : 'We could not locate that city. Please try again.',
+            });
+        }
+    }
+
+    async function verifyVenueAddress() {
+        if (data.venue_latitude == null || data.venue_longitude == null) {
+            setAddressCheck({ state: 'error', message: 'Locate the map and place the pin at the venue first.' });
+            return;
+        }
+
+        setData('address_confirmed', false);
+        setAddressCheck({ state: 'checking', message: 'Checking that the pin is inside the selected city…' });
+        try {
+            const xsrfCookie = document.cookie.split('; ').find((item) => item.startsWith('XSRF-TOKEN='));
+            const response = await fetch('/book/verify-address', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    ...(xsrfCookie ? { 'X-XSRF-TOKEN': decodeURIComponent(xsrfCookie.slice('XSRF-TOKEN='.length)) } : {}),
+                },
+                body: JSON.stringify({
+                    service_city: data.service_city,
+                    service_province: data.service_province,
+                    venue_barangay: data.venue_barangay,
+                    venue_street: data.venue_street,
+                    venue_landmark: data.venue_landmark,
+                    venue_latitude: data.venue_latitude,
+                    venue_longitude: data.venue_longitude,
+                }),
+            });
+            const result = await response.json() as {
+                verified: boolean;
+                message: string;
+                formatted_address?: string;
+                map_url?: string;
+            };
+            if (!response.ok || !result.verified) {
+                throw new Error(result.message || 'We could not verify this address.');
+            }
+            setAddressCheck({
+                state: 'verified',
+                message: result.message,
+                formattedAddress: result.formatted_address,
+                mapUrl: result.map_url,
+            });
+            setData('address_confirmed', true);
+        } catch (error) {
+            setAddressCheck({
+                state: 'error',
+                message: error instanceof Error ? error.message : 'We could not verify this address. Please try again.',
+            });
+        }
+    }
+
+    function handleMapPinMove(latitude: number, longitude: number) {
+        setData((previous) => ({
+            ...previous,
+            venue_latitude: latitude,
+            venue_longitude: longitude,
+            address_confirmed: false,
+        }));
+        setAddressCheck({ state: 'located', message: 'Pin moved. Confirm the location when it is over the venue.' });
     }
 
     function handleNewInspoChange(event: ChangeEvent<HTMLInputElement>) {
@@ -475,10 +769,7 @@ export default function CreateBooking({
                                             key={service.id}
                                             value={`service:${encodeURIComponent(service.name)}`}
                                         >
-                                            {service.name} — ₱
-                                            {Number(
-                                                service.price,
-                                            ).toLocaleString('en-PH')}
+                                            {service.name}
                                         </option>
                                     ))}
                                 </optgroup>
@@ -488,11 +779,7 @@ export default function CreateBooking({
                                             key={pkg.id}
                                             value={`package:${pkg.id}`}
                                         >
-                                            {pkg.name} —{' '}
-                                            {pkg.pricing_type ===
-                                            'quote_required'
-                                                ? 'Price confirmed after booking'
-                                                : `${pkg.pricing_type === 'starting_at' ? 'Starting at ' : ''}₱${Number(pkg.price ?? 0).toLocaleString('en-PH')}`}
+                                            {pkg.name}
                                         </option>
                                     ))}
                                 </optgroup>
@@ -661,9 +948,11 @@ export default function CreateBooking({
                                 {data.service_city && (
                                     <div className="mt-2 flex justify-between gap-3 text-[#4a4a4a]">
                                         <span>
-                                            {isNearbyProvince
-                                                ? 'Out-of-town transportation (starting fee)'
-                                                : 'Metro Manila transportation (starting fee)'}
+                                            {isOnRequestArea
+                                                ? 'On-request transportation (starting fee)'
+                                                : isNearbyProvince
+                                                  ? 'Out-of-town transportation (starting fee)'
+                                                  : 'Metro Manila transportation (starting fee)'}
                                         </span>
                                         <span className="shrink-0">
                                             ₱{travelFee.toLocaleString('en-PH')}
@@ -686,79 +975,300 @@ export default function CreateBooking({
 
                         <div className="grid gap-2">
                             <Label
-                                htmlFor="service_city"
+                                htmlFor="service_province"
                                 className="text-[#1a1a1a]"
                             >
-                                Service city or municipality<RequiredAsterisk />
+                                Province or Metro Manila<RequiredAsterisk />
                             </Label>
-                            <select
-                                id="service_city"
-                                value={data.service_city}
-                                onChange={(event) =>
-                                    setData('service_city', event.target.value)
-                                }
-                                className={fieldClass}
-                                required
-                            >
-                                <option value="">
-                                    Choose the service city or municipality
-                                </option>
-                                <optgroup
-                                    label={`Metro Manila — transportation starts at ₱${metroManilaTravelFee.toLocaleString('en-PH')}`}
+                            {locationsUnavailable ? (
+                                <input
+                                    id="service_province"
+                                    type="text"
+                                    autoComplete="address-level1"
+                                    value={data.service_province}
+                                    onChange={(event) => {
+                                        setData((previous) => ({
+                                            ...previous,
+                                            service_province: event.target.value,
+                                            service_city: '',
+                                            venue_barangay: '',
+                                            venue_latitude: null,
+                                            venue_longitude: null,
+                                            address_confirmed: false,
+                                        }));
+                                        setCityOptions([]);
+                                        setBarangayOptions([]);
+                                        setMapOpen(false);
+                                        setAddressCheck({ state: 'idle', message: '' });
+                                    }}
+                                    className={`${fieldClass} min-h-12`}
+                                    placeholder="Type province or Metro Manila"
+                                    required
+                                />
+                            ) : (
+                                <select
+                                    id="service_province"
+                                    value={data.service_province}
+                                    onChange={(event) => {
+                                        setData((previous) => ({
+                                            ...previous,
+                                            service_province: event.target.value,
+                                            service_city: '',
+                                            venue_barangay: '',
+                                            venue_latitude: null,
+                                            venue_longitude: null,
+                                            address_confirmed: false,
+                                        }));
+                                        setCityOptions([]);
+                                        setBarangayOptions([]);
+                                        setMapOpen(false);
+                                        setAddressCheck({ state: 'idle', message: '' });
+                                    }}
+                                    className={fieldClass}
+                                    required
                                 >
-                                    {serviceCities.metroManila.map((city) => (
-                                        <option key={city} value={city}>
-                                            {city}
+                                    <option value="">Choose a province</option>
+                                    {provinceOptions.map((province) => (
+                                        <option key={province.code} value={province.name}>
+                                            {province.name}
                                         </option>
                                     ))}
-                                </optgroup>
-                                <optgroup
-                                    label={`Nearby provinces — starts at ₱${outOfTownTravelFee.toLocaleString('en-PH')}`}
-                                >
-                                    {serviceCities.nearbyProvince.map(
-                                        (city) => (
-                                            <option key={city} value={city}>
-                                                {city}
-                                            </option>
-                                        ),
-                                    )}
-                                </optgroup>
-                            </select>
-                            {data.service_city && (
-                                <p className="text-xs text-[#4a4a4a]">
-                                    Transportation fees are starting amounts.
-                                    The final fee depends on the full service
-                                    address and Trixie will confirm it.
-                                </p>
+                                </select>
                             )}
-                            <InputError message={errors.service_city} />
+                            <InputError message={errors.service_province} />
                         </div>
 
                         <div className="grid gap-2">
                             <Label
-                                htmlFor="venue_address"
+                                htmlFor="service_city"
                                 className="text-[#1a1a1a]"
                             >
-                                Venue address<RequiredAsterisk />
+                                City or municipality<RequiredAsterisk />
                             </Label>
-                            <p className="text-xs text-[#4a4a4a]">
-                                Prefilled from your profile address. Edit it
-                                here and choose a different city above if this
-                                appointment is at another venue.
+                            {locationsUnavailable ? (
+                                <input
+                                    id="service_city"
+                                    type="text"
+                                    autoComplete="address-level2"
+                                    value={data.service_city}
+                                    onChange={(event) => {
+                                        setData((previous) => ({
+                                            ...previous,
+                                            service_city: event.target.value,
+                                            venue_barangay: '',
+                                            venue_latitude: null,
+                                            venue_longitude: null,
+                                            address_confirmed: false,
+                                        }));
+                                        setBarangayOptions([]);
+                                        setMapOpen(false);
+                                        setAddressCheck({ state: 'idle', message: '' });
+                                    }}
+                                    className={`${fieldClass} min-h-12`}
+                                    placeholder="Type city or municipality"
+                                    required
+                                    disabled={!data.service_province}
+                                />
+                            ) : (
+                                <select
+                                    id="service_city"
+                                    value={data.service_city}
+                                    onChange={(event) => {
+                                        setData((previous) => ({
+                                            ...previous,
+                                            service_city: event.target.value,
+                                            venue_barangay: '',
+                                            venue_latitude: null,
+                                            venue_longitude: null,
+                                            address_confirmed: false,
+                                        }));
+                                        setBarangayOptions([]);
+                                        setMapOpen(false);
+                                        setAddressCheck({ state: 'idle', message: '' });
+                                    }}
+                                    className={fieldClass}
+                                    required
+                                    disabled={!data.service_province || cityOptions.length === 0}
+                                >
+                                    <option value="">Choose a city or municipality</option>
+                                    {cityOptions
+                                        .filter((city) => {
+                                            const cityArea = serviceAreas.find((area) => normalizeLocationName(area.name) === normalizeLocationName(city.name))
+                                                ?? serviceAreas.find((area) => normalizeLocationName(area.name) === normalizeLocationName(data.service_province));
+
+                                            return cityArea?.level !== 'not_served';
+                                        })
+                                        .map((city) => {
+                                            const cityArea = serviceAreas.find((area) => normalizeLocationName(area.name) === normalizeLocationName(city.name))
+                                                ?? serviceAreas.find((area) => normalizeLocationName(area.name) === normalizeLocationName(data.service_province));
+                                            const status = cityArea?.level ?? 'on_request';
+
+                                            return (
+                                                <option key={city.code} value={city.name}>
+                                                    {city.name}{status === 'on_request' ? ' — On request' : ''}{cityArea?.starting_fee ? ` · from ₱${cityArea.starting_fee.toLocaleString('en-PH')}` : ''}
+                                                </option>
+                                            );
+                                        })}
+                                </select>
+                            )}
+                            <InputError message={errors.service_city} />
+                            {data.service_city && (
+                                <p className={`text-xs ${isOnRequestArea ? 'text-[#76551e]' : 'text-[#4a4a4a]'}`}>
+                                    {isNotServedArea
+                                        ? 'Trixie is not accepting bookings in this area.'
+                                        : isOnRequestArea
+                                          ? 'On request: Trixie will review the location and appointment, then send a travel-fee quote for you to approve before any deposit is due.'
+                                          : 'This area is covered. Trixie will confirm the starting travel fee.'}
+                                    {selectedServiceArea?.note ? ` ${selectedServiceArea.note}` : ''}
+                                </p>
+                            )}
+                            {((selectedProvinceOption && cityOptions.length === 0) || (selectedCityOption && barangayOptions.length === 0)) && !locationMessage && <p role="status" className="text-xs text-[#62594f]">Loading location options…</p>}
+                            {locationMessage && <p role="status" className={`text-xs ${locationsUnavailable ? 'text-[#76551e]' : 'text-[#7a3028]'}`}>{locationMessage}</p>}
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="venue_barangay" className="text-[#1a1a1a]">
+                                Barangay<RequiredAsterisk />
+                            </Label>
+                            {locationsUnavailable ? (
+                                <input
+                                    id="venue_barangay"
+                                    type="text"
+                                    autoComplete="address-level3"
+                                    value={data.venue_barangay}
+                                    onChange={(event) => {
+                                        setData('venue_barangay', event.target.value);
+                                        resetVenueLocation();
+                                    }}
+                                    className={`${fieldClass} min-h-12`}
+                                    placeholder="Type barangay"
+                                    required
+                                    disabled={!data.service_city}
+                                />
+                            ) : (
+                                <select
+                                    id="venue_barangay"
+                                    value={data.venue_barangay}
+                                    onChange={(event) => {
+                                        setData('venue_barangay', event.target.value);
+                                        resetVenueLocation();
+                                    }}
+                                    className={fieldClass}
+                                    required
+                                    disabled={!data.service_city || barangayOptions.length === 0}
+                                >
+                                    <option value="">Choose a barangay</option>
+                                    {barangayOptions.map((barangay) => (
+                                        <option key={barangay.code} value={barangay.name}>{barangay.name}</option>
+                                    ))}
+                                </select>
+                            )}
+                            <InputError message={errors.venue_barangay} />
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="venue_street" className="text-[#1a1a1a]">
+                                    Street, building, and house number<RequiredAsterisk />
+                                </Label>
+                                <input
+                                    id="venue_street"
+                                    type="text"
+                                    autoComplete="street-address"
+                                    value={data.venue_street}
+                                    onChange={(event) => {
+                                        setData('venue_street', event.target.value);
+                                        resetVenueLocation();
+                                    }}
+                                    required
+                                    maxLength={500}
+                                    placeholder="House or unit number, street, building"
+                                    className={`${fieldClass} min-h-12`}
+                                />
+                                <InputError message={errors.venue_street} />
+                            </div>
+                            <div className="grid content-start gap-2">
+                                <Label htmlFor="venue_landmark" className="text-[#1a1a1a]">
+                                    Landmark <span className="font-normal text-[#62594f]">(optional)</span>
+                                </Label>
+                                <input
+                                    id="venue_landmark"
+                                    type="text"
+                                    value={data.venue_landmark}
+                                    onChange={(event) => {
+                                        setData('venue_landmark', event.target.value);
+                                        resetVenueLocation();
+                                    }}
+                                    maxLength={255}
+                                    placeholder="Near a church, school, or shop"
+                                    className={`${fieldClass} min-h-12`}
+                                />
+                                <InputError message={errors.venue_landmark} />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={locateVenueOnMap}
+                                disabled={!data.service_city || !data.service_province || !data.venue_barangay || data.venue_street.trim().length < 3 || addressCheck.state === 'locating'}
+                                className="min-h-12 w-full border-[#b99763] text-[#76551e] sm:w-fit"
+                            >
+                                <MapPin className="mr-2 h-4 w-4" />
+                                {addressCheck.state === 'locating' ? 'Locating city…' : mapOpen ? 'Re-center map on city' : 'Locate venue on map'}
+                            </Button>
+                            {mapOpen && data.venue_latitude != null && data.venue_longitude != null && (
+                                <>
+                                    <Suspense fallback={<div role="status" className="min-h-[300px] rounded-xl bg-[#f5f1eb] p-4 text-sm text-[#62594f] sm:min-h-[360px]">Loading map…</div>}>
+                                        <BookingLocationMap
+                                            latitude={data.venue_latitude}
+                                            longitude={data.venue_longitude}
+                                            onMove={handleMapPinMove}
+                                        />
+                                    </Suspense>
+                                    <Button
+                                        type="button"
+                                        onClick={verifyVenueAddress}
+                                        disabled={addressCheck.state === 'checking' || data.address_confirmed}
+                                        className="min-h-12 w-full bg-[#8a6a2f] text-white hover:bg-[#725625] sm:w-fit"
+                                    >
+                                        {addressCheck.state === 'checking' ? 'Checking pin…' : data.address_confirmed ? 'Pin location confirmed' : 'Confirm pin location'}
+                                    </Button>
+                                </>
+                            )}
+                            {addressCheck.message && (
+                                <div
+                                    role="status"
+                                    aria-live="polite"
+                                    className={`grid gap-2 rounded-xl border px-3 py-2 text-sm ${
+                                        addressCheck.state === 'verified'
+                                            ? 'border-green-200 bg-green-50 text-green-900'
+                                            : addressCheck.state === 'error'
+                                              ? 'border-red-200 bg-red-50 text-red-800'
+                                              : 'border-[#e8d7cf] bg-[#fffcf8] text-[#4a4a4a]'
+                                    }`}
+                                >
+                                    <span>{addressCheck.message}</span>
+                                    {addressCheck.state === 'verified' && addressCheck.formattedAddress && (
+                                        <>
+                                            <span className="font-medium">{addressCheck.formattedAddress}</span>
+                                            <a
+                                                href={addressCheck.mapUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="w-fit underline underline-offset-2"
+                                            >
+                                                Open map and check the pin
+                                            </a>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                            <p className="text-xs text-[#62594f]">
+                                The pin is checked only when you confirm it. Your precise coordinates are sent to Geoapify for the city check; the map uses OpenStreetMap data.
                             </p>
-                            <textarea
-                                id="venue_address"
-                                value={data.venue_address}
-                                onChange={(event) =>
-                                    setData('venue_address', event.target.value)
-                                }
-                                required
-                                maxLength={1000}
-                                rows={3}
-                                placeholder="Enter the house, street, barangay, and full venue details"
-                                className={`${fieldClass} resize-y`}
-                            />
-                            <InputError message={errors.venue_address} />
+                            <InputError message={errors.address_confirmed} />
                         </div>
 
                         <div className="grid items-start gap-4 sm:grid-cols-2">
@@ -781,7 +1291,8 @@ export default function CreateBooking({
                                         )
                                     }
                                     required
-                                    min={minimumBookingDate ?? undefined}
+                                    min={firstBookableDate}
+                                    max={lastBookableDate}
                                     className={fieldClass}
                                 />
                                 <InputError message={errors.booking_date} />

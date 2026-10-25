@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
-import { Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import AppLogoIcon from '@/components/app-logo-icon';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
 
@@ -18,16 +18,28 @@ export default function AuthSimpleLayout({
     }, []);
 
     return (
-        <div className="relative min-h-svh overflow-hidden bg-gradient-to-b from-[#E9F0F9] to-[#faf7f4]">
+        <div className="relative min-h-svh overflow-hidden bg-[#faf7f4]"
+            style={{
+                backgroundImage: "url('/images/branding/auth-brush-background.svg'), linear-gradient(180deg, #E9F0F9 0%, #faf7f4 100%)",
+                backgroundPosition: "center, center",
+                backgroundSize: "100% 100%, cover",
+                backgroundRepeat: "no-repeat, no-repeat",
+            }}>
             {/* decorative blurred shapes, same treatment as the landing hero */}
             <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-[#c9a66b]/30 blur-3xl" />
             <div className="pointer-events-none absolute top-1/3 -right-24 h-80 w-80 rounded-full bg-[#c9a66b]/30 blur-3xl" />
 
+
+
+
             {/* nav bar, matching the landing page */}
-            <div className="relative flex items-center justify-between border-b border-[#e8d7cf] bg-[#faf7f4]/80 px-8 py-4 backdrop-blur">
-                <Link href={home()} className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-[#8a6a2f]" />
-                    <p className="font-bold text-[#8a6a2f]">
+            <div className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-[#E8B4B8]/50 bg-[#FAF7F4]/90 px-4 py-3 backdrop-blur sm:px-8 sm:py-4">
+                <Link
+                    href={home()}
+                    className="flex min-w-0 items-center gap-2"
+                >
+                    <AppLogoIcon className="h-10 w-10 object-contain" />
+                    <p className="whitespace-nowrap font-display text-sm font-bold text-[#1A1A1A] sm:text-lg">
                         Glow Up by Trixie
                     </p>
                 </Link>
@@ -40,7 +52,7 @@ export default function AuthSimpleLayout({
             </div>
 
             {/* card */}
-            <div className="relative flex flex-col items-center justify-center px-6 py-16 md:py-24">
+            <div className="relative z-10 flex flex-col items-center justify-center px-6 py-16 md:py-24">
                 <div
                     className={`w-full max-w-sm transition-all duration-500 ease-out ${
                         mounted

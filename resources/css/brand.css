@@ -32,8 +32,15 @@
 }
 .gl-btn:hover,
 .gl-btn:focus-visible {
-  background: var(--rose);
-  box-shadow: 0 0 22px rgba(168, 84, 92, 0.4);
+  box-shadow: 0 0 22px rgba(201, 166, 107, 0.42), 0 6px 18px rgba(138, 106, 47, 0.28);
+}
+.signup-glow {
+  box-shadow: 0 3px 10px rgba(138, 106, 47, 0.2);
+  transition: box-shadow 0.2s ease;
+}
+.signup-glow:hover,
+.signup-glow:focus-visible {
+  box-shadow: 0 0 0 2px rgba(201, 166, 107, 0.42), 0 0 12px rgba(201, 166, 107, 0.9), 0 0 28px rgba(201, 166, 107, 0.72);
 }
 :where(.gl-btn, .gl-slider button, .gl-social a):focus-visible {
   outline: 2px solid var(--champagne-deep);
@@ -254,3 +261,86 @@
 /* On dark backgrounds */
 .gl-social--dark { color: var(--ivory); }
 .gl-social--dark a:hover { color: var(--champagne); }
+
+/* Slim, warm-toned scrollbars for long gallery stories. */
+.gallery-story-scrollbar {
+  scrollbar-color: #c9a66b #f4e9e5;
+  scrollbar-width: thin;
+}
+.gallery-story-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.gallery-story-scrollbar::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #f4e9e5;
+}
+.gallery-story-scrollbar::-webkit-scrollbar-thumb {
+  border: 1px solid #f4e9e5;
+  border-radius: 999px;
+  background: #c9a66b;
+}
+.gallery-story-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #8a6a2f;
+}
+.gallery-story-scrollbar::-webkit-scrollbar-button {
+  display: none;
+}
+.gallery-story-scrollbar::-webkit-resizer {
+  background: #f4e9e5;
+}
+
+.gallery-carousel-scrollbar {
+  scrollbar-color: #c9a66b #f4e9e5;
+  scrollbar-width: thin;
+}
+.gallery-carousel-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+.gallery-carousel-scrollbar::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #f4e9e5;
+}
+.gallery-carousel-scrollbar::-webkit-scrollbar-thumb {
+  border: 1px solid #f4e9e5;
+  border-radius: 999px;
+  background: #c9a66b;
+}
+.gallery-carousel-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #8a6a2f;
+}
+.gallery-carousel-scrollbar::-webkit-scrollbar-button {
+  display: none;
+}
+.booking-location-pin {
+    border: 0;
+    background: transparent;
+}
+
+.booking-location-pin span {
+    position: absolute;
+    display: block;
+    width: 28px;
+    height: 28px;
+    border: 3px solid white;
+    border-radius: 50% 50% 50% 0;
+    background: #8a6a2f;
+    box-shadow: 0 2px 7px rgb(0 0 0 / 35%);
+    transform: rotate(-45deg);
+}
+
+.booking-location-pin span::after {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: white;
+    content: '';
+}
+
+.leaflet-container {
+    z-index: 0;
+    font: inherit;
+}

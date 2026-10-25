@@ -3,6 +3,7 @@ type Props = {
     depositStatus?: 'not_due' | 'due' | 'submitted' | 'received';
     depositAmount?: number | string | null;
     remainingBalance?: number | string | null;
+    showTotal?: boolean;
 };
 
 function formatCurrency(amount: number) {
@@ -17,6 +18,7 @@ export default function BookingPaymentBreakdown({
     depositStatus = 'not_due',
     depositAmount,
     remainingBalance,
+    showTotal = true,
 }: Props) {
     const totalAmount = Number(total);
     const deposit = Number(depositAmount ?? totalAmount / 2);
@@ -38,10 +40,12 @@ export default function BookingPaymentBreakdown({
             className="mb-3 rounded-xl border border-[#e8d7cf] bg-[#fffcf8] px-4 py-3 text-sm text-[#4a4a4a]"
         >
             <dl className="grid gap-2">
-                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 font-semibold text-[#1a1a1a]">
-                    <dt>Total service fee</dt>
-                    <dd>₱{formatCurrency(totalAmount)}</dd>
-                </div>
+                {showTotal && (
+                    <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 font-semibold text-[#1a1a1a]">
+                        <dt>Total service fee</dt>
+                        <dd>₱{formatCurrency(totalAmount)}</dd>
+                    </div>
+                )}
                 <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
                     <dt>50% deposit <span className="text-xs">({depositNote})</span></dt>
                     <dd>₱{formatCurrency(deposit)}</dd>
