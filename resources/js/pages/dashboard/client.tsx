@@ -1,7 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     AlertCircle,
-    BadgeCheck,
     CalendarPlus,
     CalendarDays,
     Check,
@@ -16,11 +15,14 @@ import {
 import { useMemo, useState } from 'react';
 import BookingItemizedPricing from '@/components/booking-itemized-pricing';
 import BookingPaymentBreakdown from '@/components/booking-payment-breakdown';
+import BookingActivityTimeline from '@/components/booking-activity-timeline';
 import DashboardHeader from '@/components/dashboard-header';
 import RequiredAsterisk from '@/components/required-asterisk';
 
 type Booking = {
     id: number;
+    created_at: string;
+    updated_at: string;
     service: string;
     base_price?: number | string | null;
     base_price_type?: 'fixed' | 'starting_at' | 'quote_required';
@@ -37,6 +39,11 @@ type Booking = {
     deposit_method?: 'gcash' | 'bank_transfer' | 'cash' | null;
     deposit_reference?: string | null;
     deposit_proof_url?: string | null;
+    deposit_submitted_at?: string | null;
+    deposit_received_at?: string | null;
+    confirmed_at?: string | null;
+    completed_at?: string | null;
+    cancelled_at?: string | null;
     total_paid_amount?: number | string | null;
     remaining_balance?: number | string | null;
     balance_payments?: {
@@ -78,13 +85,11 @@ type Booking = {
         id: number;
         name: string;
         phone: string | null;
-        specialty: string | null;
     };
 };
 
 type Props = {
     bookings: Booking[];
-    artistTrustVerified: boolean;
 };
 
 const STATUS_STYLES: Record<Booking['status'], string> = {
@@ -93,6 +98,98 @@ const STATUS_STYLES: Record<Booking['status'], string> = {
     completed: 'bg-[#f4e9e5] text-[#8a6a2f]',
     cancelled: 'bg-[#F5E0E0] text-[#A13F3F]',
 };
+
+type PaymentReceiptDetails = {
+    bookingId: number;
+    paymentId?: number;
+    service: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    clientName: string;
+    artistName: string;
+    paymentLabel: string;
+    amount: number | string;
+    method: string;
+    paidAt: string;
+    reference?: string | null;
+    remainingBalance?: number | string | null;
+};
+
+function printPaymentReceipt(receipt: PaymentReceiptDetails) {
+    const escapeHtml = (value: string) =>
+        value.replace(/[&<>"']/g, (character) => {
+            const entities: Record<string, string> = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;',
+            };
+
+            return entities[character];
+        });
+    const pesos = (value: number | string | null | undefined) =>
+        new Intl.NumberFormat('en-PH', {
+            style: 'currency',
+            currency: 'PHP',
+            minimumFractionDigits: 2,
+        }).format(Number(value ?? 0));
+    const formatReceiptDate = (value: string) => {
+        const date = new Date(value.length === 10 ? `${value}T00:00:00` : value);
+
+        return Number.isNaN(date.getTime())
+            ? value
+            : date.toLocaleDateString('en-PH', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+              });
+    };
+
+    const popupWidth = Math.max(280, Math.min(520, window.innerWidth - 24));
+    const popupHeight = Math.max(400, Math.min(700, window.innerHeight - 40));
+    const printWindow = window.open(
+        '',
+        '_blank',
+        `width=${popupWidth},height=${popupHeight},resizable=yes,scrollbars=yes`,
+    );
+    if (!printWindow) {
+        window.alert('Allow pop-ups to open and print your payment receipt.');
+        return;
+    }
+
+    const reference = receipt.reference
+        ? `<div class="row"><span>Payment reference</span><strong>${escapeHtml(receipt.reference)}</strong></div>`
+        : '';
+    const remainingBalance =
+        receipt.remainingBalance === null || receipt.remainingBalance === undefined
+            ? ''
+            : `<div class="row"><span>Current remaining balance</span><strong>${pesos(receipt.remainingBalance)}</strong></div>`;
+    const receiptId = `GUT-${receipt.bookingId}-${receipt.paymentLabel === 'Deposit' ? 'DEP' : `BAL-${receipt.paymentId ?? receipt.reference ?? 'PAYMENT'}`}`;
+
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Payment receipt ${escapeHtml(receiptId)}</title>
+<style>
+*{box-sizing:border-box}html{scrollbar-width:thin;scrollbar-color:#c9a66b #f7f3ef}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:#f7f3ef}::-webkit-scrollbar-thumb{border-radius:999px;background:#c9a66b;border:2px solid #f7f3ef}::-webkit-scrollbar-thumb:hover{background:#a78348}body{margin:0;padding:20px 12px;color:#28231e;background:#f7f3ef;font:14px/1.5 Arial,sans-serif}main{width:100%;max-width:440px;margin:0 auto;padding:24px;border:1px solid #e8d7cf;border-radius:16px;background:#fff}.brand{margin:0 0 6px;color:#8a6a2f;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}h1{margin:0;font:700 24px Georgia,serif}.subtitle{margin:8px 0 18px;color:#62584f}.amount{margin:0 0 18px;padding:14px;border-radius:12px;background:#faf7f4;color:#704f1e;font-size:22px;font-weight:700}.row{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid #eee6df}.row span{color:#62584f}.row strong{text-align:right}.notice{margin:18px 0 0;padding:12px;border-radius:10px;background:#f7f3ef;color:#51463e;font-size:12px}.actions{margin-top:18px}button{border:0;border-radius:999px;padding:10px 16px;background:#8a6a2f;color:#fff;font-size:13px;font-weight:700;cursor:pointer}@media(max-width:480px){body{padding:10px 6px}main{padding:16px;border-radius:12px}.row{flex-wrap:wrap;gap:2px 12px}.row strong{text-align:left;max-width:100%;overflow-wrap:anywhere}.amount{font-size:20px}}@media print{body{padding:0;background:#fff}main{max-width:none;border:0;border-radius:0;padding:0}.actions{display:none}}
+</style></head><body><main>
+<p class="brand">Glow Up by Trixie</p><h1>Payment receipt</h1>
+<p class="subtitle">Payment acknowledgment from ${escapeHtml(receipt.artistName)}</p>
+<p class="amount">${pesos(receipt.amount)}</p>
+<div class="row"><span>Receipt reference</span><strong>${escapeHtml(receiptId)}</strong></div>
+<div class="row"><span>Payment type</span><strong>${escapeHtml(receipt.paymentLabel)}</strong></div>
+<div class="row"><span>Received from</span><strong>${escapeHtml(receipt.clientName)}</strong></div>
+<div class="row"><span>Payment method</span><strong>${escapeHtml(receipt.method.replaceAll('_', ' '))}</strong></div>
+<div class="row"><span>Recorded on</span><strong>${escapeHtml(formatReceiptDate(receipt.paidAt))}</strong></div>
+<div class="row"><span>Booking</span><strong>${escapeHtml(receipt.service)}</strong></div>
+<div class="row"><span>Appointment</span><strong>${escapeHtml(formatReceiptDate(receipt.appointmentDate))} · ${escapeHtml(receipt.appointmentTime)}</strong></div>
+${reference}${remainingBalance}
+<p class="notice">This receipt records a payment that ${escapeHtml(receipt.artistName)} marked as received for this booking. It is the artist’s acknowledgment, not a bank-issued receipt. Keep it with your original transaction proof, if applicable.</p>
+<div class="actions"><button type="button" onclick="window.print()">Print or save as PDF</button></div>
+</main></body></html>`);
+    printWindow.document.close();
+}
 
 const CANCEL_CUTOFF_HOURS = 24;
 
@@ -153,7 +250,7 @@ function hoursUntil(booking: Booking) {
     return (appointmentDate(booking).getTime() - Date.now()) / (1000 * 60 * 60);
 }
 
-/** Same rule governs both self-cancel and reschedule eligibility. */
+/** Cancellation is allowed before the cutoff; rescheduling is only allowed before confirmation. */
 function canModify(booking: Booking) {
     if (booking.status === 'pending') {
         return true;
@@ -164,6 +261,10 @@ function canModify(booking: Booking) {
     }
 
     return false;
+}
+
+function canReschedule(booking: Booking) {
+    return booking.status === 'pending';
 }
 
 function needsContactToCancel(booking: Booking) {
@@ -199,8 +300,8 @@ function getBookingNextStep(booking: Booking) {
 
     if (booking.status === 'confirmed') {
         return {
-            owner: 'No action needed',
-            message: 'Your appointment is confirmed. Open the details for the schedule and payment summary.',
+            owner: 'Your booking is confirmed',
+            message: 'Open the details for your schedule and payment summary.',
         };
     }
 
@@ -228,7 +329,7 @@ function getBookingNextStep(booking: Booking) {
     if (booking.deposit_status === 'received') {
         return {
             owner: 'Waiting for the artist',
-            message: 'The deposit is verified. The artist needs to confirm your appointment.',
+            message: 'Your deposit is verified. The artist is confirming your appointment.',
         };
     }
 
@@ -255,7 +356,6 @@ function dismissId(id: number) {
 
 export default function ClientDashboard({
     bookings,
-    artistTrustVerified,
 }: Props) {
     const { auth } = usePage<{
         auth?: {
@@ -640,9 +740,6 @@ export default function ClientDashboard({
                                             </p>
                                             <p className="text-sm text-[#4a4a4a]">
                                                 with {booking.artist.name}
-                                                {booking.artist.specialty
-                                                    ? ` · ${booking.artist.specialty}`
-                                                    : ''}
                                             </p>
                                         </div>
                                         <span
@@ -804,9 +901,6 @@ export default function ClientDashboard({
                                 <span className="font-semibold text-[#1a1a1a]">
                                     {selectedBooking.artist.name}
                                 </span>
-                                {selectedBooking.artist.specialty
-                                    ? ` · ${selectedBooking.artist.specialty}`
-                                    : ''}
                             </p>
                             <span
                                 className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLES[selectedBooking.status]}`}
@@ -825,6 +919,8 @@ export default function ClientDashboard({
                                 {getBookingNextStep(selectedBooking).message}
                             </p>
                         </section>
+
+                        <BookingActivityTimeline booking={selectedBooking} />
 
                         {selectedBooking.terms_accepted_at && (
                             <p className="mt-2 text-xs text-[#4a4a4a]">
@@ -1051,6 +1147,9 @@ export default function ClientDashboard({
                                                 })}{' '}
                                                 (due on the service day).
                                             </p>
+                                            <p className="mt-2 rounded-lg bg-[#fff8e8] p-3 text-xs leading-5 text-[#6a5542]">
+                                                If Trixie verifies your deposit and confirms this booking, the 50% deposit is non-refundable if you cancel.
+                                            </p>
                                             <p className="mt-1 text-sm leading-5 text-[#4a4a4a]">
                                                 For GCash or bank transfer, pay
                                                 only to the details in the
@@ -1062,34 +1161,7 @@ export default function ClientDashboard({
                                                 The app does not hold funds.
                                             </p>
                                             <div className="mt-3 rounded-lg bg-[#f7f3ef] p-3 text-xs leading-5 text-[#4a4a4a]">
-                                                {artistTrustVerified ? (
-                                                    <p className="flex items-start gap-2">
-                                                        <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#2e6d43]" />
-                                                        <span>
-                                                            A site admin checked
-                                                            Trixie’s identity and
-                                                            the payment account
-                                                            listed in the booking
-                                                            terms.
-                                                        </span>
-                                                    </p>
-                                                ) : (
-                                                    <p>
-                                                        Trixie’s identity and
-                                                        payment account have not
-                                                        yet been checked by a
-                                                        site admin. Confirm the
-                                                        recipient directly
-                                                        before paying.
-                                                    </p>
-                                                )}
-                                                <p className="mt-2">
-                                                    Keep your receipt and
-                                                    booking messages. The
-                                                    deposit is recorded as paid
-                                                    only after Trixie marks it
-                                                    received.
-                                                </p>
+                                                Keep your payment receipt and booking messages. For GCash or bank transfer, upload the transaction proof below and keep your original receipt. For cash, ask Trixie for a written receipt and keep a photo. The app does not hold funds; the deposit is recorded only after Trixie confirms receiving it.
                                             </div>
                                             <label
                                                 htmlFor={`deposit-method-${selectedBooking.id}`}
@@ -1319,15 +1391,57 @@ export default function ClientDashboard({
                                             })}
                                             . Remaining balance: ₱
                                             {Number(selectedBooking.remaining_balance ?? Math.max(0, Number(selectedBooking.estimated_total ?? 0) - Number(selectedBooking.deposit_amount ?? Number(selectedBooking.estimated_total ?? 0) / 2))).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                                            {Number(selectedBooking.remaining_balance ?? 0) > 0 ? ', due on the service day.' : ', paid in full.'} Trixie
-                                            will confirm your booking shortly.
+                                            {Number(selectedBooking.remaining_balance ?? 0) > 0 ? ', due on the service day.' : ', paid in full.'} Your booking is confirmed at the total you accepted.
                                         </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => printPaymentReceipt({
+                                                bookingId: selectedBooking.id,
+                                                service: selectedBooking.service,
+                                                appointmentDate: selectedBooking.booking_date,
+                                                appointmentTime: formatTime(selectedBooking.booking_time),
+                                                clientName: auth?.user?.name ?? 'Client',
+                                                artistName: selectedBooking.artist.name,
+                                                paymentLabel: 'Deposit',
+                                                amount: selectedBooking.deposit_amount ?? Number(selectedBooking.estimated_total ?? 0) / 2,
+                                                method: selectedBooking.deposit_method ?? 'Not specified',
+                                                paidAt: selectedBooking.deposit_received_at ?? selectedBooking.updated_at,
+                                                reference: selectedBooking.deposit_reference,
+                                                remainingBalance: selectedBooking.remaining_balance,
+                                            })}
+                                            className="mt-3 rounded-full border border-[#8a6a2f] px-4 py-2 text-xs font-semibold text-[#704f1e] transition hover:bg-[#f4e9e5]"
+                                        >
+                                            View / print receipt
+                                        </button>
                                         {!!selectedBooking.balance_payments?.length && (
                                             <ul className="mt-3 grid gap-1 border-t border-[#b7d5bb] pt-3">
                                                 {selectedBooking.balance_payments.map((payment) => (
-                                                    <li key={payment.id}>
-                                                        ₱{Number(payment.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })} · {payment.method.replace('_', ' ')} · {new Date(payment.paid_at).toLocaleDateString()}
-                                                        {payment.reference ? ` · Ref: ${payment.reference}` : ''}
+                                                    <li key={payment.id} className="flex flex-wrap items-center justify-between gap-2">
+                                                        <span>
+                                                            ₱{Number(payment.amount).toLocaleString('en-PH', { minimumFractionDigits: 2 })} · {payment.method.replace('_', ' ')} · {new Date(payment.paid_at).toLocaleDateString()}
+                                                            {payment.reference ? ` · Ref: ${payment.reference}` : ''}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => printPaymentReceipt({
+                                                                bookingId: selectedBooking.id,
+                                                                paymentId: payment.id,
+                                                                service: selectedBooking.service,
+                                                                appointmentDate: selectedBooking.booking_date,
+                                                                appointmentTime: formatTime(selectedBooking.booking_time),
+                                                                clientName: auth?.user?.name ?? 'Client',
+                                                                artistName: selectedBooking.artist.name,
+                                                                paymentLabel: 'Balance payment',
+                                                                amount: payment.amount,
+                                                                method: payment.method,
+                                                                paidAt: payment.paid_at,
+                                                                reference: payment.reference,
+                                                                remainingBalance: selectedBooking.remaining_balance,
+                                                            })}
+                                                            className="rounded-full border border-[#8a6a2f] px-4 py-2 text-xs font-semibold text-[#704f1e] transition hover:bg-[#f4e9e5]"
+                                                        >
+                                                            View / print receipt
+                                                        </button>
                                                     </li>
                                                 ))}
                                             </ul>
@@ -1474,7 +1588,8 @@ export default function ClientDashboard({
 
                                 {canModify(selectedBooking) && (
                                     <div className="flex flex-wrap gap-2 border-t border-[#e8d7cf] pt-4">
-                                        {!selectedBooking.transportation_fee_pending &&
+                                        {canReschedule(selectedBooking) &&
+                                            !selectedBooking.transportation_fee_pending &&
                                             !selectedBooking.quote_pending && (
                                                 <button
                                                     type="button"
@@ -1493,6 +1608,11 @@ export default function ClientDashboard({
                                                 <p className="w-full text-sm font-medium text-[#A13F3F]">
                                                     Cancel this booking?
                                                 </p>
+                                                {selectedBooking.status === 'confirmed' && selectedBooking.deposit_status === 'received' && (
+                                                    <p className="w-full text-sm text-[#6a5542]">
+                                                        If you cancel this confirmed booking, the 50% deposit is non-refundable.
+                                                    </p>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={() =>
@@ -1536,6 +1656,12 @@ export default function ClientDashboard({
                                             </button>
                                         )}
                                     </div>
+                                )}
+
+                                {selectedBooking.status === 'confirmed' && (
+                                    <p className="border-t border-[#e8d7cf] pt-4 text-sm text-[#6a5542]">
+                                        Confirmed appointments can’t be rescheduled in the app. Contact Trixie if you need to discuss a change; your current appointment stays confirmed unless it is cancelled.
+                                    </p>
                                 )}
 
                                 {needsContactToCancel(selectedBooking) && (
@@ -1622,6 +1748,13 @@ export default function ClientDashboard({
                                             ? This will need your artist's
                                             approval again.
                                         </p>
+                                        {(selectedBooking.quote_accepted_at ||
+                                            selectedBooking.deposit_status === 'submitted' ||
+                                            selectedBooking.deposit_status === 'received') && (
+                                            <p className="mb-3 text-sm text-[#6a5542]">
+                                                Your accepted total and any deposit already sent will stay the same. Trixie must approve the new date and time.
+                                            </p>
+                                        )}
                                         <div className="flex gap-2">
                                             <button
                                                 type="button"

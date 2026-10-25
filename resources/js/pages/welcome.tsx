@@ -605,9 +605,9 @@ export default function Welcome({
                                         A 50% down payment is required to
                                         reserve your preferred date and time.
                                         The remaining balance is due on your
-                                        service day. The deposit is
-                                        non-refundable once your booking is
-                                        confirmed.
+                                        service day. If you cancel a confirmed
+                                        booking, the 50% deposit is
+                                        non-refundable.
                                     </p>
                                 </article>
                                 <article className="rounded-2xl border border-[#E8B4B8]/60 bg-white p-5">

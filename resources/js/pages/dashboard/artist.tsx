@@ -11,11 +11,14 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import BookingItemizedPricing from '@/components/booking-itemized-pricing';
+import BookingActivityTimeline from '@/components/booking-activity-timeline';
 import DashboardHeader from '@/components/dashboard-header';
 import RequiredAsterisk from '@/components/required-asterisk';
 
 type Booking = {
     id: number;
+    created_at: string;
+    updated_at: string;
     service: string;
     base_price?: number | string | null;
     base_price_type?: 'fixed' | 'starting_at' | 'quote_required';
@@ -32,6 +35,11 @@ type Booking = {
     deposit_method?: 'gcash' | 'bank_transfer' | 'cash' | null;
     deposit_reference?: string | null;
     deposit_proof_url?: string | null;
+    deposit_submitted_at?: string | null;
+    deposit_received_at?: string | null;
+    confirmed_at?: string | null;
+    completed_at?: string | null;
+    cancelled_at?: string | null;
     total_paid_amount?: number | string | null;
     remaining_balance?: number | string | null;
     balance_payments?: BalancePayment[];
@@ -159,6 +167,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
     const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
     const [busyId, setBusyId] = useState<number | null>(null);
     const [viewingUrl, setViewingUrl] = useState<string | null>(null);
+    const [depositConfirmation, setDepositConfirmation] = useState<Booking | null>(null);
     const [messages, setMessages] = useState<Record<number, string>>({});
     const [messageOpen, setMessageOpen] = useState<Record<number, boolean>>({});
     const [makeupPrices, setMakeupPrices] = useState<Record<number, string>>(
@@ -264,7 +273,10 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
             {},
             {
                 preserveScroll: true,
-                onFinish: () => setBusyId(null),
+                onFinish: () => {
+                    setBusyId(null);
+                    setDepositConfirmation(null);
+                },
             },
         );
     }
@@ -561,6 +573,8 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                         )}
                                         </BookingHeader>
 
+                                        <BookingActivityTimeline booking={booking} />
+
                                         {(booking.quote_pending ||
                                             booking.transportation_fee_pending) && (
                                             <p className="mt-3 rounded-xl border border-[#c9a66b] bg-[#fffcf8] px-4 py-3 text-sm font-medium text-[#8a6a2f]">
@@ -611,6 +625,9 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                         ? ` · Reference: ${booking.deposit_reference}`
                                                         : ''}
                                                 </p>
+                                                <p className="mt-2 text-[#6a5542]">
+                                                    Verify the payment to confirm the booking at the client-accepted total. Prices are locked once the deposit is reported as sent.
+                                                </p>
                                                 {booking.deposit_proof_url && (
                                                     <img
                                                         src={
@@ -625,16 +642,12 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                                     disabled={
                                                         busyId === booking.id
                                                     }
-                                                    onClick={() =>
-                                                        markDepositReceived(
-                                                            booking,
-                                                        )
-                                                    }
+                                                    onClick={() => setDepositConfirmation(booking)}
                                                     className="mt-3 rounded-full bg-[#2E7D46] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
                                                 >
                                                     {busyId === booking.id
                                                         ? 'Saving…'
-                                                        : 'Mark deposit received'}
+                                                        : 'Verify deposit & confirm booking'}
                                                 </button>
                                             </div>
                                         )}
@@ -716,40 +729,37 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                             >
                                                 <MessageSquare className="h-4 w-4" />
                                             </button>
-                                            <button
-                                                type="button"
-                                                disabled={
-                                                    busyId === booking.id ||
-                                                    booking.quote_pending ||
-                                                    booking.transportation_fee_pending ||
-                                                    booking.deposit_status !==
-                                                        'received'
-                                                }
-                                                onClick={() =>
-                                                    act(booking.id, 'accept')
-                                                }
-                                                className="flex items-center gap-1.5 rounded-full bg-[#2E7D46] px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
-                                            >
-                                                <Check className="h-3.5 w-3.5" />{' '}
-                                                {booking.quote_pending ||
-                                                booking.transportation_fee_pending
-                                                    ? 'Waiting for quote approval'
-                                                    : booking.deposit_status !==
-                                                        'received'
-                                                      ? 'Waiting for deposit'
-                                                      : 'Confirm booking'}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                disabled={busyId === booking.id}
-                                                onClick={() =>
-                                                    act(booking.id, 'decline')
-                                                }
-                                                className="flex items-center gap-1.5 rounded-full border border-[#A13F3F] px-4 py-1.5 text-sm font-semibold text-[#A13F3F] transition hover:bg-[#F5E0E0] disabled:opacity-50"
-                                            >
-                                                <X className="h-3.5 w-3.5" />{' '}
-                                                Decline
-                                            </button>
+                                            {booking.status === 'pending' && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        disabled={
+                                                            busyId === booking.id ||
+                                                            booking.quote_pending ||
+                                                            booking.transportation_fee_pending ||
+                                                            booking.deposit_status !== 'received'
+                                                        }
+                                                        onClick={() => act(booking.id, 'accept')}
+                                                        className="flex items-center gap-1.5 rounded-full bg-[#2E7D46] px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
+                                                    >
+                                                        <Check className="h-3.5 w-3.5" />{' '}
+                                                        {booking.quote_pending || booking.transportation_fee_pending
+                                                            ? 'Waiting for quote approval'
+                                                            : booking.deposit_status !== 'received'
+                                                              ? 'Waiting for deposit'
+                                                              : 'Confirm booking'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        disabled={busyId === booking.id}
+                                                        onClick={() => act(booking.id, 'decline')}
+                                                        className="flex items-center gap-1.5 rounded-full border border-[#A13F3F] px-4 py-1.5 text-sm font-semibold text-[#A13F3F] transition hover:bg-[#F5E0E0] disabled:opacity-50"
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />{' '}
+                                                        Decline
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                         {messageOpen[booking.id] && (
                                             <div className="mt-3">
@@ -911,6 +921,7 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                                         booking={booking}
                                         onViewInspo={setViewingUrl}
                                     />
+                                    <BookingActivityTimeline booking={booking} />
                                     {booking.status === 'confirmed' && (
                                         <button
                                             type="button"
@@ -949,6 +960,50 @@ export default function ArtistDashboard({ bookings, reviews = [] }: Props) {
                         className="max-h-[85vh] max-w-full rounded-lg object-contain"
                         onClick={(e) => e.stopPropagation()}
                     />
+                </div>
+            )}
+            {depositConfirmation && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <section
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="deposit-confirmation-title"
+                        className="w-full max-w-md rounded-2xl border border-[#e8d7cf] bg-white p-6 shadow-xl"
+                    >
+                        <h2 id="deposit-confirmation-title" className="font-serif text-xl font-bold text-[#1a1a1a]">
+                            Verify payment and confirm booking
+                        </h2>
+                        <p className="mt-3 text-sm leading-6 text-[#51463e]">
+                            Are you sure you received the client’s deposit of{' '}
+                            <strong>
+                                ₱{Number(
+                                    depositConfirmation.deposit_amount ??
+                                        Number(depositConfirmation.estimated_total ?? 0) / 2,
+                                ).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                            </strong>
+                            {depositConfirmation.deposit_method && (
+                                <> via <strong>{depositConfirmation.deposit_method === 'bank_transfer' ? 'bank transfer' : depositConfirmation.deposit_method.toUpperCase()}</strong></>
+                            )}? Confirm only after you have verified the payment. This will also confirm the booking at the total the client accepted.
+                        </p>
+                        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                            <button
+                                type="button"
+                                disabled={busyId === depositConfirmation.id}
+                                onClick={() => setDepositConfirmation(null)}
+                                className="rounded-full border border-[#d7c0a2] px-4 py-2 text-sm font-semibold text-[#6a5542] transition hover:bg-[#faf6f2] disabled:opacity-50"
+                            >
+                                Go back
+                            </button>
+                            <button
+                                type="button"
+                                disabled={busyId === depositConfirmation.id}
+                                onClick={() => markDepositReceived(depositConfirmation)}
+                                className="rounded-full bg-[#2E7D46] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#256B3A] disabled:opacity-50"
+                            >
+                                {busyId === depositConfirmation.id ? 'Saving…' : 'Verify & confirm booking'}
+                            </button>
+                        </div>
+                    </section>
                 </div>
             )}
         </>

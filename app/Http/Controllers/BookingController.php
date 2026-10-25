@@ -27,7 +27,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class BookingController extends Controller
 {
     /** Clients may change a confirmed booking only if it is further away than this. */
-    private const CHANGE_CUTOFF_HOURS = 24;
 
     private const MAX_DAILY_BOOKINGS = 2;
 
@@ -41,20 +40,18 @@ class BookingController extends Controller
 
     private const DEFAULT_OUT_OF_TOWN_TRAVEL_FEE = 1000;
 
-    private const BOOKING_TERMS_VERSION = '2026-10-15-v1';
+    private const BOOKING_TERMS_VERSION = '2026-10-25-v2';
 
     private const BOOKING_TERMS = <<<'TERMS'
-To secure your booking, a 50% downpayment of the total package price is required before your scheduled appointment. The downpayment confirms and reserves your preferred date and time.
+A 50% deposit of the total package price is required to secure your appointment. Trixie confirms the booking after verifying the payment.
 
 Mode of payment: GCash
 09241013301 T***E N** D** C**
 
 Please note:
-• The downpayment is non-refundable once the booking is confirmed.
+• If you cancel a confirmed booking, the 50% deposit is non-refundable.
 • If the downpayment is not settled before the required time, the schedule may be released and offered to other clients.
 • The remaining balance must be paid on the day of the service.
-
-Once the downpayment is received, your appointment will be officially secured.
 
 Thank you and we look forward to glamming you!
 HMUA: GlowUpByTrixie
@@ -638,6 +635,7 @@ TERMS;
 
         $booking->update([
             'status' => 'confirmed',
+            'confirmed_at' => now(),
             'artist_message' => $validated['artist_message'] ?? null,
         ]);
 
@@ -732,6 +730,7 @@ TERMS;
             'deposit_method' => null,
             'deposit_reference' => null,
             'deposit_proof_path' => null,
+            'deposit_submitted_at' => null,
             'deposit_received_at' => null,
             'deposit_amount' => null,
             'deposit_reminder_sent_at' => null,
@@ -766,6 +765,7 @@ TERMS;
             'quote_accepted_at' => now(),
             'transportation_fee_pending' => false,
             'deposit_status' => 'due',
+            'deposit_submitted_at' => null,
             'deposit_reminder_sent_at' => null,
         ]);
 
@@ -799,6 +799,7 @@ TERMS;
 
         $booking->update([
             'deposit_status' => 'submitted',
+            'deposit_submitted_at' => now(),
             'deposit_method' => $validated['deposit_method'],
             'deposit_reference' => $validated['deposit_reference'] ?? null,
             'deposit_proof_path' => $proofPath,
@@ -837,9 +838,15 @@ TERMS;
             'deposit_status' => 'received',
             'deposit_received_at' => now(),
             'deposit_amount' => $depositAmount,
+            'status' => 'confirmed',
+            'confirmed_at' => now(),
         ]);
 
         $booking->loadMissing('client', 'artist');
+        $booking->artist?->notifications()
+            ->where('type', NewBookingRequest::class)
+            ->where('data->booking_id', $booking->id)
+            ->delete();
         $booking->client?->notify(new ArtistBookingUpdate($booking, 'deposit_received'));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Saved!']);
@@ -922,6 +929,7 @@ TERMS;
 
         $booking->update([
             'status' => 'cancelled',
+            'cancelled_at' => now(),
             'cancelled_by' => 'artist',
             'artist_message' => $validated['artist_message'] ?? null,
         ]);
@@ -950,6 +958,7 @@ TERMS;
 
         $booking->update([
             'status' => 'cancelled',
+            'cancelled_at' => now(),
             'cancelled_by' => $booking->client_id === $userId ? 'client' : 'artist',
         ]);
 
@@ -974,13 +983,16 @@ TERMS;
     {
         abort_unless($booking->client_id === $request->user()->id, 403);
 
-        $currentStart = Carbon::parse("{$booking->booking_date} {$booking->booking_time}");
-
-        $allowed = $booking->status === 'pending'
-            || ($booking->status === 'confirmed'
-                && $currentStart->gt(now()->addHours(self::CHANGE_CUTOFF_HOURS)));
-
-        abort_unless($allowed, 422, 'This booking can no longer be rescheduled.');
+        abort_unless(
+            $booking->status === 'pending',
+            422,
+            'Confirmed bookings cannot be rescheduled. Contact Trixie if you need to discuss a change.',
+        );
+        abort_unless(
+            ! $booking->quote_pending && ! $booking->transportation_fee_pending,
+            422,
+            'Please resolve the current quote before changing the appointment.',
+        );
 
         $validated = $request->validate([
             'booking_date' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:'.$this->maximumBookingDate()],
@@ -1018,12 +1030,16 @@ TERMS;
                 ]);
             }
 
-            $booking->update([
-                'booking_date' => $validated['booking_date'],
-                'booking_time' => $validated['booking_time'],
-                'status' => 'pending',
-                'appointment_reminder_sent_at' => null,
-                ...$this->withBookingFees(
+            $priceAlreadyAccepted = $booking->quote_accepted_at !== null
+                || in_array($booking->deposit_status, ['submitted', 'received'], true);
+            $rescheduledFees = $priceAlreadyAccepted
+                ? [
+                    'selected_add_ons' => $booking->selected_add_ons ?? [],
+                    'estimated_total' => $booking->estimated_total === null
+                        ? null
+                        : (float) $booking->estimated_total,
+                ]
+                : $this->withBookingFees(
                     $booking->selected_add_ons ?? [],
                     $booking->estimated_total === null ? null : (float) $booking->estimated_total,
                     $validated['booking_date'],
@@ -1034,7 +1050,17 @@ TERMS;
                     (int) ($booking->artist->metro_manila_travel_fee ?? self::DEFAULT_METRO_MANILA_TRAVEL_FEE),
                     (int) ($booking->artist->out_of_town_travel_fee ?? self::DEFAULT_OUT_OF_TOWN_TRAVEL_FEE),
                     $booking->service_area_level === 'on_request',
-                ),
+                );
+
+            $booking->update([
+                'booking_date' => $validated['booking_date'],
+                'booking_time' => $validated['booking_time'],
+                'status' => 'pending',
+                'confirmed_at' => null,
+                'completed_at' => null,
+                'cancelled_at' => null,
+                'appointment_reminder_sent_at' => null,
+                ...$rescheduledFees,
                 // the old message belonged to the old slot
                 'artist_message' => null,
             ]);
@@ -1054,7 +1080,10 @@ TERMS;
             'Only confirmed bookings can be marked as completed.'
         );
 
-        $booking->update(['status' => 'completed']);
+        $booking->update([
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
 
         $booking->loadMissing('artist');
         $booking->client?->notify(new ArtistBookingUpdate($booking, 'completed'));

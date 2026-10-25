@@ -14,6 +14,10 @@ use Illuminate\Support\Carbon;
  * @property User|null $artist
  * @property Carbon|null $appointment_reminder_sent_at
  * @property Carbon|null $deposit_reminder_sent_at
+ * @property Carbon|null $deposit_submitted_at
+ * @property Carbon|null $confirmed_at
+ * @property Carbon|null $completed_at
+ * @property Carbon|null $cancelled_at
  */
 class Booking extends Model
 {
@@ -54,6 +58,10 @@ class Booking extends Model
         'deposit_reference',
         'deposit_proof_path',
         'deposit_received_at',
+        'deposit_submitted_at',
+        'confirmed_at',
+        'completed_at',
+        'cancelled_at',
         'terms_version',
         'terms_text',
         'terms_accepted_at',
@@ -76,6 +84,10 @@ class Booking extends Model
             'quote_pending' => 'boolean',
             'quote_accepted_at' => 'datetime',
             'deposit_received_at' => 'datetime',
+            'deposit_submitted_at' => 'datetime',
+            'confirmed_at' => 'datetime',
+            'completed_at' => 'datetime',
+            'cancelled_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
             'appointment_reminder_sent_at' => 'datetime',
             'deposit_reminder_sent_at' => 'datetime',

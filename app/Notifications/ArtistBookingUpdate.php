@@ -36,7 +36,7 @@ class ArtistBookingUpdate extends Notification
             'quote_updated' => 'Final booking quote ready',
             'quote_accepted' => 'Client accepted the final quote',
             'deposit_submitted' => 'Client says deposit was sent',
-            'deposit_received' => 'Deposit received',
+            'deposit_received' => 'Deposit verified · booking confirmed',
             'balance_payment_recorded' => 'Balance payment recorded',
         ];
 
@@ -57,7 +57,7 @@ class ArtistBookingUpdate extends Notification
                 .' · Remaining balance: ₱'.number_format(max(
                     0,
                     (float) ($this->booking->estimated_total ?? 0) - (float) ($this->booking->deposit_amount ?? 0),
-                ), 2).'. Trixie verified your payment.',
+                ), 2).'. Trixie verified your payment and confirmed your booking at the accepted total.',
             'balance_payment_recorded' => 'Balance payment of ₱'.number_format((float) ($this->balancePayment?->amount ?? 0), 2)
                 .' recorded via '.str_replace('_', ' ', ucfirst($this->balancePayment?->method ?? 'payment'))
                 .'. Remaining balance: ₱'.number_format(($this->remainingBalanceCents ?? 0) / 100, 2).'.',
